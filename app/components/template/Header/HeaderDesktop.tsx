@@ -1,40 +1,20 @@
-import { Link } from "react-router";
 import { cn } from "~/lib/utils";
-import { LogIn } from "lucide-react";
-import { Button } from "~/components/ui/button";
 
 export default function HeaderDesktop() {
     return (
-        <header className={cn("w-full pt-6 bg-transparent pb-6")}>
-            <div className="mx-auto w-full max-w-[90rem]">
-                <div className="flex items-center justify-between px-4xl min-h-[4.25rem]">
-                    <div className="flex items-center flex-1">
-                        <Link
-                            to="/"
-                            className="flex items-center gap-3 shrink-0"
-                        >
-                            <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
-                                alt="Logo Universitas Pancasila" 
-                                className="h-12 w-auto"
-                            />
-                            <div className="flex flex-col font-geist">
-                                <span className="text-2xl font-bold text-zinc-950 leading-none tracking-tight">Sistem Informasi</span>
-                                <span className="text-base font-medium text-orange-600 leading-none tracking-wide">Kerja Praktik</span>
-                            </div>
-                        </Link>
-                    </div>
-
-                    <div className="flex items-center h-11 gap-4">
-                        <Button asChild variant="default" className="rounded-full">
-                            <Link to="/login" className="flex items-center gap-2">
-                                <LogIn className="w-4 h-4" />
-                                Login
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
+        <div className={cn("w-full px-[1.85rem] py-[0.5rem] bg-[#F7F7F7] border-b border-black/5 flex justify-between items-center font-['Inter']")}>
+            {/* Left Section: Company Info */}
+            <div className="flex items-center gap-[1.5rem]">
+                <div className="text-neutral-500 hover:text-black text-[0.875rem] font-medium tracking-wide cursor-pointer transition-colors">About Us</div>
+                <div className="text-neutral-500 hover:text-black text-[0.875rem] font-medium tracking-wide cursor-pointer transition-colors">Visi Misi Perusahaan</div>
             </div>
-        </header>
+
+            {/* Right Section: Support Links */}
+            <div className="flex items-center gap-[1.5rem]">
+                <div className="text-neutral-500 hover:text-black text-[0.875rem] font-medium tracking-wide cursor-pointer transition-colors">Tracking Package</div>
+                <div className="text-neutral-500 hover:text-black text-[0.875rem] font-medium tracking-wide cursor-pointer transition-colors">FAQ</div>
+                <div className="text-neutral-500 hover:text-black text-[0.875rem] font-medium tracking-wide cursor-pointer transition-colors">Contact Us</div>
+            </div>
+        </div>
     );
 }

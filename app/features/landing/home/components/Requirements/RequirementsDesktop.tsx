@@ -20,7 +20,7 @@ export default function RequirementsDesktop() {
                     {
                         title: "Akademik",
                         items: [
-                            "Terdaftar sebagai mahasiswa aktif Program Studi Teknik Informatika Fakultas Teknik Universitas Pancasila pada tahun akademik semester berjalan",
+                            "Terdaftar sebagai mahasiswa aktif Program Studi Teknik Informatika Fakultas Teknik FSCV pada tahun akademik semester berjalan",
                             "Telah memenuhi 100 SKS dengan IPK ≥ 2,00 dan maksimal nilai D atau E sebanyak 6 SKS (tidak termasuk mata kuliah Praktikum, MKWU dan MKWN)",
                             "Untuk nilai mata kuliah Praktikum dan MKWU/MKWN adalah minimal C",
                             "Memrogramkan/memilih mata kuliah Kerja Praktik (2 SKS) pada Kartu Rencana Studi (KRS)"
@@ -39,7 +39,7 @@ export default function RequirementsDesktop() {
                         items: [
                             "Mahasiswa dipersilakan untuk menentukan sendiri tempat pelaksanaan KP",
                             "Kegiatan KP dapat dilakukan di seluruh perusahaan, instansi pemerintahan atau institusi pendidikan yang telah mempunyai sistem informasi atau sistem jaringan komputer",
-                            "Mahasiswa juga dapat diikutsertakan dalam kegiatan-kegiatan di lingkungan kampus Universitas Pancasila yang berkaitan dengan pengembangan teknologi informasi"
+                            "Mahasiswa juga dapat diikutsertakan dalam kegiatan-kegiatan di lingkungan kampus FSCV yang berkaitan dengan pengembangan teknologi informasi"
                         ]
                     }
                 ].map((category, idx) => (

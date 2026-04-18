@@ -201,7 +201,7 @@ export function PenilaianDesktop({ title }: { title: string }) {
                             {/* University Header Row */}
                             <tr className="bg-slate-50/50 border-b border-slate-100">
                                 <th colSpan={10} className="px-6 py-3 text-center">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fakultas Teknik Universitas Pancasila</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Fakultas Teknik FSCV</span>
                                 </th>
                             </tr>
                             <tr className="bg-white border-b border-slate-100">

@@ -18,7 +18,7 @@ export function AboutSection() {
                             
                             <div className="self-stretch justify-start text-slate-600 text-lg md:text-xl font-normal font-geist leading-relaxed">
                                 <p className="mb-6">
-                                    Sistem Informasi Kerja Praktik (SIKP) adalah inisiatif digital Universitas Pancasila untuk memodernisasi proses magang mahasiswa.
+                                    FSCV adalah inisiatif digital untuk memodernisasi proses magang mahasiswa.
                                 </p>
                                 <p>
                                     Platform ini menghubungkan dua pilar utama: <strong>Mahasiswa</strong> dan <strong>Dosen Pembimbing</strong>. Kami memastikan setiap tahapan berjalan transparan dan efisien.

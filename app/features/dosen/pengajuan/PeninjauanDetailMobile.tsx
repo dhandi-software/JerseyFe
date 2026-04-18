@@ -110,12 +110,12 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                 {/* Official Header (Simplified) */}
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center space-y-2">
                     <img 
-                        src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                        src="/images/FSCV.jpeg" 
                         alt="Logo UP" 
                         className="w-12 h-12 mx-auto object-contain"
                     />
                     <h2 className="text-xs font-bold text-gray-800 uppercase leading-relaxed">
-                        Fakultas Teknik <br/> Universitas Pancasila
+                        Fakultas Teknik <br/> FSCV
                     </h2>
                     <div className="w-16 h-0.5 bg-gray-800 mx-auto rounded-full"></div>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Permohonan Kerja Praktik</p>

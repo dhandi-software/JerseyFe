@@ -100,18 +100,18 @@ export function usePeninjauan(user: User | null) {
         };
     
         try {
-          const logoUrl = "https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png";
+          const logoUrl = "/images/FSCV.jpeg";
           const img = await loadImage(logoUrl);
           
           const pageWidth = doc.internal.pageSize.getWidth();
           const centerX = pageWidth / 2;
     
-          doc.addImage(img, "PNG", centerX - 10, 10, 20, 20);
+          doc.addImage(img, "JPEG", centerX - 10, 10, 20, 20);
     
           doc.setFont("helvetica", "bold");
           doc.setFontSize(14);
           doc.text("FAKULTAS TEKNIK", centerX, 38, { align: "center" });
-          doc.text("UNIVERSITAS PANCASILA", centerX, 44, { align: "center" });
+          doc.text("FSCV", centerX, 44, { align: "center" });
     
           doc.setLineWidth(0.5);
           doc.line(14, 48, pageWidth - 14, 48);

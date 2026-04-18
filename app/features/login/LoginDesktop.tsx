@@ -2,32 +2,24 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
-import { TextField } from "~/components/ui/TextField";
 import { Link } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, Mail, Lock } from "lucide-react";
+import { motion } from "motion/react";
+import { cn } from "~/lib/utils";
 
 export function LoginDesktop() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
-    const [errors, setErrors] = useState({ email: false, password: false, rememberMe: false });
+    const [errors, setErrors] = useState({ email: false, password: false });
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const { login, isLoading } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        const newErrors = { email: false, password: false, rememberMe: false };
-
-        if (!email) {
-            newErrors.email = true;
-        }
-        if (!password) {
-            newErrors.password = true;
-        }
-
+        const newErrors = { email: !email, password: !password };
         setErrors(newErrors);
         setLoginError(null);
 
@@ -35,150 +27,134 @@ export function LoginDesktop() {
             try {
                 await login({ email, password });
             } catch (error: any) {
-                console.error("Login failed", error);
-                setLoginError(error.response?.data?.message || "Login failed. Please check your credentials.");
+                setLoginError(error.response?.data?.message || "Invalid credentials. Please try again.");
             }
         }
     };
 
     return (
-        <main className="relative min-h-screen w-full overflow-hidden font-geist">
-            {/* Full Screen Background */}
-            <div className="absolute inset-0 z-0">
-                <img
-                    src="/images/Background.svg"
-                    alt="Background"
-                    className="h-full w-full object-cover"
-                />
-                {/* Overlay for better contrast */}
-                <div className="absolute inset-0 bg-black/20" />
-            </div>
+        <main className="relative h-screen w-full flex items-center justify-center overflow-hidden font-geist py-8 
+            bg-[#0F172A] 
+            before:content-[''] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_30%,_rgba(79,70,229,0.3)_0%,_transparent_50%),radial-gradient(circle_at_80%_70%,_rgba(6,182,212,0.2)_0%,_transparent_50%),radial-gradient(circle_at_50%_50%,_rgba(124,58,237,0.1)_0%,_transparent_70%)]
+            selection:bg-indigo-500 selection:text-white"
+        >
+            {/* Background Decorative Blobs */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-600/20 rounded-full blur-[120px] animate-pulse delay-700"></div>
 
-            {/* Login Card Container - Landscape Mode */}
-            <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-                <div className="flex w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in-95 duration-500">
-                    
-                    {/* Left Column: Branding / Visual */}
-                    <div className="hidden w-5/12 flex-col items-center justify-center bg-gradient-to-br from-[#119DA4] to-[#FDE789] p-12 lg:flex relative overflow-hidden">
-                         {/* Decorative Circles */}
-                         <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>
-                         <div className="absolute bottom-10 right-10 w-60 h-60 bg-[#119DA4]/20 rounded-full blur-3xl"></div>
-
-                        <div className="relative z-10 flex flex-col items-center text-center">
-                            <div className="mb-8 rounded-2xl bg-white/90 p-4 shadow-lg shadow-black/5 backdrop-blur-sm">
-                                <img 
-                                    src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
-                                    alt="Logo Universitas Pancasila" 
-                                    className="h-32 w-auto"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2 text-white">
-                                <span className="text-3xl font-bold leading-tight tracking-tight drop-shadow-sm">Sistem Informasi</span>
-                                <span className="text-xl font-semibold text-white/90 leading-tight tracking-wide drop-shadow-sm">Kerja Praktik</span>
-                            </div>
-                            <p className="mt-6 text-sm text-white/90 w-full leading-relaxed font-medium drop-shadow-sm">
-                                Platform terintegrasi untuk pengelolaan administrasi dan monitoring kerja Praktik mahasiswa Universitas Pancasila.
-                            </p>
-                        </div>
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="relative z-10 w-full max-w-[500px] max-h-[92vh] flex flex-col bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_48px_80px_-16px_rgba(0,0,0,0.4)] overflow-hidden border border-white/20 p-8 lg:p-12"
+            >
+                {/* Branding Header */}
+                <header className="mb-8 flex flex-col items-center shrink-0">
+                    <div className="w-14 h-14 bg-[#0F172A] rounded-2xl flex items-center justify-center shadow-xl mb-4 shadow-indigo-500/10 border border-white/10">
+                        <ShieldCheck className="text-white w-7 h-7" />
                     </div>
+                    <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter text-center line-height-1">
+                        FSCV PORTAL
+                    </h1>
+                    <p className="text-slate-500 text-[9px] font-black mt-1 uppercase tracking-[0.3em] opacity-60">
+                        Secure Environment Authorization
+                    </p>
+                </header>
 
-                    {/* Right Column: Login Form */}
-                    <div className="flex w-full flex-col justify-center bg-white p-8 lg:w-7/12 lg:p-16">
-                        <div className="mb-8">
-                            <h2 className="text-3xl font-bold text-zinc-900">Welcome Back!</h2>
-                            <p className="mt-2 text-zinc-500">Please enter your details to sign in.</p>
-                        </div>
+                {loginError && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-[13px] font-bold"
+                    >
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
+                        {loginError}
+                    </motion.div>
+                )}
 
-                        {loginError && (
-                            <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-                                {loginError}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identity Key (Email)</label>
+                        <div className="relative group">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                <Mail className="w-4 h-4" />
                             </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                            <TextField
-                                label="Email Address"
-                                placeholder="username@student.univpancasila.ac.id"
+                            <input 
+                                type="email"
+                                placeholder="username@portal.com"
                                 value={email}
-                                variant="vertical"
                                 onChange={(e) => setEmail(e.target.value)}
-                                error={errors.email}
-                                className="bg-zinc-50 focus:bg-white transition-colors"
-                            />
-                            
-                            <div className="flex flex-col gap-1">
-                                <TextField
-                                    label="Password"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    type={showPassword ? "text" : "password"}
-                                    variant="vertical"
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    error={errors.password}
-                                    className="bg-zinc-50 focus:bg-white transition-colors"
-                                    rightIcon={
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="text-zinc-400 hover:text-zinc-600 focus:outline-none flex items-center"
-                                        >
-                                            {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-                                        </button>
-                                    }
-                                />
-                                <div className="flex justify-end mt-1">
-                                    <Link
-                                        to="/forgot-password"
-                                        className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline transition-colors"
-                                    >
-                                        Forgot password?
-                                    </Link>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Checkbox
-                                    id="remember"
-                                    checked={rememberMe}
-                                    onCheckedChange={(checked) =>
-                                        setRememberMe(checked === true)
-                                    }
-                                    className="border-gray-300 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600 rounded"
-                                />
-                                <Label
-                                    htmlFor="remember"
-                                    className="text-sm font-normal text-zinc-600 cursor-pointer select-none"
-                                >
-                                    Remember me 
-                                </Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                size="lg"
-                                className="w-full mt-2 h-12 bg-orange-600 hover:bg-orange-700 text-white font-medium shadow-lg shadow-orange-600/20 transition-all active:scale-[0.98] rounded-xl text-base"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                        <span>Signing in...</span>
-                                    </div>
-                                ) : (
-                                    "Sign In"
+                                className={cn(
+                                    "w-full h-14 pl-12 pr-4 bg-slate-50 border rounded-2xl text-[14px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
+                                    errors.email ? "border-red-200" : "border-slate-100 focus:border-indigo-500"
                                 )}
-                            </Button>
-                        </form>
-
-                        <div className="mt-10 pt-6 border-t border-zinc-100 text-center">
-                            <p className="text-xs text-zinc-400">
-                                © {new Date().getFullYear()} Universitas Pancasila. All rights reserved.
-                            </p>
+                            />
                         </div>
                     </div>
-                </div>
-            </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Security Code (Password)</label>
+                        <div className="relative group">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                <Lock className="w-4 h-4" />
+                            </div>
+                            <input 
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className={cn(
+                                    "w-full h-14 pl-12 pr-12 bg-slate-50 border rounded-2xl text-[14px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
+                                    errors.password ? "border-red-200" : "border-slate-100 focus:border-indigo-500"
+                                )}
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                        <div className="flex justify-end pt-1 px-1">
+                            <Link to="/forgot-password" className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
+                                Forgot password?
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 px-1">
+                        <Checkbox 
+                            id="remember-ds" 
+                            checked={rememberMe} 
+                            onCheckedChange={(v) => setRememberMe(v === true)}
+                            className="rounded-lg w-5 h-5 border-slate-200 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                        />
+                        <Label htmlFor="remember-ds" className="text-xs font-bold text-slate-500 cursor-pointer">Stay Authorized</Label>
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        disabled={isLoading}
+                        className="w-full h-16 rounded-2xl bg-[#0F172A] hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-slate-900/20 active:scale-95 transition-all"
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Establishing Session...</span>
+                            </div>
+                        ) : (
+                            "ENTER DASHBOARD"
+                        )}
+                    </Button>
+                </form>
+
+                <footer className="mt-6 pt-6 border-t border-slate-100 text-center shrink-0">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">
+                        © {new Date().getFullYear()} FSCV Tech Group
+                    </p>
+                </footer>
+            </motion.div>
         </main>
     );
 }

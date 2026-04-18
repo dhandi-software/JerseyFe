@@ -112,7 +112,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                     {/* Logo */}
                     <div className="w-24 h-24 flex-shrink-0">
                          <img 
-                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                            src="/images/FSCV.jpeg" 
                             alt="Logo UP" 
                             className="w-full h-full object-contain"
                          />
@@ -120,7 +120,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                     
                     {/* Title Text */}
                     <div className="flex-1 text-center px-4">
-                        <h1 className="text-xl font-bold text-gray-900 tracking-wide">FAKULTAS TEKNIK UNIVERSITAS PANCASILA</h1>
+                        <h1 className="text-xl font-bold text-gray-900 tracking-wide">FAKULTAS TEKNIK FSCV</h1>
                         <div className="w-full h-px bg-gray-800 my-2"></div>
                         <h2 className="text-lg font-bold text-gray-800 uppercase tracking-widest">Permohonan Kerja Praktik</h2>
                     </div>

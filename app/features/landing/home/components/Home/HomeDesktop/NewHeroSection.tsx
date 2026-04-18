@@ -1,228 +1,116 @@
-import { Link } from "react-router";
-import { Play, ArrowRight, ArrowLeft } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-import { useState, useEffect } from "react";
-
-const IMAGES = [
-    { src: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop", title: "Kolaborasi Tim", subtitle: "Budaya Kerja" },
-    { src: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop", title: "Mentoring", subtitle: "Bimbingan Ahli" },
-    { src: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop", title: "Diskusi Proyek", subtitle: "Problem Solving" },
-    { src: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop", title: "Lingkungan Modern", subtitle: "Fasilitas Lengkap" },
-    { src: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop", title: "Event & Seminar", subtitle: "Knowledge Sharing" },
-];
+import { ArrowUpRight } from "lucide-react";
+import { Button } from "~/components/ui/button";
 
 export function NewHeroSection() {
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [direction, setDirection] = useState(0);
-
-    const slideVariants = {
-        enter: (direction: number) => ({
-            x: direction > 0 ? 1000 : -1000,
-            opacity: 0,
-            scale: 0.5,
-            rotateY: direction > 0 ? 45 : -45
-        }),
-        center: {
-            zIndex: 1,
-            x: 0,
-            opacity: 1,
-            scale: 1,
-            rotateY: 0,
-            transition: {
-                x: { type: "spring" as const, stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-                scale: { duration: 0.4 }
-            }
-        },
-        exit: (direction: number) => ({
-            zIndex: 0,
-            x: direction < 0 ? 1000 : -1000,
-            opacity: 0,
-            scale: 0.5,
-            rotateY: direction < 0 ? 45 : -45,
-            transition: {
-                x: { type: "spring" as const, stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 },
-                scale: { duration: 0.4 }
-            }
-        })
-    };
-
-    const swipePower = (offset: number, velocity: number) => {
-        return Math.abs(offset) * velocity;
-    };
-
-    const paginate = (newDirection: number) => {
-        setDirection(newDirection);
-        setCurrentIndex((prev) => (prev + newDirection + IMAGES.length) % IMAGES.length);
-    };
-
-    const setPage = (index: number) => {
-        setDirection(index > currentIndex ? 1 : -1);
-        setCurrentIndex(index);
-    };
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "ArrowRight") paginate(1);
-            if (e.key === "ArrowLeft") paginate(-1);
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [currentIndex]); // Re-bind on index change to ensure fresh state if needed, though paginate uses functional update
-
     return (
-        <section className="relative w-full overflow-hidden min-h-[90vh] flex items-center pt-20 pb-20">
-            {/* Animated Background */}
-            <AnimatePresence initial={false}>
-                <motion.div
-                    key={currentIndex}
-                    initial={{ opacity: 0, scale: 1.1 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.8 }}
-                    className="absolute inset-0 z-0"
-                >
-                    <img 
-                        src={IMAGES[currentIndex].src} 
-                        alt="Background" 
-                        className="w-full h-full object-cover"
-                    />
-                    {/* Dark Overlay for Text Readability */}
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-                    
-                    {/* Gradient Overlay for extra depth */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-                </motion.div>
-            </AnimatePresence>
-
-            <div className="container mx-auto px-4 md:px-6 relative z-10 grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-                {/* Left Content */}
-                <div className="flex flex-col gap-8 items-start w-full z-20 text-white">
-                    <h1 className="text-5xl md:text-6xl lg:text-[4.5rem] font-bold leading-[1.1] tracking-tight font-geist">
-                        Sistem Kerja <br />
-                        Praktik{" "}
-                        <span className="text-orange-500">
-                            Terpadu
-                        </span>
-                    </h1>
-
-                    <p className="text-xl md:text-2xl text-gray-200 font-medium leading-relaxed w-full">
-                        Platform digital terintegrasi untuk pengelolaan
-                        administrasi dan monitoring kerja Praktik mahasiswa
-                        Teknik Informatika.
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-4 mt-4">
-                        <Link
-                            to="/login"
-                            className="h-14 px-8 bg-orange-600 hover:bg-orange-700 text-white rounded-full flex items-center gap-3 font-bold text-lg transition-all shadow-xl shadow-orange-900/20 hover:scale-105 active:scale-95"
-                        >
-                            <span>Masuk Sistem</span>
-                        </Link>
-
-                        <Link
-                            to="/guide"
-                            className="h-14 px-8 bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 rounded-full flex items-center gap-3 font-bold text-lg transition-all"
-                        >
-                            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                                <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+        <section className="w-full flex justify-center py-4 px-[1rem] sm:px-[1.85rem] font-['Inter']">
+            <div className="w-full max-w-[90rem] flex flex-col gap-4">
+                {/* Upper Row */}
+                <div className="w-full flex items-stretch gap-4 flex-col lg:flex-row">
+                    {/* Main Banner */}
+                    <div className="flex-[2] relative overflow-hidden bg-[#E5E7EB] rounded-[2.5rem] h-[35rem] group cursor-pointer">
+                        <img 
+                            className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
+                            src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200&auto=format&fit=crop" 
+                            alt="Summer Outfit" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-transparent transition-opacity group-hover:from-black/90" />
+                        <div className="absolute left-[2rem] md:left-[4rem] top-[3rem] md:top-[4rem] flex flex-col items-start gap-8 max-w-[30rem]">
+                            <div className="flex flex-col gap-4">
+                                <h1 className="text-white text-[4rem] md:text-[5rem] font-medium leading-[1] drop-shadow-2xl">
+                                    Color of<br/>Summer<br/>Outfit
+                                </h1>
+                                <p className="text-white/90 text-[0.9375rem] font-medium leading-relaxed drop-shadow-lg max-w-[18rem]">
+                                    100+ Collections for your outfit inspirations in this summer
+                                </p>
                             </div>
-                            <span>Panduan</span>
-                        </Link>
+                            <Button className="h-[3.5rem] px-10 bg-neutral-900 border-none hover:bg-neutral-800 text-white rounded-full shadow-2xl transition-all scale-100 active:scale-95 group/btn">
+                                <span className="text-[0.75rem] font-bold tracking-[0.2em] uppercase">VIEW COLLECTIONS</span>
+                            </Button>
+                        </div>
                     </div>
 
-                    {/* Additional Info */}
-                    <div className="flex items-center gap-6 mt-8 pt-6 border-t border-white/10">
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-white">500+</div>
-                            <div className="text-sm text-gray-300">Mahasiswa</div>
+                    {/* Right Side Stacked Covers */}
+                    <div className="flex-1 flex flex-col gap-4">
+                        <div className="relative overflow-hidden bg-[#F3F4F6] rounded-[2.5rem] h-[17rem] group cursor-pointer">
+                            <img 
+                                className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
+                                src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=600&auto=format&fit=crop" 
+                                alt="Outdoor Active" 
+                            />
+                            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/70 to-transparent transition-opacity group-hover:from-black/80" />
+                            <div className="absolute left-[2rem] top-[2rem]">
+                                <div className="text-white text-[1.75rem] font-medium leading-[1.1] tracking-tight drop-shadow-lg">
+                                    Outdoor<br/>Active
+                                </div>
+                            </div>
                         </div>
-                        <div className="w-px h-8 bg-white/20" />
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-white">50+</div>
-                            <div className="text-sm text-gray-300">Perusahaan</div>
-                        </div>
-                        <div className="w-px h-8 bg-white/20" />
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-white">24/7</div>
-                            <div className="text-sm text-gray-300">Akses</div>
+                        <div className="relative overflow-hidden bg-[#F3F4F6] rounded-[2.5rem] h-[17rem] group cursor-pointer">
+                            <img 
+                                className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
+                                src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=800&auto=format&fit=crop" 
+                                alt="Casual Comfort" 
+                            />
+                            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/70 to-transparent transition-opacity group-hover:from-black/80" />
+                            <div className="absolute left-[2rem] top-[2rem]">
+                                <div className="text-white text-[1.75rem] font-medium leading-[1.1] tracking-tight drop-shadow-lg">
+                                    Casual<br/>Comfort
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Content: 3D Gallery System */}
-                <div className="relative w-full flex flex-col items-center justify-center lg:h-[600px] perspective-1000">
-                    
-                    {/* Main Display Area */}
-                    <div className="relative w-full max-w-[500px] aspect-[4/3] mb-8 z-10">
-                        <AnimatePresence initial={false} custom={direction}>
-                            <motion.div
-                                key={currentIndex}
-                                custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
-                                drag="x"
-                                dragConstraints={{ left: 0, right: 0 }}
-                                dragElastic={1}
-                                onDragEnd={(e, { offset, velocity }) => {
-                                    const swipe = swipePower(offset.x, velocity.x);
-                                    if (swipe < -10000) paginate(1);
-                                    else if (swipe > 10000) paginate(-1);
-                                }}
-                                className="absolute w-full h-full rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white/20 backdrop-blur-sm bg-white/10 cursor-grab active:cursor-grabbing"
-                            >
-                                <img
-                                    src={IMAGES[currentIndex].src}
-                                    alt={IMAGES[currentIndex].title}
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-                                <div className="absolute bottom-0 left-0 p-8 text-white transform translate-z-20">
-                                    <motion.h3 
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="text-3xl font-bold mb-2"
-                                    >
-                                        {IMAGES[currentIndex].title}
-                                    </motion.h3>
-                                    <motion.p 
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.1 }}
-                                        className="text-lg opacity-90"
-                                    >
-                                        {IMAGES[currentIndex].subtitle}
-                                    </motion.p>
-                                </div>
-                            </motion.div>
-                        </AnimatePresence>
-                        
-                        {/* Navigation Arrows (Floating) */}
-                        <button 
-                            onClick={() => paginate(-1)}
-                            className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all z-20 hidden md:flex"
-                        >
-                            <ArrowLeft className="w-6 h-6" />
-                        </button>
-                        <button 
-                            onClick={() => paginate(1)}
-                            className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all z-20 hidden md:flex"
-                        >
-                            <ArrowRight className="w-6 h-6" />
+                {/* Lower Row */}
+                <div className="w-full flex flex-col lg:flex-row items-stretch gap-4 mt-2">
+                    {/* Left Text Block */}
+                    <div className="flex-[0.8] flex flex-col justify-center items-start gap-6 px-4 md:px-8 py-8 w-full">
+                        <div className="flex flex-col items-start gap-4">
+                            <h2 className="text-[#111111] text-[3rem] md:text-[3.5rem] font-medium leading-[1] tracking-tight">
+                                Casual<br/>Inspirations
+                            </h2>
+                            <p className="text-[#111111]/60 text-[1rem] leading-relaxed max-w-[22rem]">
+                                Our favorite combinations for casual outfit that can inspire you to apply on your daily activity.
+                            </p>
+                        </div>
+                        <button className="px-10 py-3 border-[1px] border-[#111111]/20 rounded-full hover:bg-[#111111] hover:border-[#111111] transition-all flex justify-center items-center group/btn mt-2">
+                            <span className="text-[#111111] group-hover/btn:text-white transition-colors text-[0.7rem] font-bold tracking-widest uppercase">BROWSE INSPIRATIONS</span>
                         </button>
                     </div>
 
+                    {/* Right Images */}
+                    <div className="flex-[2] flex gap-4 flex-col sm:flex-row">
+                        <div className="flex-1 relative overflow-hidden bg-[#F3F4F6] rounded-[2.5rem] h-[20rem] md:h-[22rem] group cursor-pointer">
+                            <img 
+                                className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
+                                src="https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=600&auto=format&fit=crop" 
+                                alt="Say it with Shirt" 
+                            />
+                            <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity group-hover:from-black/90" />
+                            <div className="absolute left-[2rem] bottom-[2rem] text-white text-[1.75rem] font-medium leading-[1.1] tracking-tight drop-shadow-lg">
+                                Say it <br/>with Shirt
+                            </div>
+                            <div className="absolute right-[2rem] bottom-[2rem] w-12 h-12 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all group-hover:scale-110">
+                                <ArrowUpRight className="w-6 h-6 text-white" strokeWidth={1.5} />
+                            </div>
+                        </div>
+                        <div className="flex-1 relative overflow-hidden bg-[#F3F4F6] rounded-[2.5rem] h-[20rem] md:h-[22rem] group cursor-pointer">
+                            <img 
+                                className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
+                                src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop" 
+                                alt="Funky never get old" 
+                            />
+                            <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity group-hover:from-black/90" />
+                            <div className="absolute left-[2rem] bottom-[2rem] text-white text-[1.75rem] font-medium leading-[1.1] tracking-tight drop-shadow-lg">
+                                Funky never <br/>get old
+                            </div>
+                            <div className="absolute right-[2rem] bottom-[2rem] w-12 h-12 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all group-hover:scale-110">
+                                <ArrowUpRight className="w-6 h-6 text-white" strokeWidth={1.5} />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     );
 }
-
-// Add strict style for 3D perspective
-const perspectiveStyle = {
-    perspective: "1000px",
-    transformStyle: "preserve-3d" as const
-};

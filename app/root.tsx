@@ -38,7 +38,8 @@ export const links: Route.LinksFunction = () => [
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
     },
-    { rel: "icon", href: "/logo_up.png" },
+    { rel: "icon", href: "/images/FSCV.jpeg", type: "image/jpeg" },
+    { rel: "apple-touch-icon", href: "/images/FSCV.jpeg" },
 ];
 
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -78,15 +79,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export type ContextType = { isMobile: boolean | false };
 
+import { CartProvider } from "~/context/CartContext";
+
 export default function App() {
     const { isMobile, locale } = useLoaderData<typeof loader>();
     useChangeLanguage(locale);
 
     return (
         <AuthProvider>
-            {/* Tambahkan PasswordProvider di sini */}
             <PasswordProvider>
-                <Outlet context={{ isMobile } satisfies ContextType} />
+                <CartProvider>
+                    <Outlet context={{ isMobile } satisfies ContextType} />
+                </CartProvider>
             </PasswordProvider>
         </AuthProvider>
     );

@@ -388,7 +388,7 @@ export function UserListDesktop() {
 
     try {
       // Load Logo
-      const logoUrl = "https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png";
+      const logoUrl = "/images/FSCV.jpeg";
       const img = await loadImage(logoUrl);
       
       // Calculate center position
@@ -396,13 +396,13 @@ export function UserListDesktop() {
       const centerX = pageWidth / 2;
 
       // Add Logo
-      doc.addImage(img, "PNG", centerX - 10, 10, 20, 20);
+      doc.addImage(img, "JPEG", centerX - 10, 10, 20, 20);
 
       // Add University Header
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("FAKULTAS TEKNIK", centerX, 38, { align: "center" });
-      doc.text("UNIVERSITAS PANCASILA", centerX, 44, { align: "center" });
+      doc.text("FSCV", centerX, 44, { align: "center" });
 
       // Line Separator
       doc.setLineWidth(0.5);

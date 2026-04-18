@@ -2,32 +2,23 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
-import { TextField } from "~/components/ui/TextField";
 import { Link } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, Mail, Lock } from "lucide-react";
+import { cn } from "~/lib/utils";
 
 export function LoginMobile() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
-    const [errors, setErrors] = useState({ email: false, password: false, rememberMe: false });
+    const [errors, setErrors] = useState({ email: false, password: false });
     const [loginError, setLoginError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
     const { login, isLoading } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        const newErrors = { email: false, password: false, rememberMe: false };
-
-        if (!email) {
-            newErrors.email = true;
-        }
-        if (!password) {
-            newErrors.password = true;
-        }
-
+        const newErrors = { email: !email, password: !password };
         setErrors(newErrors);
         setLoginError(null);
 
@@ -35,124 +26,118 @@ export function LoginMobile() {
             try {
                 await login({ email, password });
             } catch (error: any) {
-                console.error("Login failed", error);
-                setLoginError(error.response?.data?.message || "Login failed. Please check your credentials.");
+                setLoginError(error.response?.data?.message || "Invalid credentials.");
             }
         }
     };
 
     return (
-        <main className="relative min-h-screen w-full overflow-hidden font-geist">
-             {/* Full Screen Background */}
-             <div className="absolute inset-0 z-0">
-                <img
-                    src="/images/Background.svg"
-                    alt="Background"
-                    className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/20" />
-            </div>
+        <main className="relative h-[100dvh] w-full flex flex-col items-center justify-center bg-[#F8FAFC] overflow-hidden font-geist p-6">
+            {/* Background Decorative Elements */}
+            <div className="absolute top-[-5%] left-[-10%] w-[60%] h-[30%] bg-indigo-200/40 rounded-full blur-[80px]"></div>
+            <div className="absolute bottom-[-5%] right-[-10%] w-[60%] h-[30%] bg-cyan-200/40 rounded-full blur-[80px]"></div>
 
-            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
-                    
-                    {/* Header: Logo & Title */}
-                    <div className="mb-6 flex flex-col items-center text-center">
-                         <div className="mb-4 rounded-xl bg-gradient-to-br from-[#119DA4] to-[#FDE789] p-4 shadow-lg">
-                            <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
-                                alt="Logo Universitas Pancasila" 
-                                className="h-16 w-auto mix-blend-multiply"
-                            />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xl font-bold text-zinc-900 leading-tight tracking-tight">Sistem Informasi</span>
-                            <span className="text-base font-semibold text-[#119DA4] leading-tight tracking-wide">Kerja Praktik</span>
-                        </div>
-                         <h2 className="mt-4 text-base font-medium text-zinc-600">Welcome Back!</h2>
+            <div className="relative z-10 w-full max-w-[400px] max-h-[94dvh] flex flex-col">
+                {/* Logo Area */}
+                <div className="mb-6 flex flex-col items-center shrink-0">
+                    <div className="w-14 h-14 bg-[#0F172A] rounded-2xl flex items-center justify-center shadow-2xl mb-4 shadow-indigo-500/20">
+                        <ShieldCheck className="text-white w-7 h-7" />
                     </div>
+                    <h1 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">
+                        FSCV Portal
+                    </h1>
+                    <p className="text-slate-500 text-[10px] font-bold mt-0.5 uppercase tracking-widest opacity-60">Mobile Authorization</p>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-7 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] border border-white overflow-hidden flex flex-col">
+                    <header className="mb-6 shrink-0">
+                        <h2 className="text-lg font-black text-slate-900 uppercase italic tracking-tight text-center">Identity Login</h2>
+                    </header>
 
                     {loginError && (
-                         <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-sm font-medium text-red-600 border border-red-100 flex items-center justify-center gap-2">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-[11px] font-bold">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
                             {loginError}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                        <TextField
-                            label="Email Address"
-                            placeholder="username@student.univpancasila.ac.id"
-                            value={email}
-                            variant="vertical"
-                            onChange={(e) => setEmail(e.target.value)}
-                            error={errors.email}
-                            className="bg-zinc-50 focus:bg-white transition-colors"
-                        />
-                        <div className="flex flex-col gap-1">
-                            <TextField
-                                label="Password"
-                                placeholder="••••••••"
-                                value={password}
-                                type={showPassword ? "text" : "password"}
-                                variant="vertical"
-                                onChange={(e) => setPassword(e.target.value)}
-                                error={errors.password}
-                                className="bg-zinc-50 focus:bg-white transition-colors"
-                                rightIcon={
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="text-zinc-400 hover:text-zinc-600 focus:outline-none flex items-center"
-                                    >
-                                        {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-                                    </button>
-                                }
-                            />
-                             <div className="flex justify-end mt-1">
-                                <Link
-                                    to="/forgot-password"
-                                    className="text-xs font-medium text-[#119DA4] hover:text-[#0e8389] hover:underline transition-colors"
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 italic opacity-80">Email Address</label>
+                            <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                    <Mail className="w-4 h-4" />
+                                </div>
+                                <input 
+                                    type="email"
+                                    placeholder="your@email.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className={cn(
+                                        "w-full h-12 pl-11 pr-4 bg-slate-50 border rounded-2xl text-[13px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
+                                        errors.email ? "border-red-200" : "border-slate-100 focus:border-indigo-500"
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 italic opacity-80">Security Code</label>
+                            <div className="relative group">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                    <Lock className="w-4 h-4" />
+                                </div>
+                                <input 
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className={cn(
+                                        "w-full h-12 pl-11 pr-11 bg-slate-50 border rounded-2xl text-[13px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
+                                        errors.password ? "border-red-200" : "border-slate-100 focus:border-indigo-500"
+                                    )}
+                                />
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
                                 >
-                                    Forgot password?
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                            <div className="flex justify-end pt-1 px-1">
+                                <Link to="/forgot-password" className="text-[10px] font-black text-indigo-600 uppercase italic">
+                                    Forgot Code?
                                 </Link>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                id="remember-mobile"
-                                checked={rememberMe}
-                                onCheckedChange={(checked) =>
-                                    setRememberMe(checked === true)
-                                }
-                               className="border-gray-300 data-[state=checked]:bg-[#119DA4] data-[state=checked]:border-[#119DA4] rounded"
+                        <div className="flex items-center gap-3 px-1 pt-2">
+                            <Checkbox 
+                                id="remember-mb" 
+                                checked={rememberMe} 
+                                onCheckedChange={(v) => setRememberMe(v === true)}
+                                className="rounded-md w-5 h-5 border-slate-200 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                             />
-                            <Label
-                                htmlFor="remember-mobile"
-                                className="text-sm font-normal text-zinc-600 cursor-pointer select-none"
-                            >
-                                Remember me
-                            </Label>
+                            <Label htmlFor="remember-mb" className="text-[11px] font-bold text-slate-500 cursor-pointer">Stay Authorized</Label>
                         </div>
-                        
-                        <Button
-                            type="submit"
-                            size="lg"
-                            className="w-full mt-2 h-11 bg-[#119DA4] hover:bg-[#0e8389] text-white font-medium shadow-lg shadow-[#119DA4]/20 transition-all active:scale-[0.98] rounded-xl text-sm"
+
+                        <Button 
+                            type="submit" 
                             disabled={isLoading}
+                            className="w-full h-14 rounded-2xl bg-[#0F172A] hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-slate-900/20 active:scale-95 transition-all mt-4"
                         >
-                            {isLoading ? "Signing in..." : "Sign In"}
+                            {isLoading ? "Validating..." : "Enter Portal"}
                         </Button>
                     </form>
-
-                     <div className="mt-8 text-center">
-                        <p className="text-[10px] text-zinc-400">
-                            © {new Date().getFullYear()} Universitas Pancasila. All rights reserved.
-                        </p>
-                    </div>
                 </div>
-            </div >
-        </main >
+
+                <footer className="mt-8 text-center shrink-0">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] opacity-40">
+                        © {new Date().getFullYear()} FSCV Tech
+                    </p>
+                </footer>
+            </div>
+        </main>
     );
 }

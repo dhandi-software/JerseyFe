@@ -152,7 +152,7 @@ export function AppSidebar() {
         {/* Logo Section */}
         <div className="mb-8 px-2">
           <img
-            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png"
+            src="/images/FSCV.jpeg"
             alt="MNI"
             className="h-16 w-auto object-contain"
           />

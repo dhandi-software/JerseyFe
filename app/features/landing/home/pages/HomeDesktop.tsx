@@ -11,8 +11,8 @@ export function HomeDesktop() {
     return (
         <main className="w-full bg-white flex flex-col items-center">
             <NewHeroSection />
-            <AboutSection />
             <InfoSection />
+            <AboutSection />
             <PopularPositionsSection />
             <StepsSection />
             <GamificationSection />

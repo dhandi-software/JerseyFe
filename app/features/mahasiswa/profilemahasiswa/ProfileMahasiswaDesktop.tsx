@@ -40,7 +40,7 @@ export function ProfileMahasiswaDesktop() {
             {/* Additional info footer */}
             <div className="text-center py-12 border-t border-gray-100">
                 <p className="text-sm font-medium text-gray-400">
-                    Sistem Manajemen Skripsi &bull; Universitas Pancasila
+                    Sistem Manajemen Skripsi &bull; FSCV
                 </p>
             </div>
         </div>

@@ -9,12 +9,12 @@ export default function NewFooter() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div className="flex items-center gap-3">
                         <img
-                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png"
-                            alt="Logo UP"
+                            src="/images/FSCV.jpeg"
+                            alt="Logo FSCV"
                             className="h-12 w-auto"
                         />
                         <span className="text-xl font-bold text-zinc-950">
-                            SIKP INFORMATIKA
+                            FSCV
                         </span>
                     </div>
 
@@ -43,7 +43,7 @@ export default function NewFooter() {
                 {/* Partners/Copyright Section */}
                 <div className="flex flex-col md:flex-row justify-between items-end border-t border-zinc-100 pt-8 gap-6">
                     <div className="text-xs text-gray-400">
-                        © 2026 teknik Informatika Universitas Pancasila. All
+                        © 2026 FSCV. All
                         rights reserved.
                     </div>
 

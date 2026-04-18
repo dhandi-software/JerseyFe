@@ -12,8 +12,8 @@
 
 /* WebKit (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 0px; /* Hidden by default */
+    background: transparent;
 }
 
 ::-webkit-scrollbar-track {
@@ -21,25 +21,17 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.05); /* Slightly visible */
-    border-radius: 4px;
+    background-color: transparent;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.15); /* Darker on hover */
+/* Scrollbar Hide Class - Aggressive */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
-/* Specific class overrides if needed */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 5px !important;
-    height: 5px !important;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.05) !important;
-    border-radius: 4px !important;
-}
-
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.15) !important;
+.scrollbar-hide {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
 }
