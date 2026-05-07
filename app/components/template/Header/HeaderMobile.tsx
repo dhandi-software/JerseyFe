@@ -37,7 +37,7 @@ export default function HeaderMobile() {
     }, []);
 
     return (
-        <header className="sticky top-0 z-50 w-full bg-white border-b border-neutral-100 px-4 h-16 flex items-center justify-between font-['Inter']">
+        <header className="w-full h-16 bg-white border-b border-neutral-100 px-4 flex items-center justify-between font-['Inter']">
             <div className="flex items-center gap-4 shrink-0">
                 <Button variant="ghost" size="icon" className="text-slate-700 -ml-2">
                     <Menu className="w-6 h-6" />
@@ -46,12 +46,14 @@ export default function HeaderMobile() {
             </div>
 
             <Link to="/" className="flex items-center gap-2 max-w-[50%] justify-center">
-                 <img
-                    src="/images/FSCV.jpeg"
-                    alt="Logo FSCV"
-                    className="h-8 md:h-10 w-auto rounded-sm"
-                />
-                <span className="text-[1rem] md:text-[1.125rem] font-black text-black tracking-tighter uppercase whitespace-nowrap leading-tight">ECOMMERCE</span>
+                <div className="bg-slate-900 p-1.5 rounded-lg shadow-sm flex items-center justify-center">
+                    <img
+                        src="/images/FSCV.png"
+                        alt="Logo FSCV"
+                        className="h-6 md:h-8 w-auto"
+                    />
+                </div>
+                <span className="text-[1rem] md:text-[1.125rem] font-black text-black tracking-tighter uppercase whitespace-nowrap leading-tight">FSCV</span>
             </Link>
 
             <div className="flex items-center shrink-0">

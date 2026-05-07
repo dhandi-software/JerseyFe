@@ -9,10 +9,10 @@ export function NavbarMobile() {
     const inactiveStyle = "text-neutral-500 whitespace-nowrap hover:text-black transition-colors";
 
     const links = [
-        { href: "/category", label: "All Category" },
-        { href: "/about", label: "About Us" },
-        { href: "/visi-misi", label: "Visi Misi Perusahaan" },
-        { href: "/tracking", label: "Tracking Pemesanan" },
+        { href: "/category", label: "Koleksi Jersey" },
+        { href: "/about", label: "Tentang Kami" },
+        { href: "/visi-misi", label: "Visi & Misi" },
+        { href: "/tracking", label: "Lacak Pesanan" },
     ];
 
     return (

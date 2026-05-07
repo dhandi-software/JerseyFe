@@ -1,4 +1,4 @@
-import {
+import { 
     type RouteConfig,
     index,
     route,
@@ -12,63 +12,40 @@ export default [
     layout("routes/landing/landing-layout.tsx", [
         route("/", "routes/landing/Home.tsx"),
         route("category", "routes/landing/ListCategory.tsx"),
-        // route("index", "routes/landing/index.tsx"),
-        /* 
-        route("guide", "routes/landing/Guide.tsx"),
-        route("requirements", "routes/landing/Requirements.tsx"),
-        route("format", "routes/landing/Format.tsx"),
-        route("faq", "routes/landing/FAQ.tsx"),
-        route("article/:slug", "routes/landing/article.tsx"),
-        route("search", "routes/search.tsx"),
-        */
+        route("tracking", "./routes/customer/tracking-pesanan.tsx"),
     ]),
 
-    /*
-    // Mahasiswa
-    layout("routes/mahasiswa/layout.tsx", [
-        ...prefix("mahasiswa", [
-            index("routes/mahasiswa/dashboard.tsx"),
-            route("download", "routes/mahasiswa/download.tsx"),
-            route("pengajuan", "routes/mahasiswa/pengajuan.tsx"),
-            route("bimbingan", "routes/mahasiswa/bimbingan.tsx"),
-            route("chat", "routes/mahasiswa/chat.tsx"),
-            route("acara", "routes/mahasiswa/acara.tsx"),
-            route("sidang", "routes/mahasiswa/sidang.tsx"),
-            route("penilaian", "routes/mahasiswa/penilaian.tsx"),
-            route("profilemahasiswa", "routes/mahasiswa/profilemahasiswa.tsx"),
+    // Customer
+    layout("routes/customer/layout.tsx", [
+        ...prefix("customer", [
+            index("routes/customer/customer-dashboard.tsx"),
+            route("chat", "routes/customer/customer-chat.tsx"),
+            route("profile", "routes/customer/customer-profile.tsx"),
+            route("custom-jersey", "routes/customer/CustomJersey.tsx"),
+            route("custom-jersey/checkout", "routes/customer/CustomJerseyCheckout.tsx"),
+            route("progress-pesanan", "./routes/customer/progress-pesanan.tsx"),
         ]),
     ]),
 
-    // Dosen
-    layout("routes/dosen/layout.tsx", [
-        ...prefix("dosen", [
-            index("routes/dosen/dashboard.tsx"),
-            route("download", "routes/dosen/download.tsx"),
-            route("peninjauan", "routes/dosen/peninjauan.tsx"),
-            route("peninjauan/:id", "routes/dosen/peninjauan.$id.tsx"),
-            route("bimbingan", "routes/dosen/bimbingan.tsx"),
-            route("chat", "routes/dosen/chat.tsx"),
-            route("acara", "routes/dosen/acara.tsx"),
-            route("acara/create", "routes/dosen/acara.create.tsx"),
-            route("acara/edit/:id", "routes/dosen/acara.edit.$id.tsx"),
-            route("sidang", "routes/dosen/sidang.tsx"),
-            route("penilaian", "routes/dosen/penilaian.tsx"),
-            route("laporan", "routes/dosen/laporan.tsx"),
-            route("prodi/sidang", "routes/dosen/prodi.sidang.tsx"),
-            route("prodi/bimbingan", "routes/dosen/prodi.bimbingan.tsx"),
-            route("profile", "routes/dosen/profile.tsx"),
-        ]),
-    ]),
-    // Admin
     // Admin
     layout("routes/admin/layout.tsx", [
         ...prefix("admin", [
             index("routes/admin/dashboard.tsx"),
             route("users", "routes/admin/users.tsx"),
+            route("monitoring-pesanan", "routes/admin/monitoring-pesanan.tsx"),
+            route("chat", "routes/admin/chat.tsx"),
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
-            route("monitoring", "routes/admin/monitoring.tsx"),
         ]),
     ]),
-    */
+
+    // Tim Desain
+    layout("routes/desain/layout.tsx", [
+        ...prefix("desain", [
+            index("routes/desain/dashboard.tsx"),
+            route("chat", "routes/desain/chat_new.tsx"),
+        ]),
+    ]),
+   
 ] satisfies RouteConfig;
+

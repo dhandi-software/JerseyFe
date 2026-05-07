@@ -1,19 +1,35 @@
-import { Users, UserPlus, UserCheck, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { 
+    Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight 
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { adminApi } from "~/api/admin";
-import { StatisticCard } from "~/features/admin/dashboard/components";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
+} from 'recharts';
+
+
 
 export function DashboardDesktop() {
     const [loading, setLoading] = useState(true);
     const [showWelcomeToast, setShowWelcomeToast] = useState(false);
+    const [timeView, setTimeView] = useState<'weekly' | 'monthly' | 'yearly'>('yearly');
+    const [showDropdown, setShowDropdown] = useState(false);
     const [statsData, setStatsData] = useState({
-        totalMahasiswa: 0,
-        totalDosen: 0,
+        totalCustomer: 0,
+        totalStaff: 0,
         totalAdmin: 0,
+        totalRevenue: 0,
+        salesData: {
+            weekly: [] as any[],
+            monthly: [] as any[],
+            yearly: [] as any[]
+        },
+        recentCustomers: [] as any[],
+        recentChats: [] as any[],
+        totalUnreadChat: 0
     });
-    const [monitoringData, setMonitoringData] = useState<any[]>([]);
 
     useEffect(() => {
         const justLoggedIn = sessionStorage.getItem("justLoggedIn");
@@ -26,28 +42,20 @@ export function DashboardDesktop() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // Fetch Counts
                 const statsRes = await adminApi.getDashboardStats();
-                // Fetch admin count separately or include in backend? 
-                // Backend implementation didn't include admin count. 
-                // I'll keep admin count separate or assume 0 for now as user didn't request it explicitly in "new" requirements, 
-                // but component expects it. I'll Fetch admin separately or leave it. 
-                // Let's fetch admin separately for now to be safe, or just 0 if not key.
-                // Actually, let's just keep the existing admin fetch if we want, or ignore.
-                // The user asked for "active student, total dosen". 
-                // I'll just use the new endpoint for mhs and dosen.
                 const adminRes = await adminApi.getUserCountByRole("admin");
 
-                setStatsData({
-                    totalMahasiswa: Number(statsRes.activeStudent || 0),
-                    totalDosen: Number(statsRes.totalDosen || 0),
-                    totalAdmin: Number(adminRes.data?.count || 0),
-                });
-
-                // Fetch Monitoring Data
-                const monRes = await adminApi.getMonitoringData();
-                setMonitoringData(monRes.data || []);
-
+                setStatsData(prev => ({
+                    ...prev,
+                    totalCustomer: Number(statsRes.data?.totalCustomer || 0),
+                    totalStaff: Number(statsRes.data?.totalStaff || 0),
+                    totalAdmin: Number(statsRes.data?.totalAdmin || adminRes.data?.count || 0),
+                    totalRevenue: Number(statsRes.data?.totalRevenue || 0),
+                    salesData: statsRes.data?.salesData || prev.salesData,
+                    recentCustomers: statsRes.data?.recentCustomers || [],
+                    recentChats: statsRes.data?.recentChats || [],
+                    totalUnreadChat: statsRes.data?.totalUnreadChat || 0
+                }));
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
             } finally {
@@ -58,119 +66,359 @@ export function DashboardDesktop() {
         fetchDashboardData();
     }, []);
 
-    const statistics = [
-        { title: "Total Mahasiswa", value: statsData.totalMahasiswa, icon: Users, trend: { value: "Active Students", isPositive: true } },
-        { title: "Total Dosen", value: statsData.totalDosen, icon: UserCheck, trend: { value: "Active Lecturers", isPositive: true } },
-        { title: "Total Admin", value: statsData.totalAdmin, icon: Shield, trend: { value: "System Administrators", isPositive: true } },
-    ];
-
     return (
-        <div className="w-full min-h-screen px-6 py-6 bg-gray-50 font-geist">
-            {/* Header Section */}
-            <div className="flex justify-between mb-8">
-                <div className="w-full">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard</h1>
-                    <p className="text-sm text-gray-500">Overview of system users and monitoring.</p>
+        <div className="w-full min-h-[100vh] p-8 bg-[#F5F5F3] font-['Inter'] flex flex-col gap-6">
+            {showWelcomeToast && <Toast title="Welcome back, Admin!" duration={5000} variant="success" />}
+
+            {/* TIER 1: Top Metrics */}
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                
+                {/* Total Pendapatan Card */}
+                <div className="flex-1 bg-white rounded-2xl p-6 flex flex-col justify-between shadow-sm border border-transparent">
+                    <div>
+                        <div className="text-slate-900 text-xl font-semibold mb-2">Total Pendapatan</div>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-slate-900 text-3xl font-bold">
+                                Rp {statsData.totalRevenue.toLocaleString('id-ID')}
+                            </div>
+                        </div>
+                        <div className="text-slate-500 text-sm mt-1">Akumulasi omset bruto</div>
+                    </div>
                 </div>
-                {showWelcomeToast && <Toast title="Welcome back, Admin!" duration={5000} variant="success" />}
+                {/* Total Customer Card */}
+                <div className="flex-1 bg-white rounded-2xl p-6 flex flex-col justify-between shadow-sm border border-transparent">
+                    <div>
+                        <div className="text-slate-900 text-xl font-semibold mb-2">Total Customer</div>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-slate-900 text-5xl font-medium">
+                                {loading ? "..." : statsData.totalCustomer}
+                            </div>
+                        </div>
+                        <div className="text-slate-500 text-sm mt-1">Total customer aktif di sistem</div>
+                    </div>
+                </div>
+
+                {/* Total Designer Card */}
+                <div className="flex-1 bg-white rounded-2xl p-6 flex flex-col justify-between shadow-sm border border-transparent">
+                    <div>
+                        <div className="text-slate-900 text-xl font-semibold mb-2">Total Designer</div>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-slate-900 text-5xl font-medium">
+                                {loading ? "..." : statsData.totalStaff}
+                            </div>
+                        </div>
+                        <div className="text-slate-500 text-sm mt-1">Desainer dan Staff aktif</div>
+                    </div>
+                </div>
+
+                {/* Total Gudang Card */}
+                <div className="flex-1 bg-white rounded-2xl p-6 flex flex-col justify-between shadow-sm border border-transparent">
+                    <div>
+                        <div className="text-slate-900 text-xl font-semibold mb-2">Total Gudang (Admin)</div>
+                        <div className="text-slate-900 text-5xl font-medium">
+                            {loading ? "..." : statsData.totalAdmin}
+                        </div>
+                        <div className="text-slate-500 text-sm mt-1">Admin yang mengelola pesanan</div>
+                    </div>
+                </div>
             </div>
 
-            {/* Statistics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {statistics.map((stat, index) => (
-                    <StatisticCard key={index} title={stat.title} value={stat.value} icon={stat.icon} trend={stat.trend} />
-                ))}
+            {/* TIER 2: Customers & Growth */}
+            <div className="w-full grid grid-cols-1 lg:grid-cols-[1.2fr_2fr] gap-6">
+                
+                {/* Customers List Section */}
+                <div className="bg-white rounded-2xl py-6 flex flex-col shadow-sm border border-transparent h-full min-h-[25rem]">
+                    <div className="px-6 flex justify-between items-center mb-6">
+                        <div className="text-slate-900 text-xl font-semibold">Customers</div>
+                        <div className="flex items-center gap-1 cursor-pointer">
+                            <span className="text-slate-500 text-sm">Sort by </span>
+                            <span className="text-slate-700 text-sm font-medium">Newest</span>
+                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                        </div>
+                    </div>
+                    <div className="flex-1 px-4 flex flex-col overflow-y-auto gap-1">
+                        {statsData.recentCustomers.length > 0 ? (
+                            statsData.recentCustomers.map((customer, index) => (
+                                <div 
+                                    key={customer.id}
+                                    className={cn(
+                                        "p-4 rounded-2xl flex items-center gap-3 transition-all group cursor-pointer",
+                                        index === 0 ? "bg-[#FFF0E5]" : "hover:bg-orange-50/50"
+                                    )}
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold overflow-hidden border border-slate-100 shadow-sm">
+                                        {customer.nama.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-baseline">
+                                            <div className="text-slate-900 text-sm font-semibold truncate">{customer.nama}</div>
+                                            {customer.lastMessageAt && (
+                                                <div className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">
+                                                    {new Date(customer.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-slate-500 text-[11px] truncate flex items-center gap-1 mt-0.5">
+                                            {customer.lastMessageContent ? (
+                                                <>
+                                                    <span className="shrink-0 text-orange-500">💬</span>
+                                                    <span className="truncate italic font-medium">{customer.lastMessageContent}</span>
+                                                </>
+                                            ) : (
+                                                <span className="truncate opacity-70">{customer.category || "General Customer"}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.location.href = `/admin/chat?userId=${customer.id}`;
+                                            }}
+                                            className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
+                                        >
+                                            <MessageCircle className="w-4 h-4" />
+                                        </button>
+                                        <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#E85C2F] hover:text-[#E85C2F] transition-all">
+                                            <Star className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    {index === 0 && (
+                                         <div className="flex items-center gap-2 pr-2">
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.location.href = `/admin/chat?userId=${customer.id}`;
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
+                                            >
+                                                <MessageCircle className="w-4 h-4" />
+                                            </button>
+                                            <button className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all">
+                                                <Star className="w-4 h-4" />
+                                            </button>
+                                            <div className="w-[1px] h-4 bg-[#E85C2F] opacity-30 mx-1"></div>
+                                            <button className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-800">
+                                                <MoreVertical className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center text-slate-400 text-sm italic py-10">
+                                Belum ada data customer
+                            </div>
+                        )}
+                    </div>
+                    <div className="px-6 mt-4">
+                        <button className="text-[#E85C2F] text-sm font-medium flex items-center gap-1 hover:underline">
+                            All customers <ArrowUpRight className="w-4 h-4 rotate-45" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Growth Chart Section */}
+                <div className="flex flex-col gap-6">
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent flex-1 flex flex-col min-h-[20rem]">
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="text-slate-900 text-xl font-semibold">Omset Transaksi</div>
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setShowDropdown(!showDropdown)}
+                                    className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
+                                >
+                                    <span className="text-slate-700 text-sm font-medium capitalize">
+                                        {timeView === 'weekly' ? 'Mingguan' : timeView === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                                    </span>
+                                    <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDropdown && "rotate-180")} />
+                                </button>
+                                
+                                {showDropdown && (
+                                    <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
+                                        {(['weekly', 'monthly', 'yearly'] as const).map((view) => (
+                                            <button
+                                                key={view}
+                                                onClick={() => {
+                                                    setTimeView(view);
+                                                    setShowDropdown(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-2 text-sm transition-colors",
+                                                    timeView === view ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                {view === 'weekly' ? 'Mingguan' : view === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 w-full h-full relative -ml-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={statsData.salesData[timeView]} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis 
+                                        dataKey="name" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{fill: '#94a3b8', fontSize: 10}}
+                                        dy={10}
+                                    />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{fill: '#94a3b8', fontSize: 10}}
+                                        tickFormatter={(val) => `${val/1000}k`}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Omset']}
+                                        labelStyle={{ color: '#64748b', fontWeight: 'bold' }}
+                                    />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <Area type="linear" dataKey="pv" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPv)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Bottom Stats of Chart */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent">
+                            <div className="text-slate-500 text-sm font-semibold mb-6">Bulan Terlaris</div>
+                            <div className="text-[#E85C2F] text-2xl font-semibold">November</div>
+                            <div className="text-[#E85C2F] text-sm font-medium mt-1">2026</div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent flex flex-col justify-between">
+                            <div className="text-slate-500 text-sm font-semibold mb-6">Tahun Terbaik</div>
+                            <div>
+                                <div className="text-[#E85C2F] text-2xl font-semibold">2026</div>
+                                <div className="text-slate-500 text-sm mt-1">96K jersey terjual</div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent flex flex-col justify-between">
+                            <div className="text-slate-500 text-sm font-semibold mb-4">Top Buyer</div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-sm font-bold">SMK</div>
+                                <div>
+                                    <div className="text-slate-900 text-sm font-medium">SMK Bisa 1</div>
+                                    <div className="text-slate-400 text-xs">Setelan Olahraga</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            {/* Monitoring Section */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-bold text-gray-900">Monitoring Bimbingan Dosen</h2>
-                    <p className="text-sm text-gray-500">List of Lecturers and their supervised Students.</p>
+            {/* TIER 3: Footer Cards */}
+            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Chats Card */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent flex flex-col">
+                    <div className="mb-4">
+                        <div className="text-slate-900 text-xl font-semibold">Chats</div>
+                        <div className="text-slate-500 text-sm">{statsData.totalUnreadChat} pesan belum dibaca</div>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto mb-6">
+                        {statsData.recentChats.length > 0 ? (
+                            statsData.recentChats.map((chat) => (
+                                <div key={chat.id} className="flex gap-3 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition-all">
+                                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0 shadow-sm border border-orange-50">
+                                        {chat.senderName.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <div className="text-slate-900 text-sm font-semibold truncate">{chat.senderName}</div>
+                                            <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider shrink-0">{chat.senderRole}</div>
+                                        </div>
+                                        <div className="text-slate-500 text-xs truncate pr-4">{chat.content}</div>
+                                    </div>
+                                    {!chat.isRead && (
+                                        <div className="w-2 h-2 rounded-full bg-[#E85C2F] mt-2 shrink-0 shadow-sm"></div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center text-slate-400 text-sm italic py-10">
+                                Belum ada chat masuk
+                            </div>
+                        )}
+                    </div>
+                    <div className="mt-auto pt-4 border-t border-slate-50">
+                        <button 
+                            onClick={() => window.location.href = '/admin/chat'}
+                            className="text-[#E85C2F] text-sm font-medium hover:underline"
+                        >
+                            Semua pesan &rarr;
+                        </button>
+                    </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-gray-600 text-xs uppercase font-semibold">
-                            <tr>
-                                <th className="px-6 py-4">Dosen Name</th>
-                                <th className="px-6 py-4">NIDN</th>
-                                <th className="px-6 py-4">Jabatan</th>
-                                <th className="px-6 py-4 text-center">Total Bimbingan</th>
-                                <th className="px-6 py-4">Mahasiswa List</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 text-sm">
-                            {monitoringData.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
-                                        No data available or failed to load.
-                                    </td>
-                                </tr>
-                            ) : (
-                                monitoringData.map((dosen) => (
-                                    <DosenRow key={dosen.id} dosen={dosen} />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+
+                {/* Top States Card */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent flex flex-col justify-between">
+                    <div className="text-slate-900 text-xl font-semibold mb-6">Kota Teratas</div>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center w-full relative">
+                            <div className="w-full max-w-[90%] bg-gradient-to-r from-[#FDE8DF] to-transparent py-2 px-3 rounded-lg flex items-center justify-between">
+                                <span className="text-slate-900 text-sm font-semibold uppercase">JKT</span>
+                            </div>
+                            <span className="absolute right-0 text-slate-800 text-xs font-semibold">120k</span>
+                        </div>
+                        <div className="flex items-center w-full relative">
+                            <div className="w-full max-w-[70%] bg-gradient-to-r from-[#FDE8DF] to-transparent py-2 px-3 rounded-lg flex items-center justify-between">
+                                <span className="text-slate-900 text-sm font-semibold uppercase">BDG</span>
+                            </div>
+                            <span className="absolute right-0 text-slate-800 text-xs font-semibold">80k</span>
+                        </div>
+                        <div className="flex items-center w-full relative">
+                            <div className="w-full max-w-[60%] bg-gradient-to-r from-[#FDE8DF] to-transparent py-2 px-3 rounded-lg flex items-center justify-between">
+                                <span className="text-slate-900 text-sm font-semibold uppercase">SBY</span>
+                            </div>
+                            <span className="absolute right-0 text-slate-800 text-xs font-semibold">70k</span>
+                        </div>
+                         <div className="flex items-center w-full relative">
+                            <div className="w-full max-w-[45%] bg-gradient-to-r from-[#FDE8DF] to-transparent py-2 px-3 rounded-lg flex items-center justify-between">
+                                <span className="text-slate-900 text-sm font-semibold uppercase">SMR</span>
+                            </div>
+                            <span className="absolute right-0 text-slate-800 text-xs font-semibold">50k</span>
+                        </div>
+                    </div>
                 </div>
+
+                {/* New Deals Card */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent">
+                    <div className="text-slate-900 text-xl font-semibold mb-4">Pesanan Baru</div>
+                    <div className="flex flex-wrap gap-2">
+                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
+                            <Plus className="w-4 h-4" /> Tim Futsal JKT
+                        </div>
+                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
+                            <Plus className="w-4 h-4" /> SMA 1 BDG
+                        </div>
+                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
+                            <Plus className="w-4 h-4" /> Kantor Telkom
+                        </div>
+                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
+                            <Plus className="w-4 h-4" /> Kampus UI
+                        </div>
+                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
+                            <Plus className="w-4 h-4" /> FC Bola
+                        </div>
+                    </div>
+                </div>
+
             </div>
+
         </div>
     );
-}
-
-// Sub-component for expandable row (optional, simplified for now)
-function DosenRow({ dosen }: { dosen: any }) {
-    const [expanded, setExpanded] = useState(false);
-
-    return (
-        <>
-            <tr className={cn("hover:bg-gray-50 transition-colors cursor-pointer", expanded && "bg-gray-50")} onClick={() => setExpanded(!expanded)}>
-                <td className="px-6 py-4 font-medium text-gray-900">{dosen.nama}</td>
-                <td className="px-6 py-4 text-gray-600 font-mono">{dosen.nidn}</td>
-                <td className="px-6 py-4 text-gray-600">
-                   <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">{dosen.jabatan}</span>
-                </td>
-                <td className="px-6 py-4 text-center font-bold text-gray-900">{dosen.totalBimbingan}</td>
-                <td className="px-6 py-4 text-gray-500">
-                   <div className="flex items-center gap-1 text-xs">
-                        {expanded ? "Hide Details" : "Show Details"}
-                        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                   </div>
-                </td>
-            </tr>
-            {expanded && (
-                <tr className="bg-gray-50/50">
-                    <td colSpan={5} className="px-6 py-4">
-                        <div className="bg-white border rounded-lg p-4 shadow-sm">
-                            <h4 className="font-semibold text-gray-800 mb-2 text-xs uppercase tracking-wider">Mahasiswa Bimbingan</h4>
-                            {dosen.mahasiswaBimbingan.length === 0 ? (
-                                <p className="text-gray-400 italic text-sm">No students under supervision.</p>
-                            ) : (
-                                <div className="grid gap-2">
-                                    {dosen.mahasiswaBimbingan.map((mhs: any) => (
-                                        <div key={mhs.id} className="flex justify-between items-center p-2 bg-gray-50 rounded border border-gray-100">
-                                            <div>
-                                                <p className="font-medium text-gray-900 text-sm">{mhs.nama}</p>
-                                                <p className="text-xs text-gray-500 font-mono">{mhs.nim}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xs text-gray-700 font-medium truncate max-w-[200px]" title={mhs.judulSkripsi}>{mhs.judulSkripsi}</p>
-                                                <span className={cn(
-                                                    "text-[10px] px-1.5 py-0.5 rounded font-medium uppercase",
-                                                    mhs.status === "APPROVED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                                                )}>
-                                                    {mhs.status || "Ongoing"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </td>
-                </tr>
-            )}
-        </>
-    )
 }

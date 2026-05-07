@@ -14,10 +14,11 @@ import {
     DrawerTrigger,
 } from "~/components/ui/drawer";
 import { useSidebar } from "~/components/ui/sidebar";
+import { useAuth } from "~/hooks/useAuth";
 
 export function UserListMobile() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"mahasiswa" | "dosen">("mahasiswa");
+    const [activeTab, setActiveTab] = useState<"customer" | "internal">("customer");
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -40,8 +41,14 @@ export function UserListMobile() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await adminApi.getUsersByRole(activeTab);
-            setUsers(Array.isArray(res.data) ? res.data : []);
+            if (activeTab === "internal") {
+                const resDesain = await adminApi.getUsersByRole("desain");
+                const resGudang = await adminApi.getUsersByRole("gudang");
+                setUsers([...(resDesain.data || []), ...(resGudang.data || [])]);
+            } else {
+                const res = await adminApi.getUsersByRole("customer");
+                setUsers(Array.isArray(res.data) ? res.data : []);
+            }
         } catch (error) {
             console.error("Failed to fetch users", error);
             setUsers([]);
@@ -57,13 +64,19 @@ export function UserListMobile() {
     }, [activeTab]);
 
     const filteredUsers = useMemo(() => {
+        const { user: currentUser } = useAuth();
         return users.filter((user) => {
+            // Restriction: Admin cannot see/edit Managers
+            if (currentUser?.role === 'admin' && (user.user?.role === 'manager' || user.role === 'manager')) {
+                return false;
+            }
+
             const searchLower = search.toLowerCase();
             return (
                 user.nama?.toLowerCase().includes(searchLower) ||
                 user.email?.toLowerCase().includes(searchLower) ||
-                (user.nim && user.nim.toLowerCase().includes(searchLower)) ||
-                (user.nidn && user.nidn.toLowerCase().includes(searchLower))
+                (user.customerId && user.customerId.toLowerCase().includes(searchLower)) ||
+                (user.staffId && user.staffId.toLowerCase().includes(searchLower))
             );
         });
     }, [users, search]);
@@ -149,7 +162,7 @@ export function UserListMobile() {
 
     const handleClearAllAccounts = async () => {
         try {
-            const res = activeTab === "mahasiswa" 
+            const res = activeTab === "customer" 
                 ? await adminApi.clearAllMahasiswa(false)
                 : await adminApi.clearAllDosen(false);
             
@@ -176,7 +189,7 @@ export function UserListMobile() {
             return;
         }
         try {
-            const res = activeTab === "mahasiswa"
+            const res = activeTab === "customer"
                 ? await adminApi.clearAllMahasiswa(true)
                 : await adminApi.clearAllDosen(true);
                 
@@ -307,7 +320,7 @@ export function UserListMobile() {
 
                 {/* Tabs */}
                 <div className="flex p-1 bg-gray-100 rounded-xl mb-4">
-                    {(["mahasiswa", "dosen"] as const).map((tab) => (
+                    {(["customer", "internal"] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -318,7 +331,7 @@ export function UserListMobile() {
                                     : "text-gray-500"
                             )}
                         >
-                            {tab}
+                            {tab === 'internal' ? 'Internal Team' : tab}
                         </button>
                     ))}
                 </div>
@@ -404,7 +417,7 @@ export function UserListMobile() {
                                 />
 
                                 <div className="flex-1 flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
+                                    <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-100">
                                         <img 
                                             src={`https://ui-avatars.com/api/?name=${user.nama}&background=random`} 
                                             alt={user.nama} 
@@ -414,7 +427,7 @@ export function UserListMobile() {
                                     <div className="flex flex-col min-w-0">
                                         <span className="font-bold text-gray-900 text-sm truncate">{user.nama}</span>
                                         <span className="text-xs text-gray-500 font-mono truncate">
-                                            {activeTab === 'mahasiswa' ? user.nim : user.nidn}
+                                            {activeTab === 'customer' ? user.customerId : user.staffId}
                                         </span>
                                         <span className="text-[10px] text-gray-400 truncate mt-0.5">{user.email || user.user?.email || '-'}</span>
                                     </div>
@@ -441,8 +454,8 @@ export function UserListMobile() {
                                             <Trash2 size={18} />
                                         </button>
                                     </div>
-                                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded-md uppercase tracking-wider">
-                                        {activeTab === 'mahasiswa' ? user.tahunMasuk || 'N/A' : user.jabatan?.split(' ')[0]}
+                                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded-full uppercase tracking-wider border border-gray-200/50">
+                                        {activeTab === 'customer' ? (user.category || 'Standard') : user.position}
                                     </span>
                                 </div>
                             </div>

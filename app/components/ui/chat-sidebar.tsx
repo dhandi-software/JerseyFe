@@ -32,17 +32,17 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
         let color = "bg-[#dfe3e5]";
         let image = "";
 
-        if (contact.id === 0) { // Public Room
-            return { initials: "Rp", color: "bg-[#e5e7eb]", image: "" }; 
+        if (contact.id === 0) { // Internal Team
+            return { initials: "IT", color: "bg-[#D25026] text-white", image: "" }; 
         }
 
         if (contact.isGroup) {
-            return { initials: contact.username.substring(0, 2).toUpperCase(), color: "bg-[#00a884] text-white", image: "" };
+            return { initials: contact.username.substring(0, 2).toUpperCase(), color: "bg-[#D25026] text-white", image: "" };
         }
 
-        if (role.includes("mahasiswa") || username.includes("mahasiswa")) {
+        if (role.includes("mahasiswa") || username.includes("mahasiswa") || role.includes("customer")) {
             image = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
-        } else if (role.includes("dosen") || username.includes("dosen")) {
+        } else if (role.includes("dosen") || username.includes("dosen") || role.includes("desain")) {
             image = "https://rmik.poltekkes-smg.ac.id/wp-content/uploads/2023/10/Doen.png";
         } else if (role.includes("kaprodi") || username.includes("kaprodi")) {
             initials = "Ka";
@@ -99,46 +99,46 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
     });
 
     return (
-        <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full">
-            <div className="px-4 py-3 bg-[#f0f2f5] border-b border-[#d1d7db] flex justify-between items-center h-[59px]">
+        <div className="w-80 border-r border-[#E5E5E5] bg-white flex flex-col h-full font-['Inter']">
+            <div className="px-4 py-3 bg-white border-b border-[#F0F0F0] flex justify-between items-center h-[70px]">
                  <div className="flex items-center gap-3">
-                     <Avatar className="h-10 w-10" src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""}>
+                     <Avatar className="h-11 w-11 ring-2 ring-offset-2 ring-transparent group-hover:ring-[#D25026] transition-all" src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""}>
                         <AvatarImage src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""} />
-                        <AvatarFallback className="bg-[#00a884] text-white">
+                        <AvatarFallback className="bg-[#D25026] text-white font-bold">
                             {getMyInitials()}
                         </AvatarFallback>
                      </Avatar>
-                     <h2 className="text-base font-medium text-[#111b21] font-bold">Chat</h2>
+                     <h2 className="text-xl font-extrabold text-[#1A1A1A] tracking-tight">Messages</h2>
                  </div>
                  {currentUserRole?.toUpperCase() === 'DOSEN' && onCreateGroup && (
                      <DropdownMenu>
                          <DropdownMenuTrigger asChild>
                              <button 
-                                 className="p-2 text-[#54656f] hover:bg-[#dfe3e5] rounded-full transition-colors focus:outline-none focus:ring-0" 
+                                 className="p-2 text-[#666] hover:bg-[#FFF3ED] hover:text-[#D25026] rounded-xl transition-all duration-200 focus:outline-none" 
                                  title="Chat Baru"
                              >
-                                 <MessageSquarePlus className="w-5 h-5" />
+                                 <MessageSquarePlus className="w-6 h-6" />
                              </button>
                          </DropdownMenuTrigger>
-                         <DropdownMenuContent align="end" className="w-48 bg-white rounded-lg shadow-md border border-[#d1d7db]" sideOffset={8}>
-                             <DropdownMenuItem onClick={onCreateGroup} className="cursor-pointer py-2.5 px-3 focus:bg-[#f0f2f5] rounded-md transition-colors">
-                                 <Users className="w-5 h-5 mr-3 text-[#54656f]" />
-                                 <span className="text-[#111b21] font-medium text-[15px]">Grup Baru</span>
+                         <DropdownMenuContent align="end" className="w-52 bg-white rounded-xl shadow-xl border border-[#F0F0F0] p-1 slide-in-from-top-1">
+                             <DropdownMenuItem onClick={onCreateGroup} className="cursor-pointer py-3 px-4 focus:bg-[#FFF3ED] focus:text-[#D25026] rounded-lg transition-colors group">
+                                 <Users className="w-5 h-5 mr-3 text-[#666] group-hover:text-[#D25026]" />
+                                 <span className="font-semibold text-[15px]">Grup Baru</span>
                              </DropdownMenuItem>
                          </DropdownMenuContent>
                      </DropdownMenu>
                  )}
             </div>
 
-            <div className="px-3 py-2 border-b border-[#d1d7db] bg-white">
-                <div className="flex items-center bg-[#f0f2f5] rounded-lg px-3 py-1.5 focus-within:bg-white focus-within:ring-1 focus-within:ring-[#00a884] focus-within:shadow-[0_0_0_1px_rgba(0,168,132,0.2)] transition-all">
-                    <Search className="w-4 h-4 text-[#54656f] mr-3" />
+            <div className="px-4 py-4 border-b border-[#F0F0F0] bg-white">
+                <div className="flex items-center bg-[#F8F9FA] rounded-xl px-4 py-2.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#D25026]/20 focus-within:border-[#D25026] border border-transparent transition-all">
+                    <Search className="w-4 h-4 text-[#A1A1A1] mr-3" />
                     <input 
                         type="text"
-                        placeholder="Cari atau mulai chat baru"
+                        placeholder="Search conversations..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent border-none outline-none text-[#111b21] w-full text-sm placeholder:text-[#54656f] py-1"
+                        className="bg-transparent border-none outline-none text-[#1A1A1A] w-full text-sm font-medium placeholder:text-[#A1A1A1] py-0.5"
                     />
                 </div>
             </div>
@@ -155,46 +155,60 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                             const { initials, color, image } = getAvatarDetails(contact);
                             
                             return (
-                                <button
+                                 <button
                                     key={contact.id}
                                     onClick={() => onSelectContact(contact)}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-3 hover:bg-[#f5f6f6] transition-colors text-left border-b border-[#e9edef]",
-                                        activeContact?.id === contact.id ? "bg-[#f0f2f5]" : ""
+                                        "flex items-center gap-4 px-4 py-4 hover:bg-[#FAFAFA] transition-all text-left border-b border-[#F8F9FA] relative group",
+                                        activeContact?.id === contact.id ? "bg-[#FFF3ED]" : ""
                                     )}
                                 >
-                                    <Avatar className="h-12 w-12" src={image || ""}>
-                                        <AvatarImage src={image} />
-                                        <AvatarFallback className={cn("text-sm font-medium", !image && color)}>
-                                            {initials}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                    {activeContact?.id === contact.id && (
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#D25026] rounded-r-lg" />
+                                    )}
+
+                                    <div className="relative">
+                                        <Avatar className="h-12 w-12 shadow-sm" src={image || ""}>
+                                            <AvatarImage src={image} />
+                                            <AvatarFallback className={cn("text-sm font-bold", !image && color)}>
+                                                {initials}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        {contact.id === 0 && (
+                                             <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm">
+                                                 <Users className="w-3 h-3 text-[#D25026]" />
+                                             </div>
+                                        )}
+                                    </div>
                                     
                                     <div className="flex-1 overflow-hidden">
-                                        <div className="flex justify-between items-baseline mb-0.5">
-                                            <span className="font-medium text-[#111b21] truncate">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <span className={cn(
+                                                "font-bold truncate text-[15px]",
+                                                unread > 0 ? "text-[#1A1A1A]" : "text-[#333]"
+                                            )}>
                                                 {contact.username}
                                             </span>
                                             {contact.lastMessage && (
                                                 <span className={cn(
-                                                    "text-xs whitespace-nowrap ml-2",
-                                                    unread > 0 ? "text-[#00a884] font-medium" : "text-[#667781]"
+                                                    "text-[11px] font-medium whitespace-nowrap ml-2 uppercase tracking-tight",
+                                                    unread > 0 ? "text-[#D25026]" : "text-[#A1A1A1]"
                                                 )}>
                                                     {new Date(contact.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             )}
                                         </div>
                                         
-                                        <div className="flex justify-between items-center">
+                                        <div className="flex justify-between items-center gap-2">
                                             <p className={cn(
-                                                "text-sm truncate max-w-[180px]",
-                                                unread > 0 ? "text-[#111b21] font-medium" : "text-[#667781]"
+                                                "text-[13px] truncate flex-1",
+                                                unread > 0 ? "text-[#444] font-semibold" : "text-[#777]"
                                             )}>
-                                                {contact.lastMessage?.content || "No messages yet"}
+                                                {contact.lastMessage?.content || (contact.lastMessage?.attachmentName ? `📎 ${contact.lastMessage.attachmentName}` : (contact.lastMessage?.attachmentUrl ? "📎 Lampiran file" : "No messages yet"))}
                                             </p>
                                             
                                             {unread > 0 && (
-                                                <span className="bg-[#00a884] text-white text-[0.7rem] font-medium min-w-[1.25rem] h-5 px-1.5 rounded-full flex items-center justify-center">
+                                                <span className="bg-[#D25026] text-white text-[10px] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center animate-pulseShadow">
                                                     {unread}
                                                 </span>
                                             )}

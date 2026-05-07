@@ -40,12 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (data: LoginCredentials) => {
     setIsLoading(true);
     try {
-        // Map email to username if needed, backend expects 'username'
-        // But for this use case, we will assume the form sends 'email' or 'username' correctly.
-        // If the backend expects 'username' but the form uses 'email', we might need to adjust.
-        // Let's assume the user enters 'username' in the email field for now, or we map it.
         const payload = {
-            username: data.email, // using email field as username for now as per backend mock
+            username: data.email,
             password: data.password
         };
 
@@ -63,24 +59,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (from) {
           navigate(from, { replace: true });
         } else {
-            // Normalize role to lowercase for consistent checking
             const role = user.role.toLowerCase();
 
-            // Redirect based on role
             switch (role) {
                 case 'kaprodi':
-                    navigate("/kaprodi"); // Updated to simplified path
+                    navigate("/kaprodi");
                     break;
-                case 'dosen': 
-                case 'dosen_pembimbing':
-                    navigate("/dosen"); // Fixed path to match routes.ts
-                    break;
-                case 'staf':
-                case 'staf_univ':
-                    navigate("/staf");
-                    break;
+                case 'customer':
                 case 'mahasiswa':
-                    navigate("/mahasiswa");
+                    navigate("/customer");
+                    break;
+                case 'desain':
+                    navigate("/desain");
+                    break;
+                case 'dosen':
+                case 'dosen_pembimbing':
+                    navigate("/dosen");
                     break;
                 case 'admin':
                     navigate("/admin");
@@ -102,7 +96,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     localStorage.removeItem("user");
     
-    // Fire and forget the backend logout
     try {
       authService.logout().catch(e => console.error(e));
     } catch(e) { console.error(e) }
@@ -123,4 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = React.useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }

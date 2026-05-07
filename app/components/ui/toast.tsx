@@ -93,6 +93,7 @@ export function Toast({
     return (
         <div
             className={cn(
+                "fixed top-12 right-12 z-[9999]",
                 "flex items-start rounded-xl border transition-all duration-300 animate-in slide-in-from-right-full backdrop-blur-sm",
                 "max-w-[90vw] md:max-w-[850px] w-fit min-w-[300px]",
                 getVariantStyles(),

@@ -109,10 +109,10 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
 
                 {/* Header Section matching the document */}
                 <div className="border-b-2 border-gray-800 p-6 flex items-center justify-between bg-white relative">
-                    {/* Logo */}
-                    <div className="w-24 h-24 flex-shrink-0">
+                    {/* Logo UP */}
+                    <div className="w-24 h-24 flex-shrink-0 bg-slate-900 p-2 rounded-lg shadow-sm">
                          <img 
-                            src="/images/FSCV.jpeg" 
+                            src="/images/FSCV.png" 
                             alt="Logo UP" 
                             className="w-full h-full object-contain"
                          />
@@ -126,9 +126,9 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                     </div>
 
                     {/* Right Side (Department Logo) */}
-                    <div className="w-24 h-24 flex-shrink-0">
+                    <div className="w-24 h-24 flex-shrink-0 bg-slate-900 p-2 rounded-lg shadow-sm">
                          <img 
-                            src="/images/LogoUpKebanggan.png" 
+                            src="/images/FSCV.png" 
                             alt="Logo Fakultas" 
                             className="w-full h-full object-contain"
                          />

@@ -64,24 +64,6 @@ const menuItems = [
     url: "/dosen",
   },
   {
-    key: "download" as MenuKey,
-    title: "Download",
-    icon: Download,
-    url: "/dosen/download",
-  },
-  {
-    key: "peninjauan" as MenuKey,
-    title: "Peninjauan Formulir",
-    icon: FileText,
-    url: "/dosen/peninjauan",
-  },
-  {
-    key: "bimbingan" as MenuKey,
-    title: "Bimbingan",
-    icon: Users,
-    url: "/dosen/bimbingan",
-  },
-  {
     key: "chat" as MenuKey,
     title: "Chat",
     icon: MessageCircle,
@@ -92,38 +74,6 @@ const menuItems = [
     title: "Pengumuman",
     icon: Calendar,
     url: "/dosen/acara",
-  },
-  {
-    key: "sidang" as MenuKey,
-    title: "Manajemen Sidang",
-    icon: Calendar,
-    url: "/dosen/sidang",
-  },
-  {
-    key: "penilaian" as MenuKey,
-    title: "Penilaian",
-    icon: Award,
-    url: "/dosen/penilaian",
-  },
-  {
-    key: "laporan" as MenuKey,
-    title: "Laporan",
-    icon: FileText,
-    url: "/dosen/laporan",
-  },
-  {
-    key: "prodiSidang" as MenuKey,
-    title: "Manajemen Sidang (Prodi)",
-    icon: Calendar,
-    url: "/dosen/prodi/sidang",
-    prodiOnly: true
-  },
-  {
-    key: "prodiBimbingan" as MenuKey,
-    title: "Monitoring Bimbingan",
-    icon: Users,
-    url: "/dosen/prodi/bimbingan",
-    prodiOnly: true
   },
   {
     key: "profile" as MenuKey,
@@ -222,12 +172,14 @@ export function AppSidebar() {
     <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
-        <div className="mb-8 px-2">
-          <img
-            src="https://uppress.univpancasila.ac.id/wp-content/uploads/2023/05/UP4.png"
-            alt="Logo"
-            className="h-16 w-auto object-contain"
-          />
+        <div className="mb-8 flex justify-center w-full px-2">
+          <div className="bg-slate-900 p-4 rounded-xl w-full flex justify-center shadow-lg border border-slate-800">
+            <img
+              src="/images/FSCV.png"
+              alt="Logo FSCV"
+              className="h-14 w-auto object-contain mx-auto"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-8 flex-1">
@@ -344,7 +296,7 @@ export default function DosenLayout() {
               {isMobile && !location.pathname.includes("/chat") && (
                 <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
-                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Dosen Panel</span>
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Designer Panel</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (

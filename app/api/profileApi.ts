@@ -9,8 +9,19 @@ export const profileApi = {
                 `/profile/${userId}`,
             );
 
+            // Handle both wrapped {code, data, message} and raw responses
             if (response.data.code === 302 || response.data.code === 200) {
                 return response.data;
+            }
+            
+            // If it's a raw response (no code field), wrap it so the rest of the app doesn't break
+            if (!response.data.code) {
+                return {
+                    code: 200,
+                    status: "success",
+                    message: "Profile fetched",
+                    data: response.data as any
+                };
             }
 
             throw new Error(response.data.message || "Failed to fetch profile");

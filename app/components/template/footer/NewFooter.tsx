@@ -8,11 +8,13 @@ export default function NewFooter() {
                 {/* Top Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div className="flex items-center gap-3">
-                        <img
-                            src="/images/FSCV.jpeg"
-                            alt="Logo FSCV"
-                            className="h-12 w-auto"
-                        />
+                        <div className="bg-slate-900 p-2 rounded-lg shadow-sm">
+                            <img
+                                src="/images/FSCV.png"
+                                alt="Logo FSCV"
+                                className="h-8 w-auto"
+                            />
+                        </div>
                         <span className="text-xl font-bold text-zinc-950">
                             FSCV
                         </span>

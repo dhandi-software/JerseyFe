@@ -8,7 +8,7 @@ export interface User {
     id: number;
     username: string;
     name: string;
-    role: 'kaprodi' | 'dosen_pembimbing' | 'dosen' | 'staf_univ' | 'staf' | 'mahasiswa' | 'admin' | 'writer' | 'editor';
+    role: 'customer' | 'desain' | 'gudang' | 'admin' | 'manager' | 'writer' | 'editor';
     token?: string; 
     email?: string;
     photo?: string;

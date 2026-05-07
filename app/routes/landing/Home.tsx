@@ -18,7 +18,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 export function meta({ }: Route.MetaArgs) {
     return [
-        { title: "Kerja Praktik" },
-        { name: "description", content: "Welcome to Kerja Praktik Teknik Informatika" },
+        { title: "FSCV" },
+        { name: "description", content: "Welcome to FSCV - Custom Jersey Premium" },
     ];
 }

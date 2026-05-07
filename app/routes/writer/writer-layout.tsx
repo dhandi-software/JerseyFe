@@ -106,11 +106,13 @@ export function AppSidebar() {
     <Sidebar className="border-r border-[#E5E5E5]">
       <SidebarContent className="h-screen bg-[#FAFAFA] flex flex-col py-8 px-6">
         <div className="mb-8 px-2">
-          <img
-            src="/images/FSCV.jpeg"
-            alt="MNI"
-            className="h-16 w-auto object-contain"
-          />
+          <div className="bg-slate-900 p-4 rounded-xl w-full flex justify-center shadow-lg border border-slate-800">
+            <img
+              src="/images/FSCV.png"
+              alt="MNI"
+              className="h-12 w-auto object-contain mx-auto"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-8 flex-1">

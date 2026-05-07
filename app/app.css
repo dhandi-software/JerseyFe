@@ -35,3 +35,27 @@
     -ms-overflow-style: none !important;  /* IE and Edge */
     scrollbar-width: none !important;  /* Firefox */
 }
+
+/* Custom Thick Scrollbar */
+.scrollbar-thick {
+    scrollbar-width: auto;
+    scrollbar-color: #D25026 #f1f1f1;
+}
+
+.scrollbar-thick::-webkit-scrollbar {
+    width: 10px !important;
+}
+
+.scrollbar-thick::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 10px;
+}
+
+.scrollbar-thick::-webkit-scrollbar-thumb {
+    background: #D25026 !important;
+    border-radius: 10px;
+}
+
+.scrollbar-thick::-webkit-scrollbar-thumb:hover {
+    background: #B3411A !important;
+}

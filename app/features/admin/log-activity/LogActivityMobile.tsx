@@ -113,7 +113,7 @@ export function LogActivityMobile() {
                 onChange={(e) => setSelectedRole(e.target.value)}
               >
                 <option value="All Role">All Role</option>
-                <option value="Super Admin">Super Admin</option>
+                <option value="Admin">Admin</option>
                 <option value="Editor">Editor</option>
                 <option value="Author">Author</option>
               </select>

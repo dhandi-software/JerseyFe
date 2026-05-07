@@ -1,91 +1,68 @@
 export function AboutSection() {
     return (
-        <section className="w-full py-20 bg-slate-50 relative overflow-hidden">
-             
-             <div className="container mx-auto px-4 md:px-6">
-                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
+        <section className="w-full py-32 relative overflow-hidden flex justify-center">
+            {/* Background Image with Overlay */}
+            <div className="absolute inset-0 z-0">
+                <img 
+                    src="/images/jpg1.jpg" 
+                    alt="Background" 
+                    className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+            </div>
+
+            <div className="container mx-auto px-4 md:px-6 relative z-10">
+                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
                     
                     {/* Left Side: Content */}
-                    <div className="flex-1 relative flex flex-col justify-start items-start gap-10">
-                        
-                        <div className="self-stretch flex flex-col justify-start items-start gap-8 z-10">
+                    <div className="flex-1 flex flex-col justify-start items-start gap-10">
+                        <div className="self-stretch flex flex-col justify-start items-start gap-8">
                             <div className="self-stretch flex flex-col justify-start items-start gap-4">
-                                <div className="self-stretch justify-start text-zinc-950 text-[2rem] md:text-[2.5rem] lg:text-[3.25rem] font-extrabold font-geist leading-tight">
-                                    Platform Kerja Praktik
-                                    <span className="block text-zinc-400 mt-2">Teknik Informatika</span>
-                                </div>
+                                <h2 className="text-white text-[3rem] md:text-[4.5rem] font-black leading-[1] italic uppercase tracking-tighter">
+                                    Custom Jersey <br/>
+                                    <span className="text-[#D25026]">Premium Quality</span>
+                                </h2>
                             </div>
                             
-                            <div className="self-stretch justify-start text-slate-600 text-lg md:text-xl font-normal font-geist leading-relaxed">
+                            <div className="self-stretch text-white/80 text-lg md:text-xl font-medium leading-relaxed max-w-[32rem]">
                                 <p className="mb-6">
-                                    FSCV adalah inisiatif digital untuk memodernisasi proses magang mahasiswa.
+                                    Wujudkan desain jersey impianmu dengan kualitas bahan terbaik dan hasil cetak yang tajam. Cocok untuk tim esports, sepak bola, hingga komunitas.
                                 </p>
                                 <p>
-                                    Platform ini menghubungkan dua pilar utama: <strong>Mahasiswa</strong> dan <strong>Dosen Pembimbing</strong>. Kami memastikan setiap tahapan berjalan transparan dan efisien.
+                                    Kami menggunakan teknologi sublimasi terbaru untuk memastikan warna yang awet dan tidak luntur. Desain bebas sesuai keinginan Anda!
                                 </p>
                             </div>
 
-                            {/* Stats Area (Replacing Buttons from snippet) */}
-                            <div className="w-full grid grid-cols-2 gap-8 pt-4">
-                                <div className="p-4 bg-white rounded-xl border border-zinc-100 shadow-sm">
-                                    <h4 className="text-3xl font-bold text-zinc-900 mb-1 font-geist">5</h4>
-                                    <p className="text-slate-500 font-medium">Peminatan Studi</p>
+                            <div className="w-full grid grid-cols-2 gap-6 pt-4">
+                                <div className="p-6 bg-white/5 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl">
+                                    <h4 className="text-4xl font-black text-white mb-1 italic">100%</h4>
+                                    <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">High Quality Material</p>
                                 </div>
-                                <div className="p-4 bg-white rounded-xl border border-zinc-100 shadow-sm">
-                                    <h4 className="text-3xl font-bold text-zinc-900 mb-1 font-geist">100%</h4>
-                                    <p className="text-slate-500 font-medium">Digitalisasi</p>
+                                <div className="p-6 bg-white/5 backdrop-blur-xl rounded-[2rem] border border-white/10 shadow-2xl">
+                                    <h4 className="text-4xl font-black text-white mb-1 italic">FREE</h4>
+                                    <p className="text-white/40 font-bold uppercase tracking-widest text-[10px]">Custom Design</p>
                                 </div>
                             </div>
                         </div>
-
-                         {/* Trusted By (Optional - Keeping original clean style, omitted for now matching original content) */}
                     </div>
 
-                    {/* Right Side: Images Composition */}
-                    <div className="flex-1 relative w-full h-[600px] flex items-center justify-center lg:justify-center scale-90 lg:scale-100">
-                        <div className="relative w-[500px] h-[600px]">
-                            {/* Abstract Background Shapes */}
-                            {/* Student Background (Orange Blob - Top Right) */}
-                            <div className="absolute top-0 right-0 w-80 h-72 bg-orange-400 rounded-br-[40%] rounded-tl-[30%] rounded-tr-[30%] rounded-bl-[60%] -z-10 transform -rotate-3" />
+                    {/* Right Side: Product Image */}
+                    <div className="flex-1 relative w-full flex items-center justify-center group">
+                        <div className="relative w-full max-w-[550px] aspect-square flex items-center justify-center">
+                            {/* Decorative Glow */}
+                            <div className="absolute w-[80%] h-[80%] bg-[#D25026]/20 rounded-full blur-[120px] group-hover:bg-[#D25026]/30 transition-all duration-700" />
                             
-                            {/* Teacher Background (Yellow Blob - Bottom Left) */}
-                            <div className="absolute bottom-4 left-0 w-80 h-72 bg-yellow-400 rounded-tr-[50%] rounded-bl-[30%] rounded-tl-[40%] rounded-br-[60%] -z-10 transform -rotate-3" />
-                            
-                            {/* Student Image (Top Right) */}
                             <img 
-                                className="absolute right-0 top-0 w-60 h-72 object-cover rounded-2xl shadow-xl z-10 border-4 border-white transform -rotate-6" 
-                                src="/images/Student.svg" 
-                                alt="Mahasiswa"
-                            />
-                            
-                            {/* Teacher Image (Bottom Left) */}
-                            <img 
-                                className="absolute left-0 bottom-8 w-64 h-64 object-cover rounded-2xl shadow-2xl z-20 border-4 border-white transform -rotate-6" 
-                                src="/images/Teacher.svg" 
-                                alt="Dosen Pembimbing"
+                                className="relative z-10 w-full h-full object-contain drop-shadow-[0_50px_50px_rgba(0,0,0,0.5)] transform group-hover:scale-105 transition-transform duration-700" 
+                                src="/images/jersey_hero.png" 
+                                alt="Custom Jersey Preview"
                             />
 
-                            {/* Decorative Dots/Squares */}
-                            <div className="absolute right-[-20px] top-[150px] flex flex-wrap w-20 gap-2 z-0 opacity-50">
-                                {[...Array(16)].map((_, i) => (
-                                    <div key={i} className="w-2 h-2 bg-orange-400 rounded-full" />
-                                ))}
-                            </div>
-
-                            {/* Chat Bubbles */}
-                            <div className="absolute left-[-20px] top-[100px] z-30 flex flex-col gap-4">
-                                <div className="px-5 py-3 bg-white rounded-2xl rounded-bl-none shadow-lg border border-zinc-100 max-w-[200px]">
-                                    <p className="text-slate-900 text-sm font-medium font-geist leading-snug">
-                                        Proses bimbingan jadi lebih mudah 🚀
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="absolute right-[-30px] bottom-[150px] z-30 flex flex-col gap-4">
-                                <div className="px-5 py-3 bg-slate-800 rounded-2xl rounded-br-none shadow-lg max-w-[220px]">
-                                    <p className="text-white text-sm font-medium font-geist leading-snug">
-                                        Monitoring progress mahasiswa real-time 📊
-                                    </p>
+                            {/* Floating Badge */}
+                            <div className="absolute -right-4 top-10 z-20 bg-white p-4 rounded-3xl shadow-2xl rotate-12 group-hover:rotate-0 transition-transform duration-500 border border-neutral-100 hidden md:block">
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">Starts From</span>
+                                    <span className="text-xl font-black text-neutral-900 italic uppercase tracking-tighter">Rp 150rb</span>
                                 </div>
                             </div>
                         </div>
@@ -96,3 +73,4 @@ export function AboutSection() {
         </section>
     );
 }
+

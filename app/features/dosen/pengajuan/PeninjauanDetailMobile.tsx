@@ -109,11 +109,13 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
             <div className="p-4 space-y-6">
                 {/* Official Header (Simplified) */}
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center space-y-2">
-                    <img 
-                        src="/images/FSCV.jpeg" 
-                        alt="Logo UP" 
-                        className="w-12 h-12 mx-auto object-contain"
-                    />
+                    <div className="bg-slate-900 p-2 rounded-lg shadow-sm w-16 h-16 mx-auto flex items-center justify-center">
+                        <img 
+                            src="/images/FSCV.png" 
+                            alt="Logo UP" 
+                            className="w-full h-full object-contain"
+                        />
+                    </div>
                     <h2 className="text-xs font-bold text-gray-800 uppercase leading-relaxed">
                         Fakultas Teknik <br/> FSCV
                     </h2>

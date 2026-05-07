@@ -100,13 +100,13 @@ export function usePeninjauan(user: User | null) {
         };
     
         try {
-          const logoUrl = "/images/FSCV.jpeg";
+          const logoUrl = "/images/FSCV.png";
           const img = await loadImage(logoUrl);
           
           const pageWidth = doc.internal.pageSize.getWidth();
           const centerX = pageWidth / 2;
     
-          doc.addImage(img, "JPEG", centerX - 10, 10, 20, 20);
+          doc.addImage(img, "PNG", centerX - 10, 10, 20, 20);
     
           doc.setFont("helvetica", "bold");
           doc.setFontSize(14);

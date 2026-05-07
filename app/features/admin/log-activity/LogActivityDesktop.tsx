@@ -197,7 +197,7 @@ export function LogActivityDesktop() {
                       <td className="px-6 py-4 text-sm text-[#374151]">
                         <span className={cn(
                           "px-2.5 py-1 rounded-full text-xs font-semibold",
-                          item.user.role === "Super Admin" ? "bg-purple-50 text-purple-700 border border-purple-100" :
+                          item.user.role === "Admin" ? "bg-purple-50 text-purple-700 border border-purple-100" :
                             item.user.role === "Editor" ? "bg-blue-50 text-blue-700 border border-blue-100" :
                               "bg-gray-50 text-gray-700 border border-gray-100"
                         )}>

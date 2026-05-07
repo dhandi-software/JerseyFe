@@ -61,8 +61,8 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
             {/* Luxury Header Background Cover */}
             <div className="h-56 md:h-80 rounded-[2.5rem] relative overflow-hidden shadow-2xl bg-gray-900">
                 <img 
-                    src="/images/Banner_Universitas_Pancasila.png" 
-                    alt="University Banner" 
+                    src="/images/jersey_hero.png" 
+                    alt="Brand Banner" 
                     className="absolute inset-0 w-full h-full object-cover opacity-60"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -117,7 +117,7 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
                 <div className="flex-1 pb-4 md:pb-6">
                     <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
                          <span className="px-4 py-1.5 bg-white/30 backdrop-blur-xl border border-white/40 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full shadow-sm">
-                            Lecturer Profile
+                            Designer Profile
                         </span>
                         {profile?.jabatan && (
                              <span className="px-4 py-1.5 bg-[#D25026] text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-[#D25026]/40">
@@ -133,7 +133,7 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
                         <div className="flex items-center gap-3 bg-white/95 backdrop-blur-2xl px-6 py-3 rounded-[1.5rem] border border-white shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-white hover:-translate-y-1">
                             <BadgeCheck className="w-6 h-6 text-[#119DA4]" />
                             <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-black text-gray-400 tracking-widest">NIDN</span>
+                                <span className="text-[10px] uppercase font-black text-gray-400 tracking-widest">ID Designer</span>
                                 <span className="font-bold text-gray-800 text-lg leading-none">{profile?.nidn || "-"}</span>
                             </div>
                         </div>

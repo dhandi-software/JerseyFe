@@ -12,7 +12,8 @@ import {
   FileText,
   History,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  ShoppingBag
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -33,7 +34,7 @@ type MenuKey =
   | "article-and-media"
   | "draft"
   | "log-activity"
-  | "monitoring-bimbingan"
+  | "monitoring-pesanan"
   | "logout"
   | "upload";
 
@@ -46,10 +47,9 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/manage-account") || pathname.startsWith("/admin/edit-account") || pathname.startsWith("/admin/users"))
     return "manage-account";
   if (pathname.startsWith("/admin/article")) return "article-and-media";
-  if (pathname.startsWith("/admin/media")) return "article-and-media";
   if (pathname.startsWith("/admin/draft")) return "draft";
   if (pathname.startsWith("/admin/log")) return "log-activity";
-  if (pathname.startsWith("/admin/monitoring")) return "monitoring-bimbingan";
+  if (pathname.startsWith("/admin/monitoring-pesanan")) return "monitoring-pesanan";
   if (pathname.startsWith("/admin/create")) return "create-news-video";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
@@ -111,10 +111,10 @@ const menuItems = [
     url: "/admin/log",
   },
   {
-    key: "monitoring-bimbingan" as MenuKey,
-    title: "Monitoring Bimbingan",
-    icon: BarChart3,
-    url: "/admin/monitoring",
+    key: "monitoring-pesanan" as MenuKey,
+    title: "Monitoring Pesanan",
+    icon: ShoppingBag,
+    url: "/admin/monitoring-pesanan",
   },
 ];
 
@@ -150,12 +150,14 @@ export function AppSidebar() {
     <Sidebar className="border-r border-[#E5E5E5]">
       <SidebarContent className="h-screen bg-[#FAFAFA] flex flex-col py-8 px-6">
         {/* Logo Section */}
-        <div className="mb-8 px-2">
-          <img
-            src="/images/FSCV.jpeg"
-            alt="MNI"
-            className="h-16 w-auto object-contain"
-          />
+        <div className="mb-8 flex justify-center w-full px-2">
+          <div className="bg-slate-900 p-4 rounded-xl w-full flex justify-center shadow-lg border border-slate-800">
+            <img
+              src="/images/FSCV.png"
+              alt="Logo FSCV"
+              className="h-16 w-auto object-contain mx-auto"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-8 flex-1">

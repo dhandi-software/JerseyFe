@@ -15,7 +15,7 @@ const baseUrl = envUrl.replace(/\/$/, "");
 export const API_URL = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
 
 // We also export the static uploads URL for static file links
-export const UPLOADS_URL = baseUrl || "http://localhost:5002";
+export const UPLOADS_URL = baseUrl || "";
 
 export const client = axios.create({
     baseURL: API_URL,

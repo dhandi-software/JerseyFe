@@ -106,4 +106,13 @@ export const adminApi = {
         const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats");
         return response.data;
     },
+
+    /**
+     * Get list of designers
+     * GET /admin/designers
+     */
+    getDesigners: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/admin/designers");
+        return response.data;
+    },
 };

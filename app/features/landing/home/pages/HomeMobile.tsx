@@ -1,7 +1,7 @@
 import { NewHeroSection } from "~/features/landing/home/components/Home/HomeMobile/NewHeroSection";
 import { AboutSection } from "~/features/landing/home/components/Home/HomeMobile/AboutSection";
 import { StepsSection } from "~/features/landing/home/components/Home/HomeMobile/StepsSection";
-import { PopularPositionsSection } from "~/features/landing/home/components/Home/HomeMobile/PopularPositionsSection";
+import { VisiMisiSection } from "~/features/landing/home/components/Home/HomeMobile/VisiMisiSection";
 import { CtaSection } from "~/features/landing/home/components/Home/HomeMobile/CtaSection";
 import { TestimonialsSection } from "~/features/landing/home/components/Home/HomeMobile/TestimonialsSection";
 import { InfoSection } from "~/features/landing/home/components/Home/HomeMobile/InfoSection";
@@ -14,7 +14,7 @@ export function HomeMobile() {
                 <NewHeroSection />
                 <AboutSection />
                 <InfoSection />
-                <PopularPositionsSection />
+                <VisiMisiSection />
                 <StepsSection />
                 <GamificationSection />
                 <TestimonialsSection />

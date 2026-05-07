@@ -1,4 +1,4 @@
-// api/userApi.ts (tambahkan method getCurrentProfile)
+// api/userApi.ts
 import { client } from "./client";
 import type {
     ChangePasswordRequest,
@@ -19,215 +19,114 @@ export const userApi = {
 
             return response.data;
         } catch (error: any) {
-            console.error("❌ Change password error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
-
-            throw {
-                code: error.response?.status || 500,
-                status: "error",
-                message:
-                    error.response?.data?.message ||
-                    error.message ||
-                    "Change password failed",
-                data: error.response?.data,
-            };
+            console.error("❌ Change password error:", error);
+            throw error;
         }
     },
 
     /**
      * Get current user profile
-     * GET /api/v1/user/profile
      */
     getCurrentProfile: async (): Promise<ProfileResponse> => {
         try {
             const response = await client.get<ProfileResponse>("/user/profile");
-
             return response.data;
         } catch (error: any) {
-            console.error("❌ Get current profile error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
-
-            throw {
-                code: error.response?.status || 500,
-                status: "error",
-                message:
-                    error.response?.data?.message ||
-                    error.message ||
-                    "Failed to fetch profile",
-                data: error.response?.data,
-            };
-        }
-    },
-
-    /**
-     * Create new user
-     * POST /api/v1/admin/register
-     */
-    /**
-     * Create Mahasiswa
-     * POST /api/admin/create-mahasiswa
-     */
-    createMahasiswa: async (data: any): Promise<any> => {
-        try {
-            const response = await client.post("/admin/create-mahasiswa", data);
-            return response.data;
-        } catch (error: any) {
-            console.error("❌ Create Mahasiswa error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Get current profile error:", error);
             throw error;
         }
     },
 
     /**
-     * Create Mahasiswa Massal
-     * POST /api/v1/admin/create-mahasiswa-massal
+     * Create Customer
+     * POST /admin/create-customer
      */
-    createMahasiswaMassal: async (data: any[]): Promise<any> => {
+    createCustomer: async (data: any): Promise<any> => {
         try {
-            const response = await client.post("/admin/create-mahasiswa-massal", { users: data });
+            const response = await client.post("/admin/create-customer", data);
             return response.data;
         } catch (error: any) {
-            console.error("❌ Create Mahasiswa Massal error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Create Customer error:", error);
             throw error;
         }
     },
 
     /**
-     * Create Dosen Massal
-     * POST /api/admin/create-dosen-massal
+     * Create Staff
+     * POST /admin/create-staff
      */
-    createDosenMassal: async (data: any[]): Promise<any> => {
+    createStaff: async (data: any): Promise<any> => {
         try {
-            const response = await client.post("/admin/create-dosen-massal", { users: data });
+            const response = await client.post("/admin/create-staff", data);
             return response.data;
         } catch (error: any) {
-            console.error("❌ Create Dosen Massal error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
-            throw error;
-        }
-    },
-
-    /**
-     * Create Dosen
-     * POST /api/admin/create-dosen
-     */
-    createDosen: async (data: any): Promise<any> => {
-        try {
-            const response = await client.post("/admin/create-dosen", data);
-            return response.data;
-        } catch (error: any) {
-            console.error("❌ Create Dosen error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Create Staff error:", error);
             throw error;
         }
     },
 
     /**
      * Get all users
-     * GET /api/v1/admin/users
      */
     getAllUsers: async (): Promise<any> => {
         try {
             const response = await client.get("/admin/users");
             return response.data;
         } catch (error: any) {
-             console.error("❌ Get all users error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Get all users error:", error);
             throw error;
         }
     },
 
     /**
      * Get users by role
-     * GET /api/v1/admin/users-role?role=...
      */
     getUsersByRole: async (role: string): Promise<any> => {
         try {
             const response = await client.get(`/admin/users-role?role=${role}`);
             return response.data;
         } catch (error: any) {
-             console.error("❌ Get users by role error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Get users by role error:", error);
             throw error;
         }
     },
 
     /**
      * Get user by ID
-     * GET /api/v1/admin/:id
      */
     getUserById: async (id: string): Promise<any> => {
         try {
-            const response = await client.get(`/admin/${id}`);
+            const response = await client.get(`/admin/users/${id}`);
             return response.data;
         } catch (error: any) {
-             console.error("❌ Get user by ID error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Get user by ID error:", error);
             throw error;
         }
     },
 
     /**
-     * Update user role
-     * PUT /api/v1/admin/:id
+     * Update user
      */
-    updateUserRole: async (id: string, role: string): Promise<any> => {
+    updateUser: async (id: string, data: any): Promise<any> => {
         try {
-            const response = await client.put(`/admin/${id}`, { role });
+            const response = await client.put(`/admin/users/${id}`, data);
             return response.data;
         } catch (error: any) {
-             console.error("❌ Update user role error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Update user error:", error);
             throw error;
         }
     },
 
     /**
      * Delete user
-     * DELETE /api/admin/:id
      */
     deleteUser: async (id: string, force: boolean = false): Promise<any> => {
         try {
-            const url = force ? `/admin/${id}?force=true` : `/admin/${id}`;
+            const url = force ? `/admin/users/${id}?force=true` : `/admin/users/${id}`;
             const response = await client.delete(url);
             return response.data;
         } catch (error: any) {
-             console.error("❌ Delete user error:", {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message,
-            });
+            console.error("❌ Delete user error:", error);
             throw error;
         }
     },

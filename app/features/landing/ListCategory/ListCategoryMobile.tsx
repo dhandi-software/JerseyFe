@@ -151,7 +151,7 @@ export function ListCategoryMobile() {
                                 </div>
                             </SheetHeader>
 
-                            <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide px-8 py-6 flex flex-col gap-8">
+                            <div className={cn("flex-1 overflow-y-auto min-h-0 px-8 py-6 flex flex-col gap-8", cart.length > 2 && "scrollbar-thick")}>
                                 {cart.map(item => (
                                     <div key={item.product.id} className="flex gap-5 items-start">
                                         <div className="w-24 h-24 rounded-2xl bg-neutral-50 overflow-hidden shrink-0 border border-neutral-100 p-2 flex items-center justify-center">

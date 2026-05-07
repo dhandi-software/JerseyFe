@@ -6,13 +6,17 @@ import {
   Users,
   Settings,
   FileText,
-  BarChart3
+  BarChart3,
+  ShoppingBag
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
+import { chatService } from "~/services/chatService";
 import type { ContextType } from "~/root";
+import React from "react";
+import { MessageSquare } from "lucide-react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -20,12 +24,14 @@ import { cn } from "~/lib/utils";
 type MenuKey =
   | "dashboard"
   | "users"
-  | "monitoring"
+  | "monitoring-pesanan"
+  | "chat"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
-  if (pathname.startsWith("/admin/monitoring")) return "monitoring";
+  if (pathname.startsWith("/admin/monitoring-pesanan")) return "monitoring-pesanan";
+  if (pathname.startsWith("/admin/chat")) return "chat";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -45,23 +51,32 @@ const menuItems = [
     url: "/admin/users",
   },
   {
-    key: "monitoring" as MenuKey,
-    title: "Monitoring Bimbingan",
-    icon: BarChart3,
-    url: "/admin/monitoring",
+    key: "monitoring-pesanan" as MenuKey,
+    title: "Monitoring Pesanan",
+    icon: ShoppingBag,
+    url: "/admin/monitoring-pesanan",
+  },
+  {
+    key: "chat" as MenuKey,
+    title: "Chat",
+    icon: MessageSquare,
+    url: "/admin/chat",
   },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   const active = pathToKey(location.pathname) ?? "dashboard";
 
-  const handleNavigate = (key: MenuKey) => {
-    const item = menuItems.find((item) => item.key === key);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const memoizedMenuItems = React.useMemo(() => menuItems, []);
+
+  const handleNavigate = React.useCallback((key: MenuKey) => {
+    const item = memoizedMenuItems.find((item) => item.key === key);
     if (item) {
       if (isMobile) setOpenMobile(false);
       navigate(item.url);
@@ -71,18 +86,35 @@ export function AppSidebar() {
     if (key === "logout") {
         logout();
     }
-  };
+  }, [isMobile, navigate, logout, setOpenMobile, memoizedMenuItems]);
+
+  React.useEffect(() => {
+    const fetchUnread = async () => {
+      if (!user) return;
+      try {
+        const data = await chatService.getUnreadCount(user.id);
+        setUnreadCount(data.count || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread chat count:", error);
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   return (
     <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
-        <div className="mb-8 px-2">
-          <img
-            src="https://uppress.univpancasila.ac.id/wp-content/uploads/2023/05/UP4.png"
-            alt="Logo"
-            className="h-16 w-auto object-contain"
-          />
+        <div className="mb-8 flex justify-center w-full px-2">
+          <div className="bg-slate-900 p-4 rounded-xl w-full flex justify-center shadow-lg border border-slate-800">
+            <img
+              src="/images/FSCV.png"
+              alt="Logo FSCV"
+              className="h-16 w-auto object-contain mx-auto"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-8 flex-1">
@@ -111,7 +143,7 @@ export function AppSidebar() {
                           isActive ? "bg-[#D25026]" : "bg-[#A1A1A1] group-hover:bg-gray-400"
                         )}
                       >
-                        <IconComponent className="w-5 h-5 text-white" />
+                        {IconComponent && <IconComponent className="w-5 h-5 text-white" />}
                       </div>
                       <span
                         className={cn(
@@ -121,6 +153,11 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "chat" && unreadCount > 0 && (
+                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0">
+                          {unreadCount}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );

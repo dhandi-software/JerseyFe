@@ -115,41 +115,41 @@ export function ListCategoryDesktop() {
 
                 {/* Sidebar Cart */}
                 <div className="w-[400px] border border-neutral-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] rounded-[2.5rem] flex flex-col shrink-0 sticky top-24 self-start bg-white h-[calc(100vh-10rem)] overflow-hidden ring-1 ring-black/5">
-                    <div className="p-8 pb-4 border-b border-neutral-50 flex-none flex flex-col gap-2">
+                    <div className="p-6 pb-2 border-b border-neutral-50 flex-none flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-black text-neutral-900 tracking-tight flex items-center gap-2 italic uppercase">
-                                <ShoppingCart className="w-5 h-5" />
+                                <ShoppingCart className="w-5 h-5 text-[#D25026]" />
                                 My Cart
                             </h2>
                             <div className="bg-neutral-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
                                 {cart.length < 10 ? `0${cart.length}` : cart.length} Items
                             </div>
                         </div>
-                        <p className="text-neutral-400 text-sm font-medium">Lengkapi pesanan Anda di bawah ini</p>
+                        <p className="text-neutral-400 text-xs font-medium">Lengkapi pesanan Anda di bawah ini</p>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide">
-                        <div className="px-8 py-6 flex flex-col gap-6">
+                    <div className={cn("flex-1 overflow-y-auto min-h-0", cart.length > 2 && "scrollbar-thick")}>
+                        <div className="px-6 py-4 flex flex-col gap-4">
                             {cart.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center text-center gap-4 opacity-50 py-20">
-                                    <div className="p-6 bg-neutral-50 rounded-full">
-                                        <ShoppingCart className="w-12 h-12 text-neutral-300" />
+                                <div className="flex flex-col items-center justify-center text-center gap-4 opacity-30 pt-16 pb-32">
+                                    <div className="p-8 bg-neutral-50 rounded-full border border-neutral-100 shadow-inner">
+                                        <ShoppingCart className="w-16 h-16 text-neutral-300" />
                                     </div>
-                                    <p className="text-neutral-400 text-sm font-bold">Keranjang Anda masih kosong</p>
+                                    <p className="text-neutral-400 text-[13px] font-black uppercase italic tracking-tighter">Keranjang Kosong</p>
                                 </div>
                             ) : (
                                 cart.map(item => (
                                     <div key={item.product.id} className="flex gap-4 group animate-in slide-in-from-right-2 duration-300">
-                                        <div className="w-28 h-28 rounded-2xl bg-neutral-50 overflow-hidden shrink-0 ring-1 ring-black/5 shadow-sm p-2 flex items-center justify-center">
+                                        <div className="w-20 h-20 rounded-2xl bg-neutral-50 overflow-hidden shrink-0 ring-1 ring-black/5 shadow-sm p-1.5 flex items-center justify-center">
                                             <img src={item.product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                                         </div>
-                                        <div className="flex-1 flex flex-col justify-between py-1">
+                                        <div className="flex-1 flex flex-col justify-between py-0.5">
                                             <div>
-                                                <div className="text-[15px] font-black text-neutral-900 leading-tight line-clamp-2 italic uppercase tracking-tighter">{item.product.title}</div>
-                                                <div className="text-sm font-black text-[#D25026] mt-1">{formatRupiah(item.product.price)}</div>
+                                                <div className="text-[14px] font-black text-neutral-900 leading-tight line-clamp-1 italic uppercase tracking-tighter">{item.product.title}</div>
+                                                <div className="text-sm font-black text-[#D25026] mt-0.5">{formatRupiah(item.product.price)}</div>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-4 bg-white rounded-xl px-4 py-2 border border-neutral-100 shadow-sm">
+                                                <div className="flex items-center gap-4 bg-white rounded-xl px-3 py-1.5 border border-neutral-100 shadow-sm">
                                                     <button 
                                                         onClick={() => updateQuantity(item.product.id, -1)} 
                                                         className="w-4 h-4 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors text-neutral-400 font-bold"
@@ -174,19 +174,19 @@ export function ListCategoryDesktop() {
                         </div>
                     </div>
 
-                    <div className="p-6 border-t border-neutral-50 bg-[#FAFAFA]/50 flex flex-col gap-4 flex-none">
-                        <div className="w-full space-y-2 px-2">
+                    <div className="p-5 border-t border-neutral-50 bg-[#FAFAFA]/50 flex flex-col gap-3 flex-none">
+                        <div className="w-full space-y-1.5 px-1">
                             <div className="flex justify-between items-center">
                                 <span className="text-neutral-400 font-black text-[10px] uppercase tracking-widest italic">Subtotal</span>
                                 <span className="font-bold text-neutral-600 text-sm">{formatRupiah(subtotal)}</span>
                             </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-neutral-100">
+                            <div className="flex justify-between items-center pt-1.5 border-t border-neutral-100">
                                 <span className="text-neutral-900 font-black text-lg uppercase italic tracking-tighter">Total Amount</span>
                                 <span className="font-black text-neutral-900 text-2xl tracking-tighter">{formatRupiah(subtotal)}</span>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-neutral-100 shadow-sm group-focus-within:ring-2 ring-neutral-100 transition-all">
+                        <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-neutral-100 shadow-sm group-focus-within:ring-2 ring-neutral-100 transition-all">
                             <div className="flex flex-col flex-1">
                                 <label className="text-[9px] font-black text-neutral-400 uppercase tracking-widest italic leading-none mb-1">Uang Diterima</label>
                                 <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ export function ListCategoryDesktop() {
                                         value={uangDiterima}
                                         onChange={(e) => setUangDiterima(e.target.value)}
                                         placeholder="0"
-                                        className="w-full bg-transparent border-none p-0 text-lg font-black text-neutral-900 focus:outline-none placeholder:text-neutral-100"
+                                        className="w-full bg-transparent border-none p-0 text-base font-black text-neutral-900 focus:outline-none placeholder:text-neutral-100"
                                     />
                                 </div>
                             </div>
@@ -204,10 +204,10 @@ export function ListCategoryDesktop() {
 
                         <Button 
                             onClick={handleCheckout}
-                            className="w-full h-14 rounded-2xl text-[15px] font-black uppercase tracking-tighter shadow-lg shadow-black/5 hover:shadow-black/10 transition-all active:scale-95 disabled:grayscale"
+                            className="w-full h-12 rounded-2xl text-[14px] font-black uppercase tracking-tighter shadow-lg shadow-black/5 hover:shadow-black/10 transition-all active:scale-95 disabled:grayscale"
                             disabled={cart.length === 0}
                         >
-                            <CreditCard className="w-5 h-5 mr-3" />
+                            <CreditCard className="w-4 h-4 mr-2" />
                             PURCHASE ORDER
                         </Button>
                     </div>

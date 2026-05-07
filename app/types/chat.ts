@@ -2,6 +2,7 @@ export interface Message {
   id: number;
   content: string | null;
   attachmentUrl: string | null;
+  attachmentName: string | null;
   attachmentType: 'image' | 'document' | 'none' | null;
   senderId: number;
   receiverId?: number;
@@ -48,6 +49,7 @@ export interface SendMessagePayload {
   roomId?: number;     // Used for group messages
   content?: string;
   attachmentUrl?: string;
+  attachmentName?: string;
   attachmentType?: 'image' | 'document' | 'none';
   isPublic?: boolean;
 }

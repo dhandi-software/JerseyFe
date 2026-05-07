@@ -202,16 +202,20 @@ export function PengajuanMobile() {
                 {/* Official Header (Simplified) */}
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center space-y-2">
                     <div className="flex justify-center items-center gap-4">
-                        <img 
-                            src="/images/FSCV.jpeg" 
-                            alt="Logo UP" 
-                            className="w-12 h-12 object-contain"
-                        />
-                        <img 
-                            src="/images/LogoUpKebanggan.png" 
-                            alt="Logo Fakultas" 
-                            className="w-12 h-12 object-contain"
-                        />
+                        <div className="bg-slate-900 p-1.5 rounded-lg shadow-sm">
+                            <img 
+                                src="/images/FSCV.png" 
+                                alt="Logo UP" 
+                                className="w-10 h-10 object-contain"
+                            />
+                        </div>
+                        <div className="bg-slate-900 p-1.5 rounded-lg shadow-sm">
+                            <img 
+                                src="/images/FSCV.png" 
+                                alt="Logo Fakultas" 
+                                className="w-10 h-10 object-contain"
+                            />
+                        </div>
                     </div>
                     <h2 className="text-xs font-bold text-gray-800 uppercase leading-relaxed">
                         Fakultas Teknik <br/> FSCV

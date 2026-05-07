@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { UPLOADS_URL } from "~/api/client";
 import { io, Socket } from "socket.io-client";
 import { chatService } from "~/services/chatService";
+import { adminApi } from "~/api/admin";
 import type { Message, ChatContact, SendMessagePayload } from "~/types/chat";
 import { useAuth } from "~/hooks/useAuth";
 
@@ -15,6 +16,7 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string | number, number>>({});
+  const [internalTeamMembers, setInternalTeamMembers] = useState<any[]>([]);
   const [toastProps, setToastProps] = useState<{title: string, variant: 'default'|'destructive', description?: string} | null>(null);
   
   const activeContactRef = useRef<ChatContact | null>(null);
@@ -51,7 +53,7 @@ export function useChat() {
           if (!isChatOpen || !isWindowFocused) {
               if (Notification.permission === "granted") {
                   const title = message.isPublic 
-                      ? `Pesan Baru di Ruang Publik: ${message.sender?.username}` 
+                      ? `Pesan Baru di Internal Team: ${message.sender?.username}` 
                       : `Pesan Baru dari ${message.sender?.username}`;
                   
                   new Notification(title, {
@@ -74,7 +76,7 @@ export function useChat() {
               // In-App Toast Notification
               if (!isChatOpen) {
                   const senderName = message.sender?.username || 'Seseorang';
-                  const titleStr = message.isPublic ? `Pesan di Publik dari ${senderName}` : `Pesan baru dari ${senderName}`;
+                  const titleStr = message.isPublic ? `Pesan di Internal Team dari ${senderName}` : `Pesan baru dari ${senderName}`;
                   const previewStr = message.content || (message.attachmentUrl ? "Mengirim lampiran" : "Pesan baru");
                   
                   setToastProps({
@@ -157,11 +159,21 @@ export function useChat() {
                     if (prev.find(m => m.id === message.id)) return prev;
 
                     // Cari pesan optimistik yang sesuai, ganti dengan yang asli
-                    const tempIdx = prev.findIndex(m => 
-                        (m as any).isOptimistic === true && 
-                        m.content === message.content && 
-                        m.senderId === message.senderId
-                    );
+                    // Improve matching logic for files
+                    const tempIdx = prev.findIndex(m => {
+                        const isOpt = (m as any).isOptimistic === true;
+                        const isSenderMatch = m.senderId === message.senderId;
+                        
+                        if (!isOpt || !isSenderMatch) return false;
+
+                        // Match by content if present
+                        if (message.content && m.content === message.content) return true;
+
+                        // Match by attachment if present
+                        if (message.attachmentUrl && m.attachmentUrl === message.attachmentUrl) return true;
+
+                        return false;
+                    });
 
                     if (tempIdx !== -1) {
                         const next = [...prev];
@@ -211,14 +223,25 @@ export function useChat() {
         const data = Array.isArray(response) ? response : response.users;
         const lastPublicMsg = !Array.isArray(response) ? response.lastPublicMessage : undefined;
 
+        const validContacts = Array.isArray(data) ? data : [];
+        
+        // Kondisi: Hanya tampilkan 'Internal Team' (sebelumnya Ruang Publik) untuk tim internal (Admin, Desain, Manager, Gudang)
+        const userRole = user.role?.toUpperCase();
+        const isInternalTeam = userRole === 'ADMIN' || userRole === 'DOSEN' || userRole === 'KAPRODI' || userRole === 'DESAIN' || userRole === 'MANAGER' || userRole === 'GUDANG';
+        const isCustomer = userRole === 'CUSTOMER' || userRole === 'MAHASISWA';
+        
         const publicRoom: ChatContact = {
             id: 0,
-            username: "Ruang Publik",
-            role: "Grup",
+            username: isInternalTeam ? "Internal Team" : "Komunitas Pelanggan",
+            role: "Grup Publik",
             email: "",
             lastMessage: lastPublicMsg
         };
-        const validContacts = Array.isArray(data) ? data : [];
+
+        let newContacts = [...validContacts];
+        if (isInternalTeam) {
+            newContacts = [publicRoom, ...newContacts];
+        }
         
         // Prioritaskan chat grup agar tampil di bagian paling atas
         validContacts.sort((a: any, b: any) => {
@@ -227,7 +250,7 @@ export function useChat() {
             return 0;
         });
         
-        setContacts([publicRoom, ...validContacts]);
+        setContacts(newContacts);
 
         const initialUnread: Record<string | number, number> = {};
         if (!Array.isArray(response) && response.publicUnreadCount) {
@@ -243,6 +266,41 @@ export function useChat() {
         console.error(error);
     }
   }, [user]);
+
+  const fetchInternalTeamMembers = useCallback(async () => {
+      try {
+          // Fetch all staff roles
+          const [admins, desains, managers, gudangs] = await Promise.all([
+              adminApi.getUsersByRole('admin'),
+              adminApi.getUsersByRole('desain'),
+              adminApi.getUsersByRole('manager'),
+              adminApi.getUsersByRole('gudang')
+          ]);
+          
+          const combined = [
+              ...(admins.data || []), 
+              ...(desains.data || []),
+              ...(managers.data || []),
+              ...(gudangs.data || [])
+          ];
+          
+          // Deduplicate and map by user ID
+          const unique = Array.from(new Map(combined.map(u => {
+              const id = u.user?.id || u.userId || u.id;
+              const mappedUser = {
+                  id,
+                  username: u.nama || u.user?.username || "Unknown",
+                  role: u.user?.role || u.role || "Staff",
+                  photo: u.foto || u.photo || u.user?.photo
+              };
+              return [id, mappedUser]; 
+          })).values());
+          
+          setInternalTeamMembers(unique);
+      } catch (error) {
+          console.error("Failed to fetch internal team members:", error);
+      }
+  }, []);
 
   // Fetch contacts and add Public Room
   useEffect(() => {
@@ -335,12 +393,14 @@ export function useChat() {
     if (!user || !activeContact || !socket) return;
 
     let attachmentUrl = null;
+    let attachmentName = null;
     let attachmentType: "image" | "document" | "none" = "none";
 
     if (file) {
       try {
         const uploadRes = await chatService.uploadFile(file);
         attachmentUrl = uploadRes.url;
+        attachmentName = uploadRes.name;
         attachmentType = file.type.startsWith("image/") ? "image" : "document";
       } catch (error) {
         console.error("Upload failed", error);
@@ -358,6 +418,7 @@ export function useChat() {
       ...targetPayload,
       content: content || undefined,
       attachmentUrl: attachmentUrl || undefined,
+      attachmentName: attachmentName || undefined,
       attachmentType: attachmentType === "none" ? undefined : attachmentType,
       isPublic: activeContact.id === 0,
       replyToId
@@ -377,6 +438,7 @@ export function useChat() {
       isDeleted: false,
       isEdited: false,
       attachmentUrl: payload.attachmentUrl || null,
+      attachmentName: payload.attachmentName || null,
       attachmentType: payload.attachmentType || null,
       replyToId: payload.replyToId,
       sender: { username: "Anda", role: user.role || "dosen" } // Dummy
@@ -559,6 +621,8 @@ export function useChat() {
     addMembersToGroup,
     removeMemberFromGroup,
     toastProps,
-    setToastProps
+    setToastProps,
+    internalTeamMembers,
+    fetchInternalTeamMembers
   };
 }

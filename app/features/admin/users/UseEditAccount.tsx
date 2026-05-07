@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { adminApi } from "~/api/admin";
+import { userApi } from "~/api/userApi";
 
 interface ToastProps {
     title: string;
@@ -14,14 +14,16 @@ export const useEditAccount = () => {
     const [formData, setFormData] = useState({
         email: "",
         name: "",
-        password: "", // Optional for edit
-        role: "mahasiswa",
-        // Specific fields
-        nim: "",
-        jurusan: "",
-        tahunMasuk: "",
-        nidn: "",
-        jabatan: "",
+        password: "", 
+        role: "customer",
+        // Commercial fields
+        customerId: "",
+        category: "",
+        memberSince: "",
+        phone: "",
+        address: "",
+        staffId: "",
+        position: "",
     });
 
     const [initialLoading, setInitialLoading] = useState(true);
@@ -46,19 +48,21 @@ export const useEditAccount = () => {
     const fetchUser = async (userId: string) => {
         setInitialLoading(true);
         try {
-            const res = await adminApi.getUserById(userId);
+            const res = await userApi.getUserById(userId);
             const user = res.data;
 
             setFormData({
                 email: user.email,
                 name: user.nama || user.name || "",
-                password: "********", // Show placeholder password
+                password: "",
                 role: user.role,
-                nim: user.nim || "",
-                jurusan: user.jurusan || "",
-                tahunMasuk: user.tahunMasuk || "",
-                nidn: user.nidn || "",
-                jabatan: user.jabatan || "",
+                customerId: user.customerId || "",
+                category: user.category || "",
+                memberSince: user.memberSince || "",
+                phone: user.phone || "",
+                address: user.address || "",
+                staffId: user.staffId || "",
+                position: user.position || "",
             });
         } catch (error) {
             console.error("Failed to fetch user", error);
@@ -70,33 +74,20 @@ export const useEditAccount = () => {
     };
 
     const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
     ) => {
         const { name, value } = e.target;
-
-        // Numeric validation for NIM and NIDN
-        if (
-            (name === "nim" || name === "nidn") &&
-            value &&
-            !/^\d*$/.test(value)
-        ) {
-            return; // Ignore non-numeric input
-        }
-
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-
     const generatePassword = () => {
         const length = 12;
-        const charset =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
         let retVal = "";
         for (let i = 0, n = charset.length; i < length; ++i) {
             retVal += charset.charAt(Math.floor(Math.random() * n));
         }
         setFormData((prev) => ({ ...prev, password: retVal }));
-        // Ensure visibility is on so user can see what was generated
         setShowPassword(true);
     };
 
@@ -107,20 +98,17 @@ export const useEditAccount = () => {
     const handleSubmit = async () => {
         setIsLoading(true);
         try {
-            const payload: any = {
-                ...formData,
-            };
-
-            // If empty string (user cleared it) or default placeholder, we don't update password.
-            if (!formData.password || formData.password === "********") {
-                delete payload.password;
+            const payload = { ...formData };
+            if (!payload.password) {
+                delete (payload as any).password;
             }
 
-            await adminApi.updateUser(id!, payload);
+            await userApi.updateUser(id!, payload);
             showToast("User updated successfully", "success");
 
+            const backTab = formData.role === 'customer' ? 'customer' : 'internal';
             setTimeout(() => {
-                navigate(`/admin/users?tab=${formData.role}`);
+                navigate(`/admin/users?tab=${backTab}`);
             }, 1000);
         } catch (error: any) {
             console.error("Update failed", error);
