@@ -41,7 +41,7 @@
     "input-otp": "^1.4.2",
     "isbot": "^5.1.27",
     "js-cookie": "^3.0.5",
-    "jspdf": "^4.1.0",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.536.0",
     "motion": "^12.23.12",

@@ -389,12 +389,12 @@ export function useChat() {
     };
   }, [socket, user]);
 
-  const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number) => {
+  const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number, attachment?: { url: string; name: string; type: "image" | "document" }) => {
     if (!user || !activeContact || !socket) return;
 
-    let attachmentUrl = null;
-    let attachmentName = null;
-    let attachmentType: "image" | "document" | "none" = "none";
+    let attachmentUrl = attachment?.url || null;
+    let attachmentName = attachment?.name || null;
+    let attachmentType: "image" | "document" | "none" = attachment?.type || "none";
 
     if (file) {
       try {

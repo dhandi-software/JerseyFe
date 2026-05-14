@@ -5,6 +5,9 @@ import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { adminApi } from "~/api/admin";
+import { Toast } from "~/components/ui/toast";
+import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
+import { Download } from "lucide-react";
 
 export function MonitoringPesananMobile() {
     const [orders, setOrders] = useState<any[]>([]);
@@ -14,6 +17,7 @@ export function MonitoringPesananMobile() {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedDesignerId, setSelectedDesignerId] = useState<number | "">("");
     const [orderToAssign, setOrderToAssign] = useState<number | null>(null);
+    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -28,11 +32,11 @@ export function MonitoringPesananMobile() {
                     qty: o.details.length,
                     status: o.status,
                     date: new Date(o.createdAt).toISOString().split('T')[0],
-                    playerInfo: o.details.map((d: any) => ({
+                    playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
                         name: d.playerName || "-",
                         number: d.playerNumber || "-",
                         size: d.playerSize || "-"
-                    })),
+                    }))),
                     designNote: o.designNote,
                     designUrl: o.designUrl,
                     paymentProofUrl: o.paymentUrl,
@@ -74,9 +78,15 @@ export function MonitoringPesananMobile() {
             if (selectedOrder?.rawId === id) {
                 setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
             }
+            
+            if (newStatus === "DESAIN") {
+                setToast({ title: "Pesanan berhasil diserahkan ke tim desain", variant: "success" });
+            } else {
+                setToast({ title: `Status pesanan diperbarui ke ${newStatus}`, variant: "success" });
+            }
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("Gagal memperbarui status.");
+            setToast({ title: "Gagal memperbarui status", variant: "destructive" });
         }
     };
 
@@ -84,6 +94,7 @@ export function MonitoringPesananMobile() {
         switch (status) {
             case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
             case "FINISHING": return "bg-blue-50 text-blue-700 border-blue-200";
+            case "PRINT": return "bg-cyan-50 text-cyan-700 border-cyan-200";
             case "LAYOUT": return "bg-amber-50 text-amber-700 border-amber-200";
             case "DESAIN": return "bg-purple-50 text-purple-700 border-purple-200";
             case "DITOLAK": return "bg-red-50 text-red-700 border-red-200";
@@ -94,6 +105,11 @@ export function MonitoringPesananMobile() {
     if (selectedOrder) {
         return (
             <div className="min-h-screen bg-white font-geist flex flex-col">
+                {toast && (
+                    <div className="fixed top-4 left-4 right-4 z-[9999]">
+                        <Toast title={toast.title} variant={toast.variant} onClose={() => setToast(null)} />
+                    </div>
+                )}
                 <div className="p-6 bg-white border-b border-slate-100 sticky top-0 z-50">
                     <button 
                         onClick={() => setSelectedOrder(null)}
@@ -106,6 +122,9 @@ export function MonitoringPesananMobile() {
                             <span className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border", getStatusStyle(selectedOrder.status))}>
                                 {selectedOrder.status}
                             </span>
+                            <p className="text-[10px] font-black text-[#D25026] uppercase tracking-widest italic leading-tight bg-orange-50 p-2 rounded-lg border border-orange-100 w-fit">
+                                 Info: ID ini dikirim ke customer untuk melacak pesanan
+                             </p>
                             <div className="flex items-center gap-2">
                                 <p className="text-[12px] font-bold text-slate-900 font-mono tracking-tighter bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
                                     {selectedOrder.id}
@@ -120,9 +139,6 @@ export function MonitoringPesananMobile() {
                                     <Copy size={14} />
                                 </button>
                             </div>
-                            <p className="text-[10px] font-black text-[#D25026] uppercase tracking-widest italic leading-tight bg-orange-50 p-2 rounded-lg border border-orange-100">
-                                 Info: ID ini dikirim ke customer untuk melacak pesanan
-                             </p>
                          </div>
                     </div>
                     <h1 className="text-xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Detail Pesanan</h1>
@@ -140,42 +156,7 @@ export function MonitoringPesananMobile() {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50/50 pb-32">
-                    {/* Player Info Section */}
-                    <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                            <User className="text-[#D25026]" size={14} /> Data Pemain ({selectedOrder.playerInfo.length})
-                        </h3>
-                        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 border-b border-slate-100">
-                                    <tr>
-                                        <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Nama</th>
-                                        <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
-                                        <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 text-[10px]">
-                                    {selectedOrder.playerInfo.map((p: any, idx: number) => (
-                                        <tr key={idx}>
-                                            <td className="px-4 py-3 font-bold text-slate-700 uppercase italic truncate max-w-[120px]">{p.name}</td>
-                                            <td className="px-4 py-3 text-center font-black text-slate-900">{p.number}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                <span className="bg-slate-50 px-2 py-1 rounded-md font-bold">{p.size}</span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot className="bg-slate-50 border-t border-slate-100 font-black italic uppercase text-[8px] text-[#D25026]">
-                                    <tr>
-                                        <td colSpan={2} className="px-4 py-3 text-right">Total:</td>
-                                        <td className="px-4 py-3 text-center text-xs">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50 pb-32">
                     {/* Design Reference Section */}
                     <div className="space-y-3">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
@@ -184,10 +165,19 @@ export function MonitoringPesananMobile() {
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                             {selectedOrder.designUrl ? (
                                 <div className="w-full bg-slate-100 rounded-xl overflow-hidden relative border border-slate-200">
-                                    <img 
-                                        src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
-                                        className="w-full h-auto max-h-[300px] object-contain mx-auto" 
-                                    />
+                                    {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
+                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center">
+                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                            <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                Buka Referensi (PDF)
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <img 
+                                            src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
+                                            className="w-full h-auto max-h-[300px] object-contain mx-auto" 
+                                        />
+                                    )}
                                 </div>
                             ) : (
                                 <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
@@ -209,10 +199,19 @@ export function MonitoringPesananMobile() {
                         {selectedOrder.paymentProofUrl ? (
                             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                                 <div className="w-full bg-slate-100 rounded-xl overflow-hidden relative border border-slate-200">
-                                    <img 
-                                        src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} 
-                                        className="w-full h-auto max-h-[400px] object-contain mx-auto" 
-                                    />
+                                    {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
+                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center">
+                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                            <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                Buka Bukti (PDF)
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <img 
+                                            src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} 
+                                            className="w-full h-auto max-h-[400px] object-contain mx-auto" 
+                                        />
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -220,6 +219,50 @@ export function MonitoringPesananMobile() {
                                 <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada bukti bayar</p>
                             </div>
                         )}
+                    </div>
+
+                    {/* Player Info Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                                <User className="text-[#D25026]" size={14} /> Data Pemain ({selectedOrder.playerInfo.length})
+                            </h3>
+                            <button 
+                                onClick={() => downloadPlayersPDF(selectedOrder)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[7px] font-black uppercase tracking-widest italic shadow-sm"
+                            >
+                                <FileText size={10} className="text-[#D25026]" />
+                                PDF
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <table className="w-full text-left relative">
+                                    <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
+                                        <tr>
+                                            <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Nama</th>
+                                            <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
+                                            <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50 text-[10px] bg-white">
+                                        {selectedOrder.playerInfo.map((p: any, idx: number) => (
+                                            <tr key={idx}>
+                                                <td className="px-4 py-3 font-bold text-slate-700 uppercase italic truncate max-w-[120px]">{p.name}</td>
+                                                <td className="px-4 py-3 text-center font-black text-slate-900">{p.number}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className="bg-slate-50 px-2 py-1 rounded-md font-bold">{p.size}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="bg-slate-50 border-t border-slate-100 font-black italic uppercase text-[8px] text-[#D25026] p-4 flex justify-between items-center">
+                                <span>Total Item: {selectedOrder.playerInfo.length}</span>
+                                <span className="text-xs">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -298,7 +341,13 @@ export function MonitoringPesananMobile() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-geist pb-20">
+        <div className="min-h-screen bg-slate-50 font-geist pb-24">
+            {toast && (
+                <div className="fixed top-4 left-4 right-4 z-[9999]">
+                    <Toast title={toast.title} variant={toast.variant} onClose={() => setToast(null)} />
+                </div>
+            )}
+            
             {/* Mobile Header */}
             <div className="bg-white px-6 pt-12 pb-6 border-b border-slate-100 sticky top-0 z-40">
                 <div className="flex items-center gap-3">
@@ -321,8 +370,8 @@ export function MonitoringPesananMobile() {
                     <p className="text-xl font-black text-purple-600 leading-none">{orders.filter(o => o.status === "DESAIN").length}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Layout & Finish</p>
-                    <p className="text-xl font-black text-blue-600 leading-none">{orders.filter(o => ["LAYOUT", "FINISHING"].includes(o.status)).length}</p>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Prod (Lay/Prnt/Fin)</p>
+                    <p className="text-xl font-black text-blue-600 leading-none">{orders.filter(o => ["LAYOUT", "PRINT", "FINISHING"].includes(o.status)).length}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Selesai</p>

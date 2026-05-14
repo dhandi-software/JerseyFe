@@ -7,13 +7,15 @@ import {
   Settings,
   FileText,
   BarChart3,
-  ShoppingBag
+  ShoppingBag,
+  Package
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import { chatService } from "~/services/chatService";
+import { adminApi } from "~/api/admin";
 import type { ContextType } from "~/root";
 import React from "react";
 import { MessageSquare } from "lucide-react";
@@ -25,12 +27,14 @@ type MenuKey =
   | "dashboard"
   | "users"
   | "monitoring-pesanan"
+  | "bahan-baju"
   | "chat"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
   if (pathname.startsWith("/admin/monitoring-pesanan")) return "monitoring-pesanan";
+  if (pathname.startsWith("/admin/bahan-baju")) return "bahan-baju";
   if (pathname.startsWith("/admin/chat")) return "chat";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
@@ -57,6 +61,12 @@ const menuItems = [
     url: "/admin/monitoring-pesanan",
   },
   {
+    key: "bahan-baju" as MenuKey,
+    title: "Bahan Baju",
+    icon: Package,
+    url: "/admin/bahan-baju",
+  },
+  {
     key: "chat" as MenuKey,
     title: "Chat",
     icon: MessageSquare,
@@ -73,6 +83,7 @@ export function AppSidebar() {
   const active = pathToKey(location.pathname) ?? "dashboard";
 
   const [unreadCount, setUnreadCount] = React.useState(0);
+  const [pendingCount, setPendingCount] = React.useState(0);
   const memoizedMenuItems = React.useMemo(() => menuItems, []);
 
   const handleNavigate = React.useCallback((key: MenuKey) => {
@@ -98,8 +109,23 @@ export function AppSidebar() {
         console.error("Failed to fetch unread chat count:", error);
       }
     };
+    const fetchPending = async () => {
+      try {
+        const res = await adminApi.getMonitoringData();
+        if (res.status === "success" && Array.isArray(res.data)) {
+          const count = res.data.filter((order: any) => order.status === "Menunggu Verifikasi").length;
+          setPendingCount(count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending count:", error);
+      }
+    };
     fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
+    fetchPending();
+    const interval = setInterval(() => {
+        fetchUnread();
+        fetchPending();
+    }, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -153,8 +179,13 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "monitoring-pesanan" && pendingCount > 0 && (
+                        <div className="px-2 py-0.5 bg-yellow-100 rounded-lg border border-yellow-400 inline-flex flex-col justify-center items-center gap-2.5 ml-auto shadow-sm">
+                            <div className="text-center text-yellow-900 text-xs font-black font-['Inter'] leading-tight">{pendingCount}</div>
+                        </div>
+                      )}
                       {item.key === "chat" && unreadCount > 0 && (
-                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0">
+                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 ml-2">
                           {unreadCount}
                         </span>
                       )}

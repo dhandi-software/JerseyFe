@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle2, Truck, FileText, Loader2, ChevronLeft, ShoppingBag, Eye } from "lucide-react";
+import { Package, Clock, CheckCircle2, Truck, FileText, Loader2, ChevronLeft, ShoppingBag, Eye, Printer, Scissors, User } from "lucide-react";
 import { Link } from "react-router";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
 import { useAuth } from "~/context/AuthContext";
+import { sortPlayersBySize } from "~/lib/sizeUtils";
 
 const STAGES = [
-    { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Pengecekan pembayaran" },
-    { id: "DESAIN", label: "Desain", icon: FileText, desc: "Mockup sedang dibuat" },
-    { id: "LAYOUT", label: "Layout", icon: Package, desc: "Penyusunan tata letak" },
-    { id: "FINISHING", label: "Finishing", icon: Truck, desc: "Tahap akhir pengerjaan" },
-    { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Pesanan siap diambil" }
+    { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek pembayaran" },
+    { id: "DESAIN", label: "Desain", icon: FileText, desc: "Mockup desain" },
+    { id: "LAYOUT", label: "Layout", icon: FileText, desc: "Pola & Layout" },
+    { id: "PRINT", label: "Print", icon: Printer, desc: "Cetak kain" },
+    { id: "FINISHING", label: "Finishing", icon: Scissors, desc: "Jahit & QC" },
+    { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Selesai" }
 ];
 
 export function ProgressPesananDesktop() {
@@ -176,6 +178,36 @@ export function ProgressPesananDesktop() {
                                     </div>
                                     <p className="text-2xl font-black text-emerald-800 tracking-tighter italic">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-10 space-y-6">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                            <User className="text-[#D25026]" size={16} /> Data Pemain
+                        </h3>
+                        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                <table className="w-full text-left relative">
+                                    <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
+                                        <tr>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nama Pemain</th>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">No. Punggung</th>
+                                            <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-center">Ukuran (Size)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50 bg-white">
+                                        {sortPlayersBySize(selectedOrder.details || []).map((item: any, idx: number) => (
+                                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-8 py-4 text-sm font-black text-slate-900 uppercase italic">{item.playerName || "-"}</td>
+                                                <td className="px-8 py-4 text-sm font-black text-[#D25026] text-center font-mono">{item.playerNumber || "-"}</td>
+                                                <td className="px-8 py-4 text-center">
+                                                    <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black italic">{item.playerSize || "-"}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

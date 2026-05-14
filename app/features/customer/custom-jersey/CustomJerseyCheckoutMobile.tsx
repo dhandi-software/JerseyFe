@@ -39,8 +39,10 @@ import { orderService } from "~/services/orderService";
 import { chatService } from "~/services/chatService";
 import { useAuth } from "~/context/AuthContext";
 import { cn } from "~/lib/utils";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Toast } from "~/components/ui/toast";
+import { adminApi } from "~/api/admin";
+import { UPLOADS_URL } from "~/api/client";
 
 const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -95,6 +97,10 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const { user } = useAuth();
     const { cart, clearCart } = useCart();
     const [step, setStep] = useState(1);
+    const [searchParams] = useSearchParams();
+    const productIdParam = searchParams.get("productId");
+    const [directProduct, setDirectProduct] = useState<any>(null);
+    const [isLoadingProduct, setIsLoadingProduct] = useState(false);
     
     const [customDetails, setCustomDetails] = useState<any[]>([]);
     const [designNote, setDesignNote] = useState("");
@@ -109,6 +115,34 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
     const [playerCountInput, setPlayerCountInput] = useState("");
     const [showValidation, setShowValidation] = useState(false);
+    useEffect(() => {
+        if (productIdParam && cart.length === 0) {
+            setIsLoadingProduct(true);
+            adminApi.getBahanBaju().then(res => {
+                if (res.status === "success") {
+                    const product = res.data.find((b: any) => b.id === Number(productIdParam));
+                    if (product) {
+                        setDirectProduct({
+                            id: product.id,
+                            title: product.nama,
+                            price: 150000,
+                            stock: product.stok,
+                            image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
+                        });
+                    }
+                }
+            }).finally(() => setIsLoadingProduct(false));
+        }
+    }, [productIdParam, cart.length]);
+
+    const activeProduct = cart.length > 0 ? {
+        id: cart[0].product.id,
+        title: cart[0].product.title,
+        price: cart[0].product.price,
+        stock: cart[0].product.stock,
+        image: cart[0].product.image
+    } : directProduct;
+
     const [toast, setToast] = useState<{ show: boolean, message: string, variant: "success" | "destructive" | "default" }>({ 
         show: false, 
         message: "", 
@@ -121,10 +155,21 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
             setToast({ show: true, message: "Masukkan jumlah pemain yang valid", variant: "destructive" });
             return;
         }
-        const productId = cart[0]?.product.id || 101;
-        const productTitle = cart[0]?.product.title || "Custom Jersey";
-        const price = cart[0]?.product.price || 150000;
-        const image = cart[0]?.product.image || "";
+
+        if (!activeProduct) {
+            setToast({ show: true, message: "Pilih produk terlebih dahulu", variant: "destructive" });
+            return;
+        }
+
+        const maxStock = activeProduct.stock || 0;
+        if (count > maxStock) {
+            setToast({ show: true, message: `Gagal! Stok bahan hanya tersedia ${maxStock} pcs.`, variant: "destructive" });
+            return;
+        }
+        const productId = activeProduct.id;
+        const productTitle = activeProduct.title;
+        const price = activeProduct.price;
+        const image = activeProduct.image;
         
         const newDetails = Array.from({ length: count }).map((_, idx) => ({
             id: `gen-m-${idx}-${Date.now()}`,
@@ -148,30 +193,36 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        if (customDetails.length === 0 && cart.length > 0) {
-            const initialDetails = cart.flatMap(item => 
-                Array.from({ length: item.quantity }).map((_, idx) => ({
-                    id: `${item.product.id}-${Math.random().toString(36).substr(2, 9)}`,
-                    productId: item.product.id,
-                    productTitle: item.product.title,
-                    price: item.product.price,
-                    image: item.product.image,
-                    name: "",
-                    number: "",
-                    size: "L"
-                }))
-            );
+        if (customDetails.length === 0 && activeProduct) {
+            const initialDetails = Array.from({ length: 1 }).map((_, idx) => ({
+                id: `${activeProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
+                productId: activeProduct.id,
+                productTitle: activeProduct.title,
+                price: activeProduct.price,
+                image: activeProduct.image,
+                name: "",
+                number: "",
+                size: "L"
+            }));
             setCustomDetails(initialDetails);
         }
-    }, [cart, customDetails.length]);
+    }, [activeProduct, customDetails.length]);
 
     const parsePasteData = () => {
         const lines = pasteText.split('\n').filter(l => l.trim());
+        if (!activeProduct) return;
+        const maxStock = activeProduct.stock || 0;
+
+        if (lines.length > maxStock) {
+            setToast({ show: true, message: `Gagal! Jumlah pemain (${lines.length}) melebihi stok bahan (${maxStock} pcs).`, variant: "destructive" });
+            return;
+        }
+
         const newDetails = lines.map((line, idx) => {
             let tempLine = line.trim();
             
-            // Extract Size (S-5XL)
-            const sizeRegex = /\b(S|M|L|XL|XXL|XXXL|4XL|5XL)\b/i;
+            // Extract Size (XXS-5XL)
+            const sizeRegex = /\b(XXS|XS|S|M|L|XL|XXL|2XL|XXXL|4XL|5XL)\b/i;
             const sizeMatch = tempLine.match(sizeRegex);
             const size = sizeMatch ? sizeMatch[0].toUpperCase() : "L";
             if (sizeMatch) tempLine = tempLine.replace(sizeMatch[0], "");
@@ -191,10 +242,10 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
 
             return {
                 id: `pasted-m-${idx}-${Date.now()}`,
-                productId: cart[0]?.product.id || 101,
-                productTitle: cart[0]?.product.title || "Custom Jersey",
-                price: cart[0]?.product.price || 150000,
-                image: cart[0]?.product.image || "",
+                productId: activeProduct?.id || 101,
+                productTitle: activeProduct?.title || "Custom Jersey",
+                price: activeProduct?.price || 150000,
+                image: activeProduct?.image || "",
                 name: name.toUpperCase(),
                 number: number,
                 size: size
@@ -299,6 +350,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
             try {
                 await orderService.createOrder({
                     customerId: user?.id || 0,
+                    bahanBajuId: activeProduct?.id,
                     totalAmount: totalCalculated,
                     designNote: designNote,
                     designUrl: designUrl,
@@ -468,11 +520,11 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                         <table className="w-full text-left border-collapse min-w-[40.625rem]">
                                             <thead>
                                                 <tr className="border-b border-neutral-100 bg-neutral-50/50">
-                                                    <th className="p-4 pl-5 text-[9px] font-black uppercase tracking-widest text-neutral-400 italic w-12 text-center">No</th>
-                                                    <th className="p-4 text-[9px] font-black uppercase tracking-widest text-neutral-400 italic">Nama</th>
-                                                    <th className="p-4 text-[9px] font-black uppercase tracking-widest text-neutral-400 italic text-center w-20">No. Punggung</th>
-                                                    <th className="p-4 text-[9px] font-black uppercase tracking-widest text-neutral-400 italic text-center w-[180px]">Ukuran Baju</th>
-                                                    <th className="p-4 pr-5 text-[9px] font-black uppercase tracking-widest text-neutral-400 italic text-right w-14"></th>
+                                                    <th className="p-4 pl-5 text-[9px] font-black uppercase tracking-widest text-neutral-700 italic w-12 text-center">No</th>
+                                                    <th className="p-4 text-[9px] font-black uppercase tracking-widest text-neutral-700 italic">Nama</th>
+                                                    <th className="p-4 text-[9px] font-black uppercase tracking-widest text-neutral-700 italic text-center w-20">No. Punggung</th>
+                                                    <th className="p-4 text-[9px] font-black uppercase tracking-widest text-neutral-700 italic text-center w-[180px]">Ukuran Baju</th>
+                                                    <th className="p-4 pr-5 text-[9px] font-black uppercase tracking-widest text-neutral-700 italic text-right w-14"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -487,7 +539,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                                                 onChange={(e) => handleDetailChange(detail.id, "name", e.target.value)}
                                                                 placeholder="NAME" 
                                                                 className={cn(
-                                                                    "h-9 rounded-xl border-neutral-200 focus:ring-[#D25026]/10 focus:border-[#D25026]/30 bg-white text-[10px] font-black uppercase text-neutral-900 placeholder:text-neutral-300 px-3 transition-all",
+                                                                    "h-9 rounded-xl border-neutral-200 focus:ring-[#D25026]/10 focus:border-[#D25026]/30 bg-white text-xs font-black uppercase text-black placeholder:text-neutral-400 px-3 transition-all",
                                                                     showValidation && !detail.name.trim() && "border-red-500 bg-red-50/30"
                                                                 )}
                                                             />
@@ -498,22 +550,22 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                                                 onChange={(e) => handleDetailChange(detail.id, "number", e.target.value)}
                                                                 placeholder="00" 
                                                                 className={cn(
-                                                                    "h-9 rounded-xl border-neutral-200 focus:ring-[#D25026]/10 focus:border-[#D25026]/30 bg-white text-[10px] font-black text-center text-neutral-900 placeholder:text-neutral-300 px-2 transition-all",
+                                                                    "h-9 rounded-xl border-neutral-200 focus:ring-[#D25026]/10 focus:border-[#D25026]/30 bg-white text-sm font-black text-center text-black placeholder:text-neutral-400 px-2 transition-all",
                                                                     showValidation && !detail.number.trim() && "border-red-500 bg-red-50/30"
                                                                 )}
                                                             />
                                                         </td>
                                                         <td className="p-3">
                                                             <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl h-9 w-max mx-auto border border-neutral-200">
-                                                                {["S", "M", "L", "XL", "XXL"].map(size => (
+                                                                {["XXS", "XS", "S", "M", "L", "XL", "XXL"].map(size => (
                                                                     <button
                                                                         key={size}
                                                                         onClick={() => handleDetailChange(detail.id, "size", size)}
                                                                         className={cn(
-                                                                            "w-7 rounded-lg text-[9px] font-black transition-all",
+                                                                            "w-7 rounded-lg text-[10px] font-black transition-all",
                                                                             detail.size === size 
                                                                                 ? "bg-black text-white shadow-md shadow-black/10" 
-                                                                                : "text-neutral-400 hover:text-black hover:bg-neutral-200"
+                                                                                : "text-neutral-600 hover:text-black hover:bg-neutral-200"
                                                                         )}
                                                                     >
                                                                         {size}

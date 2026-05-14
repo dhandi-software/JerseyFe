@@ -28,7 +28,11 @@ export function DashboardDesktop() {
         },
         recentCustomers: [] as any[],
         recentChats: [] as any[],
-        totalUnreadChat: 0
+        totalUnreadChat: 0,
+        bestMonth: { month: "-", year: "-", pv: 0 },
+        bestYear: { year: "-", totalRevenue: 0, totalQuantity: 0 },
+        topBuyer: { name: "-", category: "-", initial: "-" },
+        newOrders: [] as any[]
     });
 
     useEffect(() => {
@@ -54,7 +58,11 @@ export function DashboardDesktop() {
                     salesData: statsRes.data?.salesData || prev.salesData,
                     recentCustomers: statsRes.data?.recentCustomers || [],
                     recentChats: statsRes.data?.recentChats || [],
-                    totalUnreadChat: statsRes.data?.totalUnreadChat || 0
+                    totalUnreadChat: statsRes.data?.totalUnreadChat || 0,
+                    bestMonth: statsRes.data?.bestMonth || prev.bestMonth,
+                    bestYear: statsRes.data?.bestYear || prev.bestYear,
+                    topBuyer: statsRes.data?.topBuyer || prev.topBuyer,
+                    newOrders: statsRes.data?.newOrders || prev.newOrders
                 }));
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
@@ -294,23 +302,23 @@ export function DashboardDesktop() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent">
                             <div className="text-slate-500 text-sm font-semibold mb-6">Bulan Terlaris</div>
-                            <div className="text-[#E85C2F] text-2xl font-semibold">November</div>
-                            <div className="text-[#E85C2F] text-sm font-medium mt-1">2026</div>
+                            <div className="text-[#E85C2F] text-2xl font-semibold">{statsData.bestMonth.month}</div>
+                            <div className="text-[#E85C2F] text-sm font-medium mt-1">{statsData.bestMonth.year}</div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent flex flex-col justify-between">
                             <div className="text-slate-500 text-sm font-semibold mb-6">Tahun Terbaik</div>
                             <div>
-                                <div className="text-[#E85C2F] text-2xl font-semibold">2026</div>
-                                <div className="text-slate-500 text-sm mt-1">96K jersey terjual</div>
+                                <div className="text-[#E85C2F] text-2xl font-semibold">{statsData.bestYear.year}</div>
+                                <div className="text-slate-500 text-sm mt-1">{statsData.bestYear.totalQuantity >= 1000 ? (statsData.bestYear.totalQuantity/1000).toFixed(1) + 'K' : statsData.bestYear.totalQuantity} jersey terjual</div>
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent flex flex-col justify-between">
                             <div className="text-slate-500 text-sm font-semibold mb-4">Top Buyer</div>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-sm font-bold">SMK</div>
-                                <div>
-                                    <div className="text-slate-900 text-sm font-medium">SMK Bisa 1</div>
-                                    <div className="text-slate-400 text-xs">Setelan Olahraga</div>
+                                <div className="w-10 h-10 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-sm font-bold truncate px-1">{statsData.topBuyer.initial}</div>
+                                <div className="min-w-0">
+                                    <div className="text-slate-900 text-sm font-medium truncate">{statsData.topBuyer.name}</div>
+                                    <div className="text-slate-400 text-xs truncate">{statsData.topBuyer.category}</div>
                                 </div>
                             </div>
                         </div>
@@ -399,21 +407,15 @@ export function DashboardDesktop() {
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent">
                     <div className="text-slate-900 text-xl font-semibold mb-4">Pesanan Baru</div>
                     <div className="flex flex-wrap gap-2">
-                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
-                            <Plus className="w-4 h-4" /> Tim Futsal JKT
-                        </div>
-                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
-                            <Plus className="w-4 h-4" /> SMA 1 BDG
-                        </div>
-                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
-                            <Plus className="w-4 h-4" /> Kantor Telkom
-                        </div>
-                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
-                            <Plus className="w-4 h-4" /> Kampus UI
-                        </div>
-                        <div className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
-                            <Plus className="w-4 h-4" /> FC Bola
-                        </div>
+                        {statsData.newOrders.length > 0 ? (
+                            statsData.newOrders.map((order, i) => (
+                                <div key={i} className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
+                                    <Plus className="w-4 h-4" /> {order.name}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-slate-400 text-sm italic">Belum ada pesanan baru</div>
+                        )}
                     </div>
                 </div>
 

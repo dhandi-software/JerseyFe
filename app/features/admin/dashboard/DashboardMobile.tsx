@@ -26,7 +26,11 @@ export function DashboardMobile() {
             monthly: [] as any[],
             yearly: [] as any[]
         },
-        recentCustomers: [] as any[]
+        recentCustomers: [] as any[],
+        bestMonth: { month: "-", year: "-", pv: 0 },
+        bestYear: { year: "-", totalRevenue: 0, totalQuantity: 0 },
+        topBuyer: { name: "-", category: "-", initial: "-" },
+        newOrders: [] as any[]
     });
 
     useEffect(() => {
@@ -41,7 +45,11 @@ export function DashboardMobile() {
                     totalAdmin: Number(statsRes.data?.totalAdmin || 0),
                     totalRevenue: Number(statsRes.data?.totalRevenue || 0),
                     salesData: statsRes.data?.salesData || prev.salesData,
-                    recentCustomers: statsRes.data?.recentCustomers || []
+                    recentCustomers: statsRes.data?.recentCustomers || [],
+                    bestMonth: statsRes.data?.bestMonth || prev.bestMonth,
+                    bestYear: statsRes.data?.bestYear || prev.bestYear,
+                    topBuyer: statsRes.data?.topBuyer || prev.topBuyer,
+                    newOrders: statsRes.data?.newOrders || []
                 }));
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
@@ -170,18 +178,18 @@ export function DashboardMobile() {
              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-transparent">
                     <div className="text-slate-500 text-xs font-semibold mb-2">Bulan Terlaris</div>
-                    <div className="text-[#E85C2F] text-lg font-bold">Nov 2026</div>
+                    <div className="text-[#E85C2F] text-lg font-bold">{statsData.bestMonth.month}</div>
                 </div>
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-transparent">
                     <div className="text-slate-500 text-xs font-semibold mb-2">Tahun Terbaik</div>
-                    <div className="text-[#E85C2F] text-lg font-bold">2026</div>
+                    <div className="text-[#E85C2F] text-lg font-bold">{statsData.bestYear.year}</div>
                 </div>
                 <div className="col-span-2 bg-white p-4 rounded-2xl shadow-sm border border-transparent flex justify-between items-center">
-                    <div>
+                    <div className="flex-1 min-w-0 pr-4">
                         <div className="text-slate-500 text-xs font-semibold mb-1">Top Buyer</div>
-                        <div className="text-slate-900 text-sm font-medium">SMK Bisa 1</div>
+                        <div className="text-slate-900 text-sm font-medium truncate">{statsData.topBuyer.name}</div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-xs font-bold">S</div>
+                    <div className="w-8 h-8 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-xs font-bold shrink-0">{statsData.topBuyer.initial}</div>
                 </div>
             </div>
 
@@ -260,15 +268,15 @@ export function DashboardMobile() {
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-transparent">
                     <div className="text-slate-900 text-lg font-semibold mb-4">Pesanan Baru</div>
                     <div className="flex flex-wrap gap-2">
-                        <div className="px-3 py-1.5 bg-[#FFF0E5] text-[#E85C2F] rounded-lg text-xs font-medium flex items-center gap-1">
-                            <Plus className="w-3 h-3" /> Tim Futsal JKT
-                        </div>
-                        <div className="px-3 py-1.5 bg-[#FFF0E5] text-[#E85C2F] rounded-lg text-xs font-medium flex items-center gap-1">
-                            <Plus className="w-3 h-3" /> SMA 1 BDG
-                        </div>
-                        <div className="px-3 py-1.5 bg-[#FFF0E5] text-[#E85C2F] rounded-lg text-xs font-medium flex items-center gap-1">
-                            <Plus className="w-3 h-3" /> Kantor Telkom
-                        </div>
+                        {statsData.newOrders && statsData.newOrders.length > 0 ? (
+                            statsData.newOrders.map((order, i) => (
+                                <div key={i} className="px-3 py-1.5 bg-[#FFF0E5] text-[#E85C2F] rounded-lg text-xs font-medium flex items-center gap-1">
+                                    <Plus className="w-3 h-3" /> {order.name}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-slate-400 text-xs italic">Belum ada pesanan baru</div>
+                        )}
                     </div>
                 </div>
             </div>

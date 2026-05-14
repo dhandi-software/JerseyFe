@@ -22,8 +22,16 @@ export const client = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
-    // Enable sending cookies with requests
     withCredentials: true,
+});
+
+// Request interceptor to handle FormData
+client.interceptors.request.use((config) => {
+    if (config.data instanceof FormData) {
+        // Remove default Content-Type to let Axios set it with the boundary
+        delete config.headers["Content-Type"];
+    }
+    return config;
 });
 
 // Response interceptor to handle errors

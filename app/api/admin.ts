@@ -115,4 +115,28 @@ export const adminApi = {
         const response = await client.get<ApiResponse<any[]>>("/admin/designers");
         return response.data;
     },
+
+    /**
+     * Bahan Baju endpoints
+     */
+    getBahanBaju: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/bahan-baju");
+        return response.data;
+    },
+    getBahanBajuHistory: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/bahan-baju/history");
+        return response.data;
+    },
+    createBahanBaju: async (data: FormData): Promise<ApiResponse<any>> => {
+        const response = await client.post<ApiResponse<any>>("/bahan-baju", data);
+        return response.data;
+    },
+    updateBahanBaju: async (id: number, data: FormData): Promise<ApiResponse<any>> => {
+        const response = await client.put<ApiResponse<any>>(`/bahan-baju/${id}`, data);
+        return response.data;
+    },
+    deleteBahanBaju: async (id: number): Promise<ApiResponse<any>> => {
+        const response = await client.delete<ApiResponse<any>>(`/bahan-baju/${id}`);
+        return response.data;
+    }
 };

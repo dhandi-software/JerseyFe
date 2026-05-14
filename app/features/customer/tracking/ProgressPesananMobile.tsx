@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
-import { Package, Clock, CheckCircle2, Truck, FileText, Loader2, ChevronLeft, ShoppingBag, ChevronRight, Eye } from "lucide-react";
+import { Package, Clock, CheckCircle2, Truck, FileText, Loader2, ChevronLeft, ShoppingBag, ChevronRight, Eye, Printer, Scissors, Palette, Ruler, Layers, User } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
 import { useAuth } from "~/context/AuthContext";
+import { sortPlayersBySize } from "~/lib/sizeUtils";
 import { Link } from "react-router";
 
 const STAGES = [
     { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek bayar" },
-    { id: "DESAIN", label: "Desain", icon: FileText, desc: "Mockup" },
-    { id: "LAYOUT", label: "Layout", icon: Package, desc: "Tata letak" },
-    { id: "FINISHING", label: "Finishing", icon: Truck, desc: "Akhir" },
-    { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Siap ambil" }
+    { id: "DESAIN", label: "Desain", icon: Palette, desc: "Mockup" },
+    { id: "LAYOUT", label: "Layout", icon: Ruler, desc: "Pola" },
+    { id: "PRINT", label: "Print", icon: Printer, desc: "Cetak" },
+    { id: "FINISHING", label: "Finishing", icon: Scissors, desc: "Jahit & QC" },
+    { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Diterima" }
 ];
 
 export function ProgressPesananMobile() {
@@ -172,6 +174,35 @@ export function ProgressPesananMobile() {
                                 <p className="text-sm font-black text-emerald-800 italic uppercase">Paid</p>
                             </div>
                             <p className="text-lg font-black text-emerald-700 italic">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+
+                    {/* Data Pemain Card Mobile */}
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                            <User className="text-[#D25026]" size={14} /> Data Pemain
+                        </h3>
+                        <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <table className="w-full text-left relative">
+                                    <thead className="bg-slate-100 sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+                                        <tr>
+                                            <th className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Nama</th>
+                                            <th className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
+                                            <th className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-slate-50">
+                                        {sortPlayersBySize(selectedOrder.details || []).map((item: any, idx: number) => (
+                                            <tr key={idx}>
+                                                <td className="px-3 py-2 text-[10px] font-black text-slate-700 uppercase italic truncate max-w-[100px]">{item.playerName || "-"}</td>
+                                                <td className="px-3 py-2 text-[10px] font-black text-[#D25026] text-center">{item.playerNumber || "-"}</td>
+                                                <td className="px-3 py-2 text-center text-[10px] font-black italic text-slate-500">{item.playerSize || "-"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 

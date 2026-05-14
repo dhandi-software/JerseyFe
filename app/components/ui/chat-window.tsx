@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import { UPLOADS_URL } from "~/api/client";
 import Avatar, { AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
@@ -18,7 +19,7 @@ interface ChatWindowProps {
     activeContact: ChatContact | null;
     messages: Message[];
     currentUser: { id: number; username: string; role?: string } | null;
-    onSendMessage: (content: string, file?: File, replyToId?: number) => void;
+    onSendMessage: (content: string, file?: File, replyToId?: number, attachment?: { url: string; name: string; type: "image" | "document" }) => void;
     onEditMessage?: (messageId: number, newContent: string) => void;
     isLoadingHistory: boolean;
     onBack?: () => void;
@@ -59,7 +60,9 @@ export function ChatWindow({
     const [isDeleteGroupOpen, setIsDeleteGroupOpen] = useState(false);
     const [activeOrder, setActiveOrder] = useState<any | null>(null);
     const [isLoadingOrder, setIsLoadingOrder] = useState(false);
+    const [isOrderDismissed, setIsOrderDismissed] = useState(false);
     
+    const [searchParams, setSearchParams] = useSearchParams();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +116,7 @@ export function ChatWindow({
             const isGroup = activeContact.isGroup || activeContact.id === 0;
             onMarkAsRead(activeContact.id, isGroup);
         }
+        setIsOrderDismissed(false); // Reset dismissal when switching contacts
     }, [messages.length, activeContact?.id, onMarkAsRead]);
 
     useEffect(() => {
@@ -124,18 +128,39 @@ export function ChatWindow({
     // Fetch active order for customer
     useEffect(() => {
         const fetchActiveOrder = async () => {
-            const isInternal = ["admin", "desain", "manager", "gudang"].includes(currentUser?.role?.toLowerCase() || "");
+            if (!activeContact) return;
+            const role = currentUser?.role?.toLowerCase() || "";
+            const isInternal = ["admin", "desain", "manager", "gudang"].includes(role);
+            
             const contactRole = activeContact?.role?.toLowerCase() || "";
-            const isCustomer = contactRole.includes("customer") || contactRole.includes("mahasiswa");
+            const isContactCustomer = contactRole.includes("customer") || contactRole.includes("mahasiswa");
+            const isContactInternal = ["admin", "desain", "manager", "gudang", "staf", "kaprodi"].some(r => contactRole.includes(r));
 
-            if (isInternal && isCustomer && activeContact?.id && activeContact.id !== 0) {
+            const queryOrderId = searchParams.get("orderId");
+            if (queryOrderId) setIsOrderDismissed(false); // Reset dismissal if a new orderId is provided
+            
+            let targetCustomerId = null;
+            
+            if (isInternal && isContactCustomer) {
+                // Admin/Staff chatting with Customer
+                targetCustomerId = typeof activeContact.id === 'string' ? parseInt(activeContact.id) : activeContact.id;
+            } else if ((role.includes("customer") || role.includes("mahasiswa")) && isContactInternal) {
+                // Customer chatting with Staff
+                targetCustomerId = currentUser?.id;
+            }
+
+            if (targetCustomerId && activeContact?.id && activeContact.id !== 0) {
                 setIsLoadingOrder(true);
                 try {
-                    const contactId = typeof activeContact.id === 'string' ? parseInt(activeContact.id) : activeContact.id;
-                    const orders = await orderService.getCustomerOrders(contactId);
-                    // Get latest active order (not SELESAI/DITOLAK)
-                    const latest = orders.find((o: any) => !["SELESAI", "DITOLAK"].includes(o.status));
-                    setActiveOrder(latest || null);
+                    const orders = await orderService.getCustomerOrders(targetCustomerId);
+                    
+                    let targetOrder = null;
+                    if (queryOrderId) {
+                        // Match by ID if provided in URL
+                        targetOrder = orders.find((o: any) => o.id === parseInt(queryOrderId) || o.orderId === queryOrderId);
+                    }
+                    
+                    setActiveOrder(targetOrder || null);
                 } catch (error) {
                     console.error("Failed to fetch order for chat:", error);
                 } finally {
@@ -147,11 +172,42 @@ export function ChatWindow({
         };
 
         fetchActiveOrder();
-    }, [activeContact, currentUser]);
+    }, [activeContact, currentUser, searchParams]);
+
+    const handleSendOrderReference = () => {
+        if (!activeOrder) return;
+        const message = `Halo, saya sedang memproses pesanan ini:\n📌 No. Pesanan: ${activeOrder.orderId}\n👕 Produk: ${activeOrder.details?.[0]?.productTitle || "Custom Jersey"}\n💰 Total: Rp ${activeOrder.totalAmount?.toLocaleString('id-ID')}`;
+        
+        const attachment = activeOrder.designUrl ? {
+            url: activeOrder.designUrl,
+            name: `Design-${activeOrder.orderId}`,
+            type: "image" as const
+        } : undefined;
+
+        onSendMessage(message, undefined, undefined, attachment);
+        setIsOrderDismissed(true);
+        
+        // Clean up URL param if it exists to avoid automatic resending
+        if (searchParams.get("orderId")) {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("orderId");
+            setSearchParams(newParams, { replace: true });
+        }
+    };
 
     const handleSend = () => {
         if (!inputValue.trim()) return;
         
+        // If this is an order-linked chat and we haven't sent the reference yet
+        const queryOrderId = searchParams.get("orderId");
+        if (queryOrderId && activeOrder) {
+            handleSendOrderReference();
+            // setSearchParams will trigger re-render and clear activeOrder
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("orderId");
+            setSearchParams(newParams, { replace: true });
+        }
+
         if (editingMessageId && onEditMessage) {
             onEditMessage(editingMessageId, inputValue);
             setEditingMessageId(null);
@@ -221,32 +277,6 @@ export function ChatWindow({
                 backgroundSize: "32px 32px"
             }} />
 
-            {/* Order Info Banner */}
-            {activeOrder && (
-                <div className="bg-[#FFF3ED] px-6 py-2 border-b border-[#FDE8DF] flex items-center justify-between z-10 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-[#D25026] text-white p-1.5 rounded-lg">
-                            <ShoppingBag size={14} />
-                        </div>
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Pesanan Aktif:</span>
-                                <span className="text-[10px] font-black text-[#D25026] italic font-mono">{activeOrder.orderId}</span>
-                            </div>
-                            <div className="flex items-center gap-3 mt-0.5">
-                                <span className="text-xs font-black text-slate-900 uppercase italic">{activeOrder.details?.[0]?.productTitle || "Custom Jersey"}</span>
-                                <span className="text-[9px] px-2 py-0.5 bg-white border border-[#D25026]/20 rounded-full font-black text-[#D25026] uppercase italic">
-                                    {activeOrder.status}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-0.5">Total Biaya:</p>
-                        <p className="text-sm font-black text-[#D25026] italic">Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</p>
-                    </div>
-                </div>
-            )}
 
             {/* Header */}
             <div 
@@ -433,6 +463,72 @@ export function ChatWindow({
                     }} className="text-[#A1A1A1] hover:text-red-500 hover:bg-red-50 transition-colors">
                         <X size={20} />
                     </Button>
+                </div>
+            )}
+
+            {/* Order Info Card - Positioned above input */}
+            {activeOrder && !isOrderDismissed && (
+                <div className="px-4 py-2 z-10 animate-in fade-in slide-in-from-bottom-2 duration-300 w-full flex-shrink-0 bg-[#FCFCFC] border-t border-slate-100">
+                    <div className="w-full bg-white border border-slate-200 rounded-3xl p-4 shadow-sm relative group">
+                        {/* Header with Close */}
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest italic">
+                                {currentUser?.role?.toLowerCase() === "customer" ? "Kamu menanyakan pesanan ini" : "Customer menanyakan pesanan ini"}
+                            </span>
+                            <button 
+                                onClick={() => setIsOrderDismissed(true)}
+                                className="p-1 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            {/* Product Image */}
+                            <div className="w-16 h-16 bg-[#FFF3ED] rounded-2xl flex items-center justify-center border border-[#FDE8DF] overflow-hidden shrink-0">
+                                {activeOrder.designUrl ? (
+                                    <img 
+                                        src={`${UPLOADS_URL}${activeOrder.designUrl}`} 
+                                        alt="Design" 
+                                        className="w-full h-full object-cover" 
+                                    />
+                                ) : (
+                                    <ShoppingBag size={24} className="text-[#D25026]" />
+                                )}
+                            </div>
+
+                            <div className="flex-1 flex flex-col min-w-0">
+                                <div className="flex flex-col">
+                                    <h4 className="text-[14px] font-black text-slate-900 uppercase italic tracking-tight leading-tight">
+                                        {activeOrder.details?.[0]?.productTitle || "Custom Jersey"}
+                                    </h4>
+                                    <p className="text-[13px] font-bold text-slate-500 mt-1">
+                                        {activeOrder.details?.length || 0} Produk · <span className="text-[#D25026]">Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</span>
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className={cn(
+                                            "text-[9px] font-black px-2 py-0.5 rounded-full uppercase italic",
+                                            activeOrder.status === "DIPROSES" ? "bg-blue-50 text-blue-600 border border-blue-100" :
+                                            activeOrder.status === "DESAIN" ? "bg-purple-50 text-purple-600 border border-purple-100" :
+                                            "bg-orange-50 text-orange-600 border border-orange-100"
+                                        )}>
+                                            {activeOrder.status}
+                                        </span>
+                                        <span className="text-[9px] font-mono font-bold text-slate-400">#{activeOrder.orderId}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Send Button */}
+                            <button 
+                                onClick={handleSendOrderReference}
+                                className="px-4 py-2.5 bg-[#D25026] text-white text-[11px] font-black uppercase italic rounded-2xl hover:bg-[#B3411A] transition-all shadow-md shadow-[#D25026]/10 flex items-center gap-2 self-center"
+                            >
+                                <Send size={14} />
+                                Kirim
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

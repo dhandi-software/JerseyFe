@@ -1,30 +1,41 @@
-import { useState } from "react";
-import { Search, Package, Clock, CheckCircle2, Truck, FileText, AlertCircle, Loader2, ChevronLeft, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
+import { Search, Package, Clock, CheckCircle2, Truck, FileText, AlertCircle, Loader2, ChevronRight, MapPin, Printer, User, Scissors, Palette, Ruler } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
+import { sortPlayersBySize } from "~/lib/sizeUtils";
 
 const STAGES = [
-    { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek pembayaran" },
-    { id: "DESAIN", label: "Desain", icon: FileText, desc: "Mockup desain" },
-    { id: "PRODUKSI", label: "Produksi", icon: Package, desc: "Cetak & Jahit" },
-    { id: "PENGIRIMAN", label: "Kirim", icon: Truck, desc: "Oleh kurir" },
+    { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek bayar" },
+    { id: "DESAIN", label: "Desain", icon: Palette, desc: "Mockup" },
+    { id: "LAYOUT", label: "Layout", icon: Ruler, desc: "Pola" },
+    { id: "PRINT", label: "Print", icon: Printer, desc: "Cetak" },
+    { id: "FINISHING", label: "Finishing", icon: Scissors, desc: "Jahit & QC" },
     { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Diterima" }
 ];
 
 export function TrackingPesananMobile() {
-    const [orderId, setOrderId] = useState("");
+    const [searchParams] = useSearchParams();
+    const [orderId, setOrderId] = useState(searchParams.get("id") || "");
     const [order, setOrder] = useState<any | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!orderId.trim()) return;
+    useEffect(() => {
+        const id = searchParams.get("id");
+        if (id) {
+            setOrderId(id);
+            executeSearch(id);
+        }
+    }, [searchParams]);
+
+    const executeSearch = async (idToSearch: string) => {
+        if (!idToSearch.trim()) return;
 
         setLoading(true);
         setError("");
         try {
-            const data = await orderService.trackOrder(orderId.trim());
+            const data = await orderService.trackOrder(idToSearch.trim());
             setOrder(data);
         } catch (err: any) {
             setError("ID tidak ditemukan");
@@ -32,6 +43,11 @@ export function TrackingPesananMobile() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        executeSearch(orderId);
     };
 
     const getCurrentStageIndex = () => {
@@ -137,14 +153,45 @@ export function TrackingPesananMobile() {
                             <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-900 italic flex items-center gap-2">
                                 <Package className="text-[#D25026]" size={12} /> Info Pesanan
                             </h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 border-b border-slate-50 pb-3">
+                                <div>
+                                    <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest italic mb-0.5">Pemesan</p>
+                                    <p className="text-[10px] font-bold text-slate-700 uppercase italic truncate">{order.customerName}</p>
+                                </div>
                                 <div>
                                     <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest italic mb-0.5">Produk</p>
                                     <p className="text-[10px] font-bold text-slate-700 uppercase italic truncate">{order.details?.[0]?.productTitle || "Custom Jersey"}</p>
                                 </div>
+                            </div>
+                            <div className="grid grid-cols-1 border-b border-slate-50 pb-3">
                                 <div>
                                     <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest italic mb-0.5">Jumlah</p>
                                     <p className="text-[10px] font-bold text-slate-700 uppercase italic">{order.details?.length} Unit</p>
+                                </div>
+                            </div>
+                            <div className="pt-3">
+                                <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest italic mb-2">Daftar Pemain</p>
+                                <div className="bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
+                                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                        <table className="w-full text-left relative">
+                                            <thead className="bg-slate-100 sticky top-0 z-10 shadow-sm">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-[7px] font-black text-slate-500 uppercase tracking-widest italic">Nama</th>
+                                                    <th className="px-3 py-2 text-[7px] font-black text-slate-500 uppercase tracking-widest italic text-center">No</th>
+                                                    <th className="px-3 py-2 text-[7px] font-black text-slate-500 uppercase tracking-widest italic text-center">Size</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 bg-slate-50">
+                                                {sortPlayersBySize(order.details || []).map((item: any, idx: number) => (
+                                                    <tr key={idx}>
+                                                        <td className="px-3 py-2 text-[9px] font-black text-slate-800 uppercase italic truncate max-w-[80px]">{item.playerName || "-"}</td>
+                                                        <td className="px-3 py-2 text-[9px] font-black text-[#D25026] text-center">{item.playerNumber || "-"}</td>
+                                                        <td className="px-3 py-2 text-center text-[9px] font-black italic text-slate-600">{item.playerSize || "-"}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>

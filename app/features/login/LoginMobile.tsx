@@ -127,7 +127,7 @@ export function LoginMobile() {
                             disabled={isLoading}
                             className="w-full h-14 rounded-2xl bg-[#0F172A] hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-slate-900/20 active:scale-95 transition-all mt-4"
                         >
-                            {isLoading ? "Validating..." : "Enter Portal"}
+                            {isLoading ? "Authenticating..." : "LOGIN"}
                         </Button>
                     </form>
                 </div>

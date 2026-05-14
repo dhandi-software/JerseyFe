@@ -41,8 +41,10 @@ import { orderService } from "~/services/orderService";
 import { chatService } from "~/services/chatService";
 import { useAuth } from "~/context/AuthContext";
 import { cn } from "~/lib/utils";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Toast } from "~/components/ui/toast";
+import { adminApi } from "~/api/admin";
+import { UPLOADS_URL } from "~/api/client";
 
 const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -99,6 +101,10 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const { user } = useAuth();
     const { cart, clearCart } = useCart();
     const [step, setStep] = useState(1);
+    const [searchParams] = useSearchParams();
+    const productIdParam = searchParams.get("productId");
+    const [directProduct, setDirectProduct] = useState<any>(null);
+    const [isLoadingProduct, setIsLoadingProduct] = useState(false);
     
     const [customDetails, setCustomDetails] = useState<any[]>([]);
     const [designNote, setDesignNote] = useState("");
@@ -113,6 +119,34 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
     const [playerCountInput, setPlayerCountInput] = useState("");
     const [showValidation, setShowValidation] = useState(false);
+    useEffect(() => {
+        if (productIdParam && cart.length === 0) {
+            setIsLoadingProduct(true);
+            adminApi.getBahanBaju().then(res => {
+                if (res.status === "success") {
+                    const product = res.data.find((b: any) => b.id === Number(productIdParam));
+                    if (product) {
+                        setDirectProduct({
+                            id: product.id,
+                            title: product.nama,
+                            price: 150000,
+                            stock: product.stok,
+                            image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
+                        });
+                    }
+                }
+            }).finally(() => setIsLoadingProduct(false));
+        }
+    }, [productIdParam, cart.length]);
+
+    const activeProduct = cart.length > 0 ? {
+        id: cart[0].product.id,
+        title: cart[0].product.title,
+        price: cart[0].product.price,
+        stock: cart[0].product.stock,
+        image: cart[0].product.image
+    } : directProduct;
+
     const [toast, setToast] = useState<{ show: boolean, message: string, variant: "success" | "destructive" | "default" }>({ 
         show: false, 
         message: "", 
@@ -125,10 +159,21 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             setToast({ show: true, message: "Masukkan jumlah pemain yang valid", variant: "destructive" });
             return;
         }
-        const productId = cart[0]?.product.id || 101;
-        const productTitle = cart[0]?.product.title || "Custom Jersey";
-        const price = cart[0]?.product.price || 150000;
-        const image = cart[0]?.product.image || "";
+
+        if (!activeProduct) {
+            setToast({ show: true, message: "Pilih produk terlebih dahulu", variant: "destructive" });
+            return;
+        }
+
+        const maxStock = activeProduct.stock || 0;
+        if (count > maxStock) {
+            setToast({ show: true, message: `Gagal! Stok bahan hanya tersedia ${maxStock} pcs.`, variant: "destructive" });
+            return;
+        }
+        const productId = activeProduct.id;
+        const productTitle = activeProduct.title;
+        const price = activeProduct.price;
+        const image = activeProduct.image;
         
         const newDetails = Array.from({ length: count }).map((_, idx) => ({
             id: `gen-${idx}-${Date.now()}`,
@@ -171,11 +216,18 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
 
     const parsePasteData = () => {
         const lines = pasteText.split('\n').filter(l => l.trim());
+        const maxStock = cart[0]?.product.stock || 0;
+
+        if (lines.length > maxStock) {
+            setToast({ show: true, message: `Gagal! Jumlah pemain (${lines.length}) melebihi stok bahan (${maxStock} pcs).`, variant: "destructive" });
+            return;
+        }
+
         const newDetails = lines.map((line, idx) => {
             let tempLine = line.trim();
             
-            // Extract Size (S-5XL)
-            const sizeRegex = /\b(S|M|L|XL|XXL|XXXL|4XL|5XL)\b/i;
+            // Extract Size (XXS-5XL)
+            const sizeRegex = /\b(XXS|XS|S|M|L|XL|XXL|2XL|XXXL|4XL|5XL)\b/i;
             const sizeMatch = tempLine.match(sizeRegex);
             const size = sizeMatch ? sizeMatch[0].toUpperCase() : "L";
             if (sizeMatch) tempLine = tempLine.replace(sizeMatch[0], "");
@@ -318,6 +370,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             try {
                 await orderService.createOrder({
                     customerId: user?.id || 0,
+                    bahanBajuId: cart[0]?.product.id,
                     totalAmount: totalCalculated,
                     designNote: designNote,
                     designUrl: designUrl,
@@ -534,11 +587,11 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                 <table className="w-full text-left border-collapse min-w-[62.5rem]">
                                                     <thead>
                                                         <tr className="border-b border-neutral-100 bg-neutral-50/50">
-                                                            <th className="p-6 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 italic w-20 text-center">No</th>
-                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 italic">Nama</th>
-                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 italic text-center w-40">Nomor Punggung</th>
-                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 italic text-center w-80">Ukuran Baju</th>
-                                                            <th className="p-6 pr-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 italic text-right w-28">Action</th>
+                                                            <th className="p-6 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic w-20 text-center">No</th>
+                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic">Nama</th>
+                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-center w-40">Nomor Punggung</th>
+                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-center w-80">Ukuran Baju</th>
+                                                            <th className="p-6 pr-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-right w-28">Action</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-neutral-100">
@@ -549,13 +602,13 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                                 </td>
                                                                 <td className="p-5">
                                                                     <div className="relative group/input">
-                                                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-300 group-focus-within/input:text-[#D25026] transition-colors" />
+                                                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within/input:text-[#D25026] transition-colors" />
                                                                         <Input 
                                                                             value={detail.name}
                                                                             onChange={(e) => handleDetailChange(detail.id, "name", e.target.value)}
                                                                             placeholder="NAMA PEMAIN" 
                                                                             className={cn(
-                                                                                "h-12 rounded-2xl border-neutral-200 focus:border-[#D25026]/50 focus:ring-[#D25026]/20 bg-white text-[11px] font-black uppercase tracking-wider text-neutral-900 placeholder:text-neutral-300 pl-11 transition-all duration-300",
+                                                                                "h-12 rounded-2xl border-neutral-200 focus:border-[#D25026]/50 focus:ring-[#D25026]/20 bg-white text-sm font-black uppercase tracking-wider text-black placeholder:text-neutral-400 pl-11 transition-all duration-300",
                                                                                 showValidation && !detail.name.trim() && "border-red-500 bg-red-50/30"
                                                                             )}
                                                                         />
@@ -568,22 +621,22 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                                         placeholder="00" 
                                                                         maxLength={3}
                                                                         className={cn(
-                                                                            "h-12 rounded-2xl border-neutral-200 focus:border-[#D25026]/50 focus:ring-[#D25026]/20 bg-white text-xs font-black text-center text-neutral-900 placeholder:text-neutral-300 transition-all duration-300",
+                                                                            "h-12 rounded-2xl border-neutral-200 focus:border-[#D25026]/50 focus:ring-[#D25026]/20 bg-white text-base font-black text-center text-black placeholder:text-neutral-400 transition-all duration-300",
                                                                             showValidation && !detail.number.trim() && "border-red-500 bg-red-50/30"
                                                                         )}
                                                                     />
                                                                 </td>
                                                                 <td className="p-5">
                                                                     <div className="flex gap-1 bg-neutral-50 p-1.5 rounded-2xl border border-neutral-100 w-max mx-auto">
-                                                                        {["S", "M", "L", "XL", "XXL"].map(size => (
+                                                                        {["XXS", "XS", "S", "M", "L", "XL", "XXL"].map(size => (
                                                                             <button
                                                                                 key={size}
                                                                                 onClick={() => handleDetailChange(detail.id, "size", size)}
                                                                                 className={cn(
-                                                                                    "w-11 h-9 rounded-xl text-[10px] font-black transition-all duration-300",
+                                                                                    "w-11 h-9 rounded-xl text-xs font-black transition-all duration-300",
                                                                                     detail.size === size 
                                                                                         ? "bg-black text-white shadow-lg" 
-                                                                                        : "text-neutral-400 hover:text-black hover:bg-neutral-100"
+                                                                                        : "text-neutral-600 hover:text-black hover:bg-neutral-100"
                                                                                 )}
                                                                             >
                                                                                 {size}

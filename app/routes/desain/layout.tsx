@@ -31,7 +31,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
 const menuItems = [
   {
     key: "dashboard" as MenuKey,
-    title: "Pesanan Saya",
+    title: "Management Pesanan",
     icon: ShoppingBag,
     url: "/desain",
   },

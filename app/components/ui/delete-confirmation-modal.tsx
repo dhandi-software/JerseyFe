@@ -41,7 +41,7 @@ export function DeleteConfirmationModal({
              <h3 className="text-lg font-medium text-gray-900">
                 {title} <span className="font-bold">{itemName}</span>
              </h3>
-             <p className="text-sm text-gray-500 max-w-[300px] mx-auto leading-relaxed">
+             <p className="text-sm text-gray-500 leading-relaxed px-2">
                 {description}
              </p>
         </div>

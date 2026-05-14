@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Clock, Eye, CheckCircle, Package, Truck, Image as ImageIcon, CreditCard, ChevronLeft, MessageCircle, FileText } from "lucide-react";
+import { Clock, Eye, CheckCircle, Package, Truck, Image as ImageIcon, CreditCard, ChevronLeft, MessageCircle, FileText, User } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
 import { useAuth } from "~/hooks/useAuth";
+import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 
 export function DashboardDesainDesktop() {
     const { user } = useAuth();
@@ -31,29 +32,15 @@ export function DashboardDesainDesktop() {
                         hour: '2-digit', 
                         minute: '2-digit' 
                     }),
-                    playerInfo: o.details.map((d: any) => ({
+                    playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
                         name: d.playerName || "-",
                         number: d.playerNumber || "-",
                         size: d.playerSize || "-"
-                    })).sort((a: any, b: any) => {
-                        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', 'XXXXL', '5XL', 'XXXXXL'];
-                        const sizeA = a.size.toUpperCase();
-                        const sizeB = b.size.toUpperCase();
-                        const numA = parseInt(sizeA);
-                        const numB = parseInt(sizeB);
-                        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-                        if (!isNaN(numA)) return -1;
-                        if (!isNaN(numB)) return 1;
-                        const indexA = sizeOrder.indexOf(sizeA);
-                        const indexB = sizeOrder.indexOf(sizeB);
-                        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                        if (indexA !== -1) return -1;
-                        if (indexB !== -1) return 1;
-                        return sizeA.localeCompare(sizeB);
-                    }),
+                    }))),
                     designNote: o.designNote,
                     designUrl: o.designUrl,
                     customerId: o.customerId,
+                    totalAmount: o.totalAmount
                 }));
                 setOrders(formattedOrders);
             } catch (error) {
@@ -83,6 +70,7 @@ export function DashboardDesainDesktop() {
         switch (status) {
             case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
             case "FINISHING": return "bg-blue-50 text-blue-700 border-blue-200";
+            case "PRINT": return "bg-cyan-50 text-cyan-700 border-cyan-200";
             case "LAYOUT": return "bg-amber-50 text-amber-700 border-amber-200";
             case "DESAIN": return "bg-purple-50 text-purple-700 border-purple-200";
             case "DITOLAK": return "bg-red-50 text-red-700 border-red-200";
@@ -123,83 +111,82 @@ export function DashboardDesainDesktop() {
                             </div>
                         </div>
 
-                        <div className="p-10 bg-slate-50/50">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                <div className="space-y-10">
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
-                                            Referensi Desain
-                                        </h3>
-                                        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
-                                            {selectedOrder.designUrl ? (
-                                                selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
-                                                    <div className="flex flex-col items-center justify-center p-12 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 gap-6 group">
-                                                        <div className="w-24 h-24 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                                            <FileText size={48} />
-                                                        </div>
-                                                        <div className="text-center">
-                                                            <p className="text-sm font-black text-slate-900 uppercase italic tracking-wider">Dokumen Referensi PDF</p>
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">Klik tombol di bawah untuk melihat</p>
-                                                        </div>
-                                                        <a 
-                                                            href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer"
-                                                            className="px-8 py-4 bg-red-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-600/20 flex items-center gap-3 italic"
-                                                        >
-                                                            <Eye size={18} />
-                                                            Buka Dokumen PDF
-                                                        </a>
-                                                    </div>
-                                                ) : (
-                                                    <img 
-                                                        src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} 
-                                                        alt="Design Reference" 
-                                                        className="w-full h-auto rounded-xl border border-slate-200 shadow-sm" 
-                                                    />
-                                                )
+                        <div className="p-10 bg-slate-50/50 space-y-12">
+                            {/* Referensi Desain (Top) */}
+                            <div>
+                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
+                                    <ImageIcon className="text-[#D25026]" size={16} />
+                                    Referensi Desain
+                                </h3>
+                                <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
+                                    {selectedOrder.designUrl ? (
+                                        <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                                            {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
+                                                <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
+                                                    <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                    <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                        Buka Referensi (PDF)
+                                                    </a>
+                                                </div>
                                             ) : (
-                                                <div className="w-full h-32 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-200">
-                                                    <p className="text-[10px] font-bold text-slate-400 italic uppercase">Tidak ada referensi gambar</p>
-                                                </div>
+                                                <img 
+                                                    src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
+                                                    alt="Design Reference" 
+                                                    className="w-full h-auto max-h-[400px] object-contain mx-auto" 
+                                                />
                                             )}
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Catatan Pelanggan:</p>
-                                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                                    <p className="text-sm text-slate-700 font-medium leading-relaxed italic">{selectedOrder.designNote || "Tidak ada catatan."}</p>
-                                                </div>
-                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-200">
+                                            <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Tidak ada referensi gambar</p>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Catatan Pelanggan:</p>
+                                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                            <p className="text-sm text-slate-700 font-medium leading-relaxed italic">{selectedOrder.designNote || "Tidak ada catatan."}</p>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="space-y-10">
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
-                                            Daftar Nama & Nomor
-                                        </h3>
-                                        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm ring-1 ring-black/5">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-slate-50/50 border-b border-slate-100">
-                                                    <tr>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Nama</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Nomor</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Ukuran</th>
+                            {/* Daftar Nama & Nomor (Bottom) */}
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <User className="text-[#D25026]" size={16} />
+                                        Daftar Nama & Nomor
+                                    </h3>
+                                    <button 
+                                        onClick={() => downloadPlayersPDF(selectedOrder)}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest italic hover:bg-slate-50 transition-all shadow-sm group"
+                                    >
+                                        <FileText size={14} className="text-[#D25026] group-hover:scale-110 transition-transform" />
+                                        Download PDF
+                                    </button>
+                                </div>
+                                <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm ring-1 ring-black/5">
+                                    <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                        <table className="w-full text-left relative">
+                                            <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Nama</th>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Nomor</th>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Ukuran</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50 text-sm bg-white">
+                                                {selectedOrder.playerInfo.map((player: any, idx: number) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="px-6 py-4 font-black text-slate-800 uppercase italic">{player.name}</td>
+                                                        <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{player.size}</span>
+                                                        </td>
                                                     </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-50 text-sm">
-                                                    {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                                            <td className="px-6 py-4 font-black text-slate-800 uppercase italic">{player.name}</td>
-                                                            <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
-                                                            <td className="px-6 py-4 text-center">
-                                                                <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{player.size}</span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -207,7 +194,7 @@ export function DashboardDesainDesktop() {
 
                         <div className="p-10 border-t border-slate-100 bg-white flex justify-end gap-4">
                             <button 
-                                onClick={() => window.location.href = `/desain/chat?userId=${selectedOrder.customerId}`}
+                                onClick={() => window.location.href = `/desain/chat?userId=${selectedOrder.customerId}&orderId=${selectedOrder.id}`}
                                 className="px-8 py-5 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg flex items-center gap-3 italic"
                             >
                                 <MessageCircle size={16} />
@@ -223,10 +210,18 @@ export function DashboardDesainDesktop() {
                             )}
                             {selectedOrder.status === "LAYOUT" && (
                                 <button 
+                                    onClick={() => handleUpdateStatus(selectedOrder.rawId, "PRINT")}
+                                    className="px-12 py-5 bg-cyan-100 text-cyan-800 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-cyan-200 transition-all border border-cyan-200 italic"
+                                >
+                                    Selesai Layout & Lanjut Print
+                                </button>
+                            )}
+                            {selectedOrder.status === "PRINT" && (
+                                <button 
                                     onClick={() => handleUpdateStatus(selectedOrder.rawId, "FINISHING")}
                                     className="px-12 py-5 bg-blue-100 text-blue-800 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-blue-200 transition-all border border-blue-200 italic"
                                 >
-                                    Selesai Layout & Lanjut Finishing
+                                    Selesai Print & Lanjut Finishing
                                 </button>
                             )}
                             {selectedOrder.status === "FINISHING" && (
@@ -248,7 +243,7 @@ export function DashboardDesainDesktop() {
         <div className="p-8 max-w-[87.5rem] mx-auto space-y-8 font-geist">
             <div className="flex justify-between items-end mb-12">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Pesanan Anda</h1>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Management Pesanan</h1>
                     <p className="text-slate-500 mt-2 font-medium">Kelola pesanan yang telah diserahkan admin ke Anda.</p>
                 </div>
             </div>

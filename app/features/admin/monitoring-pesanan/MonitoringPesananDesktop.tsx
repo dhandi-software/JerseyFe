@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { orderService } from "~/services/orderService";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
+import { Toast } from "~/components/ui/toast";
+import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 
 export function MonitoringPesananDesktop() {
     const [orders, setOrders] = useState<any[]>([]);
@@ -14,6 +16,7 @@ export function MonitoringPesananDesktop() {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedDesignerId, setSelectedDesignerId] = useState<number | "">("");
     const [orderToAssign, setOrderToAssign] = useState<number | null>(null);
+    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -28,11 +31,11 @@ export function MonitoringPesananDesktop() {
                     qty: o.details.length,
                     status: o.status,
                     date: new Date(o.createdAt).toISOString().split('T')[0],
-                    playerInfo: o.details.map((d: any) => ({
+                    playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
                         name: d.playerName || "-",
                         number: d.playerNumber || "-",
                         size: d.playerSize || "-"
-                    })),
+                    }))),
                     designNote: o.designNote,
                     designUrl: o.designUrl,
                     paymentProofUrl: o.paymentUrl,
@@ -75,9 +78,15 @@ export function MonitoringPesananDesktop() {
             if (selectedOrder?.rawId === id) {
                 setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
             }
+            
+            if (newStatus === "DESAIN") {
+                setToast({ title: "Pesanan berhasil diserahkan ke tim desain", variant: "success" });
+            } else {
+                setToast({ title: `Status pesanan diperbarui ke ${newStatus}`, variant: "success" });
+            }
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("Gagal memperbarui status.");
+            setToast({ title: "Gagal memperbarui status", variant: "destructive" });
         }
     };
 
@@ -85,6 +94,7 @@ export function MonitoringPesananDesktop() {
         switch (status) {
             case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
             case "FINISHING": return "bg-blue-50 text-blue-700 border-blue-200";
+            case "PRINT": return "bg-cyan-50 text-cyan-700 border-cyan-200";
             case "LAYOUT": return "bg-amber-50 text-amber-700 border-amber-200";
             case "DESAIN": return "bg-purple-50 text-purple-700 border-purple-200";
             case "DITOLAK": return "bg-red-50 text-red-700 border-red-200";
@@ -96,6 +106,7 @@ export function MonitoringPesananDesktop() {
     if (selectedOrder) {
         return (
             <div className="min-h-screen bg-slate-50 font-geist">
+                {toast && <Toast title={toast.title} variant={toast.variant} onClose={() => setToast(null)} />}
                 <div className="max-w-[87.5rem] mx-auto px-8 py-10">
                     <button 
                         onClick={() => setSelectedOrder(null)}
@@ -113,6 +124,9 @@ export function MonitoringPesananDesktop() {
                                         {selectedOrder.status}
                                     </span>
                                     <div className="flex flex-col">
+                                         <p className="text-[10px] font-black text-[#D25026] uppercase tracking-widest mb-2 italic bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 inline-block w-fit">
+                                            Info: Ini ID yang akan dikirim ke customer untuk melacak pesanan
+                                         </p>
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm font-bold text-slate-900 font-mono tracking-tighter bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
                                                 {selectedOrder.id}
@@ -128,9 +142,6 @@ export function MonitoringPesananDesktop() {
                                                 <Copy size={14} />
                                             </button>
                                         </div>
-                                         <p className="text-xs font-black text-[#D25026] uppercase tracking-widest mt-2 italic bg-orange-50 px-4 py-2 rounded-lg border border-orange-100 inline-block">
-                                            Info: Ini ID yang akan dikirim ke customer untuk melacak pesanan
-                                         </p>
                                      </div>
                                 </div>
                             </div>
@@ -152,104 +163,122 @@ export function MonitoringPesananDesktop() {
                             </div>
                         </div>
 
-                        <div className="p-10 bg-slate-50/50">
+                        <div className="p-10 bg-slate-50 space-y-12">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                <div className="space-y-10">
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
-                                            <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
-                                                <User className="text-[#D25026]" size={16} />
-                                            </div>
-                                            Daftar Nama Pemain ({selectedOrder.playerInfo.length} Unit)
-                                        </h3>
-                                        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm ring-1 ring-black/5">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-slate-50/50 border-b border-slate-100">
-                                                    <tr>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">No</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Nama</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Nomor</th>
-                                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Ukuran</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-50 text-sm">
-                                                    {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                                            <td className="px-6 py-4 text-slate-400 font-bold italic">{idx + 1}</td>
-                                                            <td className="px-6 py-4 font-black text-slate-800 uppercase italic">{player.name}</td>
-                                                            <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
-                                                            <td className="px-6 py-4 text-center">
-                                                                <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{player.size}</span>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                                <tfoot className="bg-slate-50/80 border-t border-slate-100">
-                                                    <tr>
-                                                        <td colSpan={3} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest italic text-right">Grand Total:</td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <span className="text-[#D25026] font-black text-lg italic">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</span>
-                                                        </td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
+                                {/* Design Reference */}
+                                <div className="space-y-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                            <ImageIcon className="text-[#D25026]" size={16} />
                                         </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-10">
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
-                                            <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
-                                                <ImageIcon className="text-[#D25026]" size={16} />
-                                            </div>
-                                            Referensi Desain & Catatan
-                                        </h3>
-                                        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
-                                            {selectedOrder.designUrl ? (
-                                                <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                                        Referensi Desain & Catatan
+                                    </h3>
+                                    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
+                                        {selectedOrder.designUrl ? (
+                                            <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                                                {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
+                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
+                                                        <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                        <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                            Buka Referensi (PDF)
+                                                        </a>
+                                                    </div>
+                                                ) : (
                                                     <img 
                                                         src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
                                                         alt="Design Reference" 
                                                         className="w-full h-auto max-h-[400px] object-contain mx-auto" 
                                                     />
-                                                </div>
-                                            ) : (
-                                                <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-100">
-                                                    <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Tidak ada referensi gambar</p>
-                                                </div>
-                                            )}
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Catatan Tambahan:</p>
-                                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                                    <p className="text-sm text-slate-700 font-medium leading-relaxed italic">{selectedOrder.designNote || "Tidak ada catatan tambahan dari pelanggan."}</p>
-                                                </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-100">
+                                                <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Tidak ada referensi gambar</p>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Catatan Tambahan:</p>
+                                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                                <p className="text-sm text-slate-700 font-medium leading-relaxed italic">{selectedOrder.designNote || "Tidak ada catatan tambahan dari pelanggan."}</p>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
-                                            <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
-                                                <CreditCard className="text-[#D25026]" size={16} />
-                                            </div>
-                                            Verifikasi Pembayaran
-                                        </h3>
-                                        {selectedOrder.paymentProofUrl ? (
-                                            <div className="w-full bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
-                                                <div className="w-full bg-slate-100 rounded-[1.5rem] overflow-hidden border border-slate-200">
+                                {/* Payment Verification */}
+                                <div className="space-y-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                            <CreditCard className="text-[#D25026]" size={16} />
+                                        </div>
+                                        Verifikasi Pembayaran
+                                    </h3>
+                                    {selectedOrder.paymentProofUrl ? (
+                                        <div className="w-full bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
+                                            <div className="w-full bg-slate-100 rounded-[1.5rem] overflow-hidden border border-slate-200">
+                                                {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
+                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
+                                                        <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                        <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                            Buka Bukti (PDF)
+                                                        </a>
+                                                    </div>
+                                                ) : (
                                                     <img 
                                                         src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} 
                                                         alt="Payment Proof" 
                                                         className="w-full h-auto max-h-[500px] object-contain mx-auto" 
                                                     />
-                                                </div>
+                                                )}
                                             </div>
-                                        ) : (
-                                            <div className="w-full h-32 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-100">
-                                                <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada bukti pembayaran</p>
-                                            </div>
-                                        )}
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-32 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-100">
+                                            <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada bukti pembayaran</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Player List (Full Width) */}
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                            <User className="text-[#D25026]" size={16} />
+                                        </div>
+                                        Daftar Nama Pemain ({selectedOrder.playerInfo.length} Unit)
+                                    </h3>
+                                    <button 
+                                        onClick={() => downloadPlayersPDF(selectedOrder)}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest italic hover:bg-slate-50 transition-all shadow-sm group"
+                                    >
+                                        <FileText size={14} className="text-[#D25026] group-hover:scale-110 transition-transform" />
+                                        Download PDF
+                                    </button>
+                                </div>
+                                <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm ring-1 ring-black/5">
+                                    <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                                        <table className="w-full text-left relative">
+                                            <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic">Nama</th>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic text-center">No</th>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic text-center">Size</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50 bg-white">
+                                                {selectedOrder.playerInfo.map((player: any, idx: number) => (
+                                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="px-6 py-4 text-sm font-black text-slate-800 uppercase italic">{player.name}</td>
+                                                        <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{player.size}</span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -339,6 +368,7 @@ export function MonitoringPesananDesktop() {
 
     return (
         <div className="min-h-screen bg-slate-50 font-geist">
+            {toast && <Toast title={toast.title} variant={toast.variant} onClose={() => setToast(null)} />}
             <div className="max-w-[87.5rem] mx-auto px-8 py-10">
                 {/* Header Section */}
                 <div className="flex justify-between items-end mb-10">
@@ -368,8 +398,8 @@ export function MonitoringPesananDesktop() {
                         <p className="text-3xl font-black text-purple-500">{orders.filter(o => o.status === "DESAIN").length}</p>
                     </div>
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-200/50">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Layout & Finishing</p>
-                        <p className="text-3xl font-black text-blue-500">{orders.filter(o => ["LAYOUT", "FINISHING"].includes(o.status)).length}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Produksi (Layout/Print/Finishing)</p>
+                        <p className="text-3xl font-black text-blue-500">{orders.filter(o => ["LAYOUT", "PRINT", "FINISHING"].includes(o.status)).length}</p>
                     </div>
                 </div>
 
@@ -406,7 +436,7 @@ export function MonitoringPesananDesktop() {
                                     </tr>
                                 ) : (
                                     orders.map((order) => (
-                                        <tr key={order.rawId} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr key={order.rawId} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-5 font-bold text-slate-500 font-mono">{order.id}</td>
                                             <td className="px-6 py-5 font-black text-slate-900 uppercase italic">{order.customer}</td>
                                             <td className="px-6 py-5 text-slate-600 font-medium italic">{order.product}</td>

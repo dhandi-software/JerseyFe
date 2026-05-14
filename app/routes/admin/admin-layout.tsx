@@ -1,5 +1,7 @@
 // Admin Layout
 import { useLocation, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { adminApi } from "~/api/admin";
 import {
   LayoutDashboard,
   LogOut,
@@ -127,6 +129,17 @@ export function AppSidebar() {
   const _isMobile = rootData?.isMobile ?? isMobile;
   const active = pathToKey(location.pathname) ?? "dashboard";
 
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    adminApi.getMonitoringData().then(res => {
+      if (res.status === "success" && Array.isArray(res.data)) {
+        const count = res.data.filter(order => order.status === "Menunggu Verifikasi").length;
+        setPendingCount(count);
+      }
+    }).catch(console.error);
+  }, []);
+
   const handleNavigate = (key: MenuKey) => {
     const item = menuItems.find((item) => item.key === key);
     if (item) {
@@ -211,6 +224,13 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "monitoring-pesanan" && pendingCount > 0 && (
+                        <div className="ml-auto px-2 py-1 bg-white/40 rounded-xl outline outline-1 outline-offset-[-1px] outline-yellow-500 inline-flex flex-col justify-center items-center">
+                          <div className="text-center text-neutral-800 text-sm font-medium font-['Inter'] leading-4">
+                            {pendingCount}
+                          </div>
+                        </div>
+                      )}
                       {item.hasSubmenu && (
                         <ChevronDown className={cn(
                           "w-5 h-5 transition-all duration-200",

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Clock, Eye, Package, ChevronLeft, Image as ImageIcon, MessageCircle, FileText } from "lucide-react";
+import { Clock, Eye, Package, ChevronLeft, Image as ImageIcon, MessageCircle, FileText, User } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
 import { useAuth } from "~/hooks/useAuth";
+import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 
 export function DashboardDesainMobile() {
     const { user } = useAuth();
@@ -31,29 +32,15 @@ export function DashboardDesainMobile() {
                         hour: '2-digit', 
                         minute: '2-digit' 
                     }),
-                    playerInfo: o.details.map((d: any) => ({
+                    playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
                         name: d.playerName || "-",
                         number: d.playerNumber || "-",
                         size: d.playerSize || "-"
-                    })).sort((a: any, b: any) => {
-                        const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', 'XXXXL', '5XL', 'XXXXXL'];
-                        const sizeA = a.size.toUpperCase();
-                        const sizeB = b.size.toUpperCase();
-                        const numA = parseInt(sizeA);
-                        const numB = parseInt(sizeB);
-                        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-                        if (!isNaN(numA)) return -1;
-                        if (!isNaN(numB)) return 1;
-                        const indexA = sizeOrder.indexOf(sizeA);
-                        const indexB = sizeOrder.indexOf(sizeB);
-                        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                        if (indexA !== -1) return -1;
-                        if (indexB !== -1) return 1;
-                        return sizeA.localeCompare(sizeB);
-                    }),
+                    }))),
                     designNote: o.designNote,
                     designUrl: o.designUrl,
                     customerId: o.customerId,
+                    totalAmount: o.totalAmount,
                 }));
                 setOrders(formattedOrders);
             } catch (error) {
@@ -83,6 +70,7 @@ export function DashboardDesainMobile() {
         switch (status) {
             case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
             case "FINISHING": return "bg-blue-50 text-blue-700 border-blue-200";
+            case "PRINT": return "bg-cyan-50 text-cyan-700 border-cyan-200";
             case "LAYOUT": return "bg-amber-50 text-amber-700 border-amber-200";
             case "DESAIN": return "bg-purple-50 text-purple-700 border-purple-200";
             case "DITOLAK": return "bg-red-50 text-red-700 border-red-200";
@@ -161,21 +149,32 @@ export function DashboardDesainMobile() {
                     </div>
 
                     <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                            <Package className="text-[#D25026]" size={14} /> Daftar Nama & Nomor
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                                <User className="text-[#D25026]" size={14} /> Daftar Nama & Nomor
+                            </h3>
+                            <button 
+                                onClick={() => downloadPlayersPDF(selectedOrder)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[7px] font-black uppercase tracking-widest italic shadow-sm"
+                            >
+                                <FileText size={10} className="text-[#D25026]" />
+                                PDF
+                            </button>
+                        </div>
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                            {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                <div key={idx} className="p-4 border-b border-slate-50 last:border-0 flex justify-between items-center">
-                                    <div>
-                                        <p className="text-xs font-black text-slate-800 uppercase italic">{player.name}</p>
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                {selectedOrder.playerInfo.map((player: any, idx: number) => (
+                                    <div key={idx} className="p-4 border-b border-slate-50 last:border-0 flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs font-black text-slate-800 uppercase italic">{player.name}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="bg-slate-100 px-2 py-1 rounded text-[10px] font-black italic">{player.size}</span>
+                                            <span className="text-[#D25026] font-black text-lg w-6 text-center">{player.number}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="bg-slate-100 px-2 py-1 rounded text-[10px] font-black italic">{player.size}</span>
-                                        <span className="text-[#D25026] font-black text-lg w-6 text-center">{player.number}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -197,6 +196,14 @@ export function DashboardDesainMobile() {
                             </button>
                         )}
                         {selectedOrder.status === "LAYOUT" && (
+                            <button 
+                                onClick={() => handleUpdateStatus(selectedOrder.rawId, "PRINT")}
+                                className="flex-1 h-12 bg-cyan-400 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-cyan-500/20"
+                            >
+                                Lanjut Print
+                            </button>
+                        )}
+                        {selectedOrder.status === "PRINT" && (
                             <button 
                                 onClick={() => handleUpdateStatus(selectedOrder.rawId, "FINISHING")}
                                 className="flex-1 h-12 bg-blue-400 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-blue-500/20"
@@ -221,7 +228,7 @@ export function DashboardDesainMobile() {
     return (
         <div className="min-h-screen bg-slate-50 font-geist pb-20">
             <div className="bg-white px-6 pt-12 pb-6 border-b border-slate-100 sticky top-0 z-40">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">Pesanan Saya</h1>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">Management Pesanan</h1>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Kelola tugas desain Anda</p>
             </div>
 
