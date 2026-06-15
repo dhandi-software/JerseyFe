@@ -326,6 +326,7 @@ export function BahanBajuDesktop() {
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Waktu</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Bahan</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Aksi</th>
+                                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Aktor</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Perubahan</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Stok Akhir</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Keterangan</th>
@@ -356,6 +357,9 @@ export function BahanBajuDesktop() {
                                                                 {hist.aksi}
                                                             </span>
                                                         </td>
+                                                        <td className="px-6 py-5">
+                                                            <div className="text-sm font-bold text-slate-700">{hist.actor || "System"}</div>
+                                                        </td>
                                                         <td className="px-6 py-5 text-center font-mono font-bold text-base">
                                                             {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah}</span> : 
                                                              hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah}</span> : 
@@ -370,7 +374,7 @@ export function BahanBajuDesktop() {
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan={6} className="px-6 py-20 text-center">
+                                                    <td colSpan={7} className="px-6 py-20 text-center">
                                                         <div className="flex flex-col items-center justify-center text-slate-400 space-y-4">
                                                             <History className="w-16 h-16 text-slate-200" />
                                                             <p className="text-sm font-bold italic uppercase tracking-widest">Belum ada riwayat aktivitas</p>

@@ -2,16 +2,20 @@ import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { adminApi } from "~/api/admin";
 import { ArrowLeft, Loader2, ImageIcon, Package, CreditCard, ShoppingBag, Info, ChevronLeft, ChevronRight, Heart } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 
 export function CustomJerseyDetailMobile() {
     const navigate = useNavigate();
     const { id } = useParams();
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    const isPublicView = location.pathname.startsWith("/product/");
+    const basePath = isPublicView ? "/product" : "/customer/custom-jersey/detail";
 
     useEffect(() => {
         const fetchAllBahan = async () => {
@@ -34,18 +38,18 @@ export function CustomJerseyDetailMobile() {
     const handleNext = () => {
         const nextIdx = (currentIndex + 1) % bahanList.length;
         setCurrentIndex(nextIdx);
-        navigate(`/customer/custom-jersey/detail/${bahanList[nextIdx].id}`, { replace: true });
+        navigate(`${basePath}/${bahanList[nextIdx].id}`, { replace: true });
     };
 
     const handlePrev = () => {
         const prevIdx = (currentIndex - 1 + bahanList.length) % bahanList.length;
         setCurrentIndex(prevIdx);
-        navigate(`/customer/custom-jersey/detail/${bahanList[prevIdx].id}`, { replace: true });
+        navigate(`${basePath}/${bahanList[prevIdx].id}`, { replace: true });
     };
 
     const selectBahan = (idx: number) => {
         setCurrentIndex(idx);
-        navigate(`/customer/custom-jersey/detail/${bahanList[idx].id}`, { replace: true });
+        navigate(`${basePath}/${bahanList[idx].id}`, { replace: true });
     };
 
     const handleCustomize = () => {
@@ -79,7 +83,7 @@ export function CustomJerseyDetailMobile() {
             <div className="p-4 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-40 border-b border-slate-50">
                 <Button 
                     variant="ghost" 
-                    onClick={() => navigate("/customer/custom-jersey")}
+                    onClick={() => navigate(isPublicView ? "/" : "/customer/custom-jersey")}
                     className="h-12 w-12 flex items-center justify-center rounded-2xl bg-slate-50 active:scale-90"
                 >
                     <ArrowLeft className="w-5 h-5 text-slate-900" />

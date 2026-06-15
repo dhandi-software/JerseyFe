@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { kasirProducts } from "~/data/kasirData";
-import { Search, Trash2, ShoppingCart, Filter, CreditCard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Trash2, ShoppingCart, Filter, CreditCard, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useCart } from "~/context/CartContext";
 import { CardProduct } from "~/components/template/CardProduct";
-import { Card, CardHeader, CardContent, CardFooter, CardDescription } from "~/components/ui/card";
+import { adminApi } from "~/api/admin";
+import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 
 const formatRupiah = (number: number) => {
@@ -16,10 +16,28 @@ export function ListCategoryDesktop() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("Semua");
     const [uangDiterima, setUangDiterima] = useState("");
+    const [materials, setMaterials] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const categories = ["Semua", "Kaos", "Kemeja", "Celana", "Jaket"];
+    const categories = ["Semua", "Jersey"];
 
-    const filteredProducts = kasirProducts.filter(p => {
+    useEffect(() => {
+        adminApi.getBahanBaju().then(res => {
+            if (res.status === "success" && res.data.length > 0) {
+                const mapped = res.data.map((m: any) => ({
+                    id: m.id,
+                    title: m.nama,
+                    price: m.harga || 150000,
+                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "https://via.placeholder.com/300?text=Jersey",
+                    category: "Jersey",
+                    description: m.deskripsi || "Bahan jersey premium."
+                }));
+                setMaterials(mapped);
+            }
+        }).catch(console.error).finally(() => setLoading(false));
+    }, []);
+
+    const filteredProducts = materials.filter(p => {
         const matchesCategory = selectedCategory === "Semua" || p.category === selectedCategory;
         const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
@@ -95,22 +113,29 @@ export function ListCategoryDesktop() {
                     </div>
 
                     {/* Product Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                        {filteredProducts.length > 0 ? (
-                            filteredProducts.map(product => (
-                                <CardProduct 
-                                    key={product.id} 
-                                    product={product} 
-                                    onAdd={addToCart} 
-                                />
-                            ))
-                        ) : (
-                            <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-neutral-200 flex flex-col items-center justify-center gap-4">
-                                <Filter className="w-12 h-12 text-neutral-200" />
-                                <span className="text-neutral-400 font-medium">Baju tidak ditemukan</span>
-                            </div>
-                        )}
-                    </div>
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <Loader2 className="w-10 h-10 animate-spin text-neutral-300" />
+                            <p className="text-xs font-bold text-neutral-400">Memuat Koleksi Jersey...</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                            {filteredProducts.length > 0 ? (
+                                filteredProducts.map(product => (
+                                    <CardProduct 
+                                        key={product.id} 
+                                        product={product} 
+                                        onAdd={addToCart} 
+                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-neutral-200 flex flex-col items-center justify-center gap-4">
+                                    <Filter className="w-12 h-12 text-neutral-200" />
+                                    <span className="text-neutral-400 font-medium">Koleksi tidak ditemukan</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar Cart */}
@@ -204,7 +229,7 @@ export function ListCategoryDesktop() {
 
                         <Button 
                             onClick={handleCheckout}
-                            className="w-full h-12 rounded-2xl text-[14px] font-black uppercase tracking-tighter shadow-lg shadow-black/5 hover:shadow-black/10 transition-all active:scale-95 disabled:grayscale"
+                            className="w-full h-12 rounded-2xl text-[14px] font-black uppercase tracking-tighter shadow-lg shadow-black/5 hover:shadow-black/10 transition-all active:scale-95 disabled:grayscale cursor-pointer"
                             disabled={cart.length === 0}
                         >
                             <CreditCard className="w-4 h-4 mr-2" />

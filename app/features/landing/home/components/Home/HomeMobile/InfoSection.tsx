@@ -1,24 +1,41 @@
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
-
-import { products } from "~/data/catalog";
+import { useNavigate } from "react-router";
+import { adminApi } from "~/api/admin";
+import { UPLOADS_URL } from "~/api/client";
 
 export function InfoSection() {
+    const navigate = useNavigate();
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [favorites, setFavorites] = useState<number[]>([]);
 
     useEffect(() => {
-        // Load favorites from localStorage on mount
-        const stored = localStorage.getItem("wishlist_ids");
-        if (stored) {
-            try {
-                const ids = JSON.parse(stored);
-                setFavorites(ids);
-                const favoriteProducts = ids.map((id: number) => products.find(p => p.id === id)).filter(Boolean);
-                window.dispatchEvent(new CustomEvent('wishlist_update', { detail: favoriteProducts }));
-            } catch (e) {
-                console.error("Failed to parse wishlist from localStorage", e);
+        adminApi.getBahanBaju().then(res => {
+            if (res.status === "success") {
+                const mapped = res.data.map((bahan: any) => ({
+                    id: bahan.id,
+                    title: bahan.nama,
+                    price: bahan.harga || 150000,
+                    image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image",
+                    description: bahan.deskripsi
+                }));
+                setProducts(mapped);
+
+                // Load favorites from localStorage and match
+                const stored = localStorage.getItem("wishlist_ids");
+                if (stored) {
+                    try {
+                        const ids = JSON.parse(stored);
+                        setFavorites(ids);
+                        const favoriteProducts = ids.map((id: number) => mapped.find(p => p.id === id)).filter(Boolean);
+                        window.dispatchEvent(new CustomEvent('wishlist_update', { detail: favoriteProducts }));
+                    } catch (e) {
+                        console.error("Failed to parse wishlist from localStorage", e);
+                    }
+                }
             }
-        }
+        }).catch(console.error).finally(() => setLoading(false));
     }, []);
 
     const toggleFavorite = (id: number, e: React.MouseEvent) => {
@@ -30,8 +47,12 @@ export function InfoSection() {
         setFavorites(newFavs);
         localStorage.setItem("wishlist_ids", JSON.stringify(newFavs));
         
-        const favoriteProducts = newFavs.map(id => products.find(p => p.id === id)).filter(Boolean);
+        const favoriteProducts = newFavs.map(favId => products.find(p => p.id === favId)).filter(Boolean);
         window.dispatchEvent(new CustomEvent('wishlist_update', { detail: favoriteProducts }));
+    };
+
+    const formatRupiah = (number: number) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
     };
 
     return (
@@ -58,40 +79,53 @@ export function InfoSection() {
                         </div>
 
                         {/* Grid Produk */}
-                        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
-                            {products.map((product) => (
-                                <motion.div 
-                                    key={product.id}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    whileInView={{ opacity: 1, scale: 1 }}
-                                    viewport={{ once: true }}
-                                    className="flex flex-col gap-3 group cursor-pointer w-full"
-                                >
-                                    <div className="relative aspect-[4/5] rounded-[20px] bg-neutral-100 overflow-hidden shadow-sm">
-                                        <img 
-                                            src={product.image} 
-                                            alt={product.title}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                        />
-                                        {/* Favorit button */}
-                                        <div 
-                                            onClick={(e) => toggleFavorite(product.id, e)}
-                                            className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full overflow-hidden transition-all z-10 ${
-                                                favorites.includes(product.id) ? "bg-red-500" : "bg-neutral-900/20 backdrop-blur-sm"
-                                            }`}
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill={favorites.includes(product.id) ? "white" : "white"} stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                            </svg>
+                        {loading ? (
+                            <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="aspect-[4/5] bg-neutral-100 rounded-[20px] animate-pulse"></div>
+                                ))}
+                            </div>
+                        ) : products.length > 0 ? (
+                            <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+                                {products.map((product) => (
+                                    <motion.div 
+                                        key={product.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        whileInView={{ opacity: 1, scale: 1 }}
+                                        viewport={{ once: true }}
+                                        onClick={() => navigate(`/product/${product.id}`)}
+                                        className="flex flex-col gap-3 group cursor-pointer w-full"
+                                    >
+                                        <div className="relative aspect-[4/5] rounded-[20px] bg-neutral-100 overflow-hidden shadow-sm">
+                                            <img 
+                                                src={product.image} 
+                                                alt={product.title}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                            />
+                                            {/* Favorit button */}
+                                            <div 
+                                                onClick={(e) => toggleFavorite(product.id, e)}
+                                                className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full overflow-hidden transition-all z-10 ${
+                                                    favorites.includes(product.id) ? "bg-red-500" : "bg-neutral-900/20 backdrop-blur-sm"
+                                                }`}
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill={favorites.includes(product.id) ? "white" : "white"} stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                                </svg>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col gap-1 px-1">
-                                        <div className="text-neutral-900 text-sm font-semibold leading-tight line-clamp-1">{product.title}</div>
-                                        <div className="text-neutral-500 text-xs font-medium">{product.price}</div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
+                                        <div className="flex flex-col gap-1 px-1">
+                                            <div className="text-neutral-900 text-sm font-semibold leading-tight line-clamp-1 hover:text-[#D25026] transition-colors">{product.title}</div>
+                                            <div className="text-neutral-500 text-xs font-medium">{formatRupiah(product.price)}</div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="w-full py-12 text-center text-neutral-400 text-xs italic">
+                                Belum ada bahan baju tersedia
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

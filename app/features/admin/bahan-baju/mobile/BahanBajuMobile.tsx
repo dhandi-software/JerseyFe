@@ -213,6 +213,9 @@ export function BahanBajuMobile() {
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <h3 className="text-sm font-bold text-slate-900">{hist.namaBahan || hist.bahan?.nama || "Terhapus"}</h3>
+                                                    <span className="text-[9.5px] font-bold text-slate-500 block mt-1 bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 w-fit">
+                                                        Aktor: {hist.actor || "System"}
+                                                    </span>
                                                     <div className="flex items-center gap-1 mt-1">
                                                         <Info className="w-3 h-3 text-slate-400" />
                                                         <span className="text-[10px] text-slate-500 italic leading-relaxed">{hist.keterangan || "-"}</span>

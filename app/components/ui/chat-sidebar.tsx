@@ -204,7 +204,11 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                                                 "text-[13px] truncate flex-1",
                                                 unread > 0 ? "text-[#444] font-semibold" : "text-[#777]"
                                             )}>
-                                                {contact.lastMessage?.content || (contact.lastMessage?.attachmentName ? `📎 ${contact.lastMessage.attachmentName}` : (contact.lastMessage?.attachmentUrl ? "📎 Lampiran file" : "No messages yet"))}
+                                                {(() => {
+                                                    const text = contact.lastMessage?.content || (contact.lastMessage?.attachmentName ? `📎 ${contact.lastMessage.attachmentName}` : (contact.lastMessage?.attachmentUrl ? "📎 Lampiran file" : "No messages yet"));
+                                                    const limit = 40;
+                                                    return text.length > limit ? text.substring(0, limit) + "..." : text;
+                                                })()}
                                             </p>
                                             
                                             {unread > 0 && (

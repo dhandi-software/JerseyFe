@@ -1,45 +1,24 @@
 import { useLocation, useNavigate } from "react-router";
 import {
-  LayoutDashboard,
   LogOut,
-  UserPlus,
-  Users,
-  Settings,
-  FileText,
-  BarChart3,
-  ShoppingBag,
-  Package
+  Package,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
-import { chatService } from "~/services/chatService";
-import { adminApi } from "~/api/admin";
-import { orderService } from "~/services/orderService";
 import type { ContextType } from "~/root";
 import React from "react";
-import { MessageSquare } from "lucide-react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
 
 type MenuKey =
   | "dashboard"
-  | "users"
-  | "monitoring-pesanan"
-  | "bahan-baju"
-  | "chat"
-  | "omset"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
-  if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
-  if (pathname.startsWith("/admin/monitoring-pesanan")) return "monitoring-pesanan";
-  if (pathname.startsWith("/admin/bahan-baju")) return "bahan-baju";
-  if (pathname.startsWith("/admin/chat")) return "chat";
-  if (pathname.startsWith("/admin/omset")) return "omset";
-  if (pathname === "/admin" || pathname.endsWith("/admin") || pathname === "/admin/")
+  if (pathname === "/gudang" || pathname.startsWith("/gudang/dashboard"))
     return "dashboard";
   return undefined;
 };
@@ -47,39 +26,9 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
 const menuItems = [
   {
     key: "dashboard" as MenuKey,
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    url: "/admin",
-  },
-  {
-    key: "users" as MenuKey,
-    title: "User Management",
-    icon: Users,
-    url: "/admin/users",
-  },
-  {
-    key: "monitoring-pesanan" as MenuKey,
-    title: "Monitoring Pesanan",
-    icon: ShoppingBag,
-    url: "/admin/monitoring-pesanan",
-  },
-  {
-    key: "omset" as MenuKey,
-    title: "Omset Transaksi",
-    icon: BarChart3,
-    url: "/admin/omset",
-  },
-  {
-    key: "bahan-baju" as MenuKey,
-    title: "Bahan Baju",
+    title: "Management Bahan",
     icon: Package,
-    url: "/admin/bahan-baju",
-  },
-  {
-    key: "chat" as MenuKey,
-    title: "Chat",
-    icon: MessageSquare,
-    url: "/admin/chat",
+    url: "/gudang",
   },
 ];
 
@@ -88,15 +37,10 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
-  const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   const active = pathToKey(location.pathname) ?? "dashboard";
 
-  const [unreadCount, setUnreadCount] = React.useState(0);
-  const [pendingCount, setPendingCount] = React.useState(0);
-  const memoizedMenuItems = React.useMemo(() => menuItems, []);
-
   const handleNavigate = React.useCallback((key: MenuKey) => {
-    const item = memoizedMenuItems.find((item) => item.key === key);
+    const item = menuItems.find((item) => item.key === key);
     if (item) {
       if (isMobile) setOpenMobile(false);
       navigate(item.url);
@@ -106,40 +50,7 @@ export function AppSidebar() {
     if (key === "logout") {
         logout();
     }
-  }, [isMobile, navigate, logout, setOpenMobile, memoizedMenuItems]);
-
-  React.useEffect(() => {
-    const fetchUnread = async () => {
-      if (!user) return;
-      try {
-        const data = await chatService.getUnreadCount(user.id);
-        setUnreadCount(data.count || 0);
-      } catch (error) {
-        console.error("Failed to fetch unread chat count:", error);
-      }
-    };
-    const fetchPending = async () => {
-      try {
-        const data = await orderService.getOrders();
-        if (Array.isArray(data)) {
-          const count = data.filter((order: any) => {
-            const status = (order.status || "").toUpperCase();
-            return status === "MENUNGGU" || status === "MENUNGGU VERIFIKASI";
-          }).length;
-          setPendingCount(count);
-        }
-      } catch (error) {
-        console.error("Failed to fetch pending count:", error);
-      }
-    };
-    fetchUnread();
-    fetchPending();
-    const interval = setInterval(() => {
-        fetchUnread();
-        fetchPending();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  }, [isMobile, navigate, logout, setOpenMobile]);
 
   return (
     <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
@@ -159,7 +70,7 @@ export function AppSidebar() {
           {/* Menu Section */}
           <div className="flex flex-col gap-4">
             <h2 className="px-3 text-[1rem] font-bold text-[#A1A1A1] tracking-wider uppercase">
-              Admin Menu
+              Warehouse Menu
             </h2>
             <div className="flex flex-col gap-1">
               {menuItems.map((item) => {
@@ -191,16 +102,6 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
-                      {item.key === "monitoring-pesanan" && pendingCount > 0 && (
-                        <div className="w-8 h-8 rounded-full border-2 border-amber-500 bg-white flex items-center justify-center shrink-0 ml-auto shadow-sm">
-                            <span className="text-neutral-800 text-sm font-bold leading-none">{pendingCount}</span>
-                        </div>
-                      )}
-                      {item.key === "chat" && unreadCount > 0 && (
-                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 ml-2">
-                          {unreadCount}
-                        </span>
-                      )}
                     </div>
                   </div>
                 );
@@ -209,11 +110,15 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* Logout Section */}
+        {/* User Info */}
         <div className="mt-auto flex flex-col gap-2">
+           <div className="px-4 py-3 bg-slate-100 rounded-xl border border-slate-200">
+               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Login Sebagai:</p>
+               <p className="text-sm font-black text-slate-900">{user?.name || "Staf Gudang"}</p>
+           </div>
           <button
             onClick={() => handleNavigate("logout")}
-            className="w-full flex items-center gap-4 px-4 py-3 bg-white border border-[#E5E5E5] rounded-sm hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-4 px-4 py-3 bg-white border border-[#E5E5E5] rounded-xl hover:bg-gray-50 transition-colors"
           >
             <LogOut className="w-5 h-5 text-black" />
             <span className="font-medium text-[1rem] text-black">Log Out</span>
@@ -224,24 +129,24 @@ export function AppSidebar() {
   );
 }
 
-export default function AdminLayout() {
-  const location = useLocation();
-  const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
+export default function WarehouseLayout() {
+  const data = useRouteLoaderData<ContextType>("root");
+  const isMobile = data ? (data as ContextType).isMobile : false;
+  
   return (
     <ProtectedRoute>
-      <RoleGuard allowedRoles={["admin"]}>
+      <RoleGuard allowedRoles={["gudang", "admin"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+          <div className="flex w-full h-screen bg-slate-50 font-geist">
             <AppSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto",
-              "pb-12" // simplified
+              "flex-1 w-full h-full overflow-y-auto"
             )}>
-              {/* Mobile Header with Hamburger Menu */}
+              {/* Mobile Header */}
               {isMobile && (
                 <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
                   <SidebarTrigger className="p-2 -ml-2" />
-                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Admin Panel</span>
+                  <span className="ml-2 font-bold text-[#D25026] text-lg tracking-tight uppercase italic">Portal Gudang</span>
                 </div>
               )}
               <Outlet context={{ isMobile }} />

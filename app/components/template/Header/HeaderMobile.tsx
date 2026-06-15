@@ -5,6 +5,8 @@ import { cn } from "~/lib/utils";
 import { useState, useEffect } from "react";
 import { products } from "~/data/catalog";
 import { useCart } from "~/context/CartContext";
+import { adminApi } from "~/api/admin";
+import { UPLOADS_URL } from "~/api/client";
 
 export default function HeaderMobile() {
     const { totalCount, cart, subtotal } = useCart();
@@ -17,17 +19,36 @@ export default function HeaderMobile() {
     };
 
     useEffect(() => {
-        // Initial load from localStorage on mount
-        const stored = localStorage.getItem("wishlist_ids");
-        if (stored) {
+        const loadWishlist = async () => {
+            let allProducts = [...products];
             try {
-                const ids = JSON.parse(stored);
-                const favoriteProducts = ids.map((id: number) => products.find(p => p.id === id)).filter(Boolean);
-                setWishlist(favoriteProducts);
-            } catch (e) {
-                console.error("Failed to load wishlist in HeaderMobile", e);
+                const res = await adminApi.getBahanBaju();
+                if (res.status === "success") {
+                    const dynamicMapped = res.data.map((bahan: any) => ({
+                        id: bahan.id,
+                        title: bahan.nama,
+                        price: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bahan.harga || 150000),
+                        image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image"
+                    }));
+                    allProducts = [...allProducts, ...dynamicMapped];
+                }
+            } catch (err) {
+                console.error("Failed to fetch dynamic materials for wishlist", err);
             }
-        }
+
+            const stored = localStorage.getItem("wishlist_ids");
+            if (stored) {
+                try {
+                    const ids = JSON.parse(stored);
+                    const favoriteProducts = ids.map((id: number) => allProducts.find(p => p.id === id)).filter(Boolean);
+                    setWishlist(favoriteProducts);
+                } catch (e) {
+                    console.error("Failed to load wishlist in HeaderMobile", e);
+                }
+            }
+        };
+
+        loadWishlist();
 
         const handleWishlistUpdate = (e: any) => {
             setWishlist(e.detail);

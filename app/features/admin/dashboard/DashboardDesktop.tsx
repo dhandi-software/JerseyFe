@@ -1,7 +1,7 @@
 import { 
     Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight 
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { adminApi } from "~/api/admin";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
@@ -12,19 +12,26 @@ import {
 
 
 export function DashboardDesktop() {
+    const [isMounted, setIsMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showWelcomeToast, setShowWelcomeToast] = useState(false);
-    const [timeView, setTimeView] = useState<'weekly' | 'monthly' | 'yearly'>('yearly');
+    const [timeView, setTimeView] = useState<'daily' | 'monthly' | 'yearly' | 'lifetime'>('daily');
     const [showDropdown, setShowDropdown] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const [statsData, setStatsData] = useState({
         totalCustomer: 0,
         totalStaff: 0,
         totalAdmin: 0,
         totalRevenue: 0,
         salesData: {
-            weekly: [] as any[],
+            daily: [] as any[],
             monthly: [] as any[],
-            yearly: [] as any[]
+            yearly: [] as any[],
+            lifetime: [] as any[]
         },
         recentCustomers: [] as any[],
         recentChats: [] as any[],
@@ -73,6 +80,34 @@ export function DashboardDesktop() {
 
         fetchDashboardData();
     }, []);
+
+    const activeData = statsData.salesData[timeView] || [];
+    const currentTotal = activeData.reduce((sum, item) => sum + (item.pv || 0), 0);
+
+    let isDecrease = false;
+    let percentChange = 0;
+    let absoluteChange = 0;
+    if (activeData.length >= 2) {
+        const latest = activeData[activeData.length - 1].pv;
+        const previous = activeData[activeData.length - 2].pv;
+        absoluteChange = latest - previous;
+        if (previous > 0) {
+            percentChange = (absoluteChange / previous) * 100;
+        } else if (latest > 0) {
+            percentChange = 100;
+        }
+        isDecrease = absoluteChange < 0;
+    }
+
+    const chartColor = isDecrease ? "#ef4444" : "#22c55e";
+
+    const chartScrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (chartScrollRef.current) {
+            chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+        }
+    }, [timeView, statsData]);
 
     return (
         <div className="w-full min-h-[100vh] p-8 bg-[#F5F5F3] font-['Inter'] flex flex-col gap-6">
@@ -170,27 +205,35 @@ export function DashboardDesktop() {
                                             {customer.lastMessageContent ? (
                                                 <>
                                                     <span className="shrink-0 text-orange-500">💬</span>
-                                                    <span className="truncate italic font-medium">{customer.lastMessageContent}</span>
+                                                    <span className="truncate italic font-medium">
+                                                        {(() => {
+                                                            const text = customer.lastMessageContent;
+                                                            const limit = 40;
+                                                            return text.length > limit ? text.substring(0, limit) + "..." : text;
+                                                        })()}
+                                                    </span>
                                                 </>
                                             ) : (
                                                 <span className="truncate opacity-70">{customer.category || "General Customer"}</span>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                window.location.href = `/admin/chat?userId=${customer.id}`;
-                                            }}
-                                            className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
-                                        >
-                                            <MessageCircle className="w-4 h-4" />
-                                        </button>
-                                        <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#E85C2F] hover:text-[#E85C2F] transition-all">
-                                            <Star className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                    {index !== 0 && (
+                                        <div className="flex items-center gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.location.href = `/admin/chat?userId=${customer.id}`;
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
+                                            >
+                                                <MessageCircle className="w-4 h-4" />
+                                            </button>
+                                            <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#E85C2F] hover:text-[#E85C2F] transition-all">
+                                                <Star className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                     {index === 0 && (
                                          <div className="flex items-center gap-2 pr-2">
                                             <button 
@@ -227,9 +270,9 @@ export function DashboardDesktop() {
                 </div>
 
                 {/* Growth Chart Section */}
-                <div className="flex flex-col gap-6">
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent flex-1 flex flex-col min-h-[20rem]">
-                        <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col gap-6 min-w-0 overflow-hidden">
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent flex-1 flex flex-col min-h-[20rem] min-w-0 overflow-hidden">
+                        <div className="flex justify-between items-center mb-4">
                             <div className="text-slate-900 text-xl font-semibold">Omset Transaksi</div>
                             <div className="relative">
                                 <button 
@@ -237,14 +280,14 @@ export function DashboardDesktop() {
                                     className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
                                 >
                                     <span className="text-slate-700 text-sm font-medium capitalize">
-                                        {timeView === 'weekly' ? 'Mingguan' : timeView === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                                        {timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'}
                                     </span>
                                     <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDropdown && "rotate-180")} />
                                 </button>
                                 
                                 {showDropdown && (
                                     <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
-                                        {(['weekly', 'monthly', 'yearly'] as const).map((view) => (
+                                        {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
                                             <button
                                                 key={view}
                                                 onClick={() => {
@@ -256,45 +299,100 @@ export function DashboardDesktop() {
                                                     timeView === view ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
                                                 )}
                                             >
-                                                {view === 'weekly' ? 'Mingguan' : view === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                                                {view === 'daily' ? 'Harian' : view === 'monthly' ? 'Bulanan' : view === 'yearly' ? 'Tahunan' : 'Lifetime'}
                                             </button>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         </div>
+
+                        {/* Simple Compact Revenue Label */}
+                        <div className="mb-4">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                                Total Pendapatan ({timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'})
+                            </span>
+                            <span className="text-2xl font-extrabold text-slate-900 block mt-1">
+                                Rp {currentTotal.toLocaleString('id-ID')}
+                            </span>
+                        </div>
                         
-                        <div className="flex-1 w-full h-full relative -ml-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={statsData.salesData[timeView]} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <XAxis 
-                                        dataKey="name" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fill: '#94a3b8', fontSize: 10}}
-                                        dy={10}
-                                    />
-                                    <YAxis 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fill: '#94a3b8', fontSize: 10}}
-                                        tickFormatter={(val) => `${val/1000}k`}
-                                    />
-                                    <Tooltip 
-                                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Omset']}
-                                        labelStyle={{ color: '#64748b', fontWeight: 'bold' }}
-                                    />
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <Area type="linear" dataKey="pv" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPv)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                        <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
+                            <div className={cn(
+                                "h-[220px] relative -ml-4",
+                                timeView === 'daily' ? 'w-[900px] min-w-full' : 
+                                timeView === 'lifetime' ? 'w-[1200px] min-w-full' : 
+                                timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
+                            )}>
+                                {loading || !isMounted ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                        <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
+                                        <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
+                                    </div>
+                                ) : activeData.length === 0 ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                        <span className="text-slate-400 text-xs font-semibold">Tidak Ada Data Transaksi</span>
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={activeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis 
+                                                dataKey="name" 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{fill: '#94a3b8', fontSize: 10}}
+                                                dy={10}
+                                            />
+                                            <YAxis 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{fill: '#94a3b8', fontSize: 10}}
+                                                tickFormatter={(val) => `${val/1000}k`}
+                                            />
+                                            <Tooltip 
+                                                contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Omset']}
+                                                labelStyle={{ color: '#64748b', fontWeight: 'bold' }}
+                                            />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <Area 
+                                                type="linear" 
+                                                dataKey="pv" 
+                                                stroke="#22c55e" 
+                                                strokeWidth={2} 
+                                                fillOpacity={1} 
+                                                fill="url(#colorPv)" 
+                                                dot={(props: any) => {
+                                                    const { cx, cy, payload, index } = props;
+                                                    if (index === 0) {
+                                                        return <circle key={`dot-${index}`} cx={cx} cy={cy} r={3} fill="#22c55e" stroke="#fff" strokeWidth={1} />;
+                                                    }
+                                                    const prevVal = activeData[index - 1]?.pv || 0;
+                                                    const currentVal = payload.pv || 0;
+                                                    const isPointDecrease = currentVal < prevVal;
+                                                    return (
+                                                        <circle 
+                                                            key={`dot-${index}`}
+                                                            cx={cx} 
+                                                            cy={cy} 
+                                                            r={3} 
+                                                            fill={isPointDecrease ? "#ef4444" : "#22c55e"} 
+                                                            stroke="#fff" 
+                                                            strokeWidth={1} 
+                                                        />
+                                                    );
+                                                }}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -340,7 +438,15 @@ export function DashboardDesktop() {
                     <div className="flex-1 flex flex-col gap-4 overflow-y-auto mb-6">
                         {statsData.recentChats.length > 0 ? (
                             statsData.recentChats.map((chat) => (
-                                <div key={chat.id} className="flex gap-3 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition-all">
+                                <div 
+                                    key={chat.id} 
+                                    onClick={() => {
+                                        if (chat.partnerId) {
+                                            window.location.href = `/admin/chat?userId=${chat.partnerId}`;
+                                        }
+                                    }}
+                                    className="flex gap-3 group cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition-all"
+                                >
                                     <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold shrink-0 shadow-sm border border-orange-50">
                                         {chat.senderName.charAt(0).toUpperCase()}
                                     </div>
@@ -406,15 +512,16 @@ export function DashboardDesktop() {
                 {/* New Deals Card */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent">
                     <div className="text-slate-900 text-xl font-semibold mb-4">Pesanan Baru</div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                         {statsData.newOrders.length > 0 ? (
                             statsData.newOrders.map((order, i) => (
-                                <div key={i} className="px-3 py-2 bg-[#FFF0E5] text-[#E85C2F] rounded-xl flex items-center gap-2 text-sm">
-                                    <Plus className="w-4 h-4" /> {order.name}
+                                <div key={i} className="w-full flex justify-between items-center px-4 py-3 bg-[#FFF0E5] text-[#E85C2F] rounded-xl text-sm font-semibold transition-all hover:bg-[#FDE8DF]">
+                                    <span className="truncate pr-2">{order.name}</span>
+                                    <Plus className="w-4 h-4 shrink-0 text-[#E85C2F]" />
                                 </div>
                             ))
                         ) : (
-                            <div className="text-slate-400 text-sm italic">Belum ada pesanan baru</div>
+                            <div className="text-slate-400 text-sm italic col-span-2">Belum ada pesanan baru</div>
                         )}
                     </div>
                 </div>

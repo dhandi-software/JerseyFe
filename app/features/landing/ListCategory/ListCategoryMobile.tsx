@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { kasirProducts } from "~/data/kasirData";
-import { Search, Trash2, ShoppingCart, CreditCard, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Trash2, ShoppingCart, CreditCard, ChevronUp, Loader2, Filter } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useCart } from "~/context/CartContext";
 import { CardProduct } from "~/components/template/CardProduct";
+import { adminApi } from "~/api/admin";
+import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 import {
     Sheet,
@@ -23,10 +24,28 @@ export function ListCategoryMobile() {
     const [selectedCategory, setSelectedCategory] = useState("Semua");
     const [uangDiterima, setUangDiterima] = useState("");
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [materials, setMaterials] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const categories = ["Semua", "Kaos", "Kemeja", "Celana", "Jaket"];
+    const categories = ["Semua", "Jersey"];
 
-    const filteredProducts = kasirProducts.filter(p => {
+    useEffect(() => {
+        adminApi.getBahanBaju().then(res => {
+            if (res.status === "success" && res.data.length > 0) {
+                const mapped = res.data.map((m: any) => ({
+                    id: m.id,
+                    title: m.nama,
+                    price: m.harga || 150000,
+                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "https://via.placeholder.com/300?text=Jersey",
+                    category: "Jersey",
+                    description: m.deskripsi || "Bahan jersey premium."
+                }));
+                setMaterials(mapped);
+            }
+        }).catch(console.error).finally(() => setLoading(false));
+    }, []);
+
+    const filteredProducts = materials.filter(p => {
         const matchesCategory = selectedCategory === "Semua" || p.category === selectedCategory;
         const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
@@ -76,7 +95,7 @@ export function ListCategoryMobile() {
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
                             className={cn(
-                                "px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
+                                "px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all cursor-pointer",
                                 selectedCategory === cat 
                                     ? "bg-neutral-900 text-white shadow-md shadow-black/10" 
                                     : "bg-white border border-neutral-100 text-neutral-400"
@@ -88,16 +107,30 @@ export function ListCategoryMobile() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-2">
-                {filteredProducts.map(product => (
-                    <CardProduct 
-                        key={product.id} 
-                        product={product} 
-                        onAdd={addToCart}
-                        className="rounded-[1.25rem]"
-                    />
-                ))}
-            </div>
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-neutral-300" />
+                    <p className="text-xs font-bold text-neutral-400">Memuat Koleksi...</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                    {filteredProducts.length > 0 ? (
+                        filteredProducts.map(product => (
+                            <CardProduct 
+                                key={product.id} 
+                                product={product} 
+                                onAdd={addToCart}
+                                className="rounded-[1.25rem]"
+                            />
+                        ))
+                    ) : (
+                        <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-neutral-200 flex flex-col items-center justify-center gap-4">
+                            <Filter className="w-10 h-10 text-neutral-200" />
+                            <span className="text-neutral-400 font-medium">Koleksi tidak ditemukan</span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Permanent Bottom Cart Bar */}
             <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-100 p-4 pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -105,7 +138,7 @@ export function ListCategoryMobile() {
                     <SheetTrigger asChild>
                         <button 
                             className={cn(
-                                "w-full p-4 rounded-2xl flex items-center justify-between transition-all active:scale-[0.98]",
+                                "w-full p-4 rounded-2xl flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer",
                                 cart.length > 0 
                                     ? "bg-neutral-900 text-white shadow-xl shadow-black/20" 
                                     : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
@@ -207,7 +240,7 @@ export function ListCategoryMobile() {
 
                                 <Button 
                                     onClick={handleCheckout}
-                                    className="w-full h-16 rounded-[1.5rem] text-[16px] font-black uppercase tracking-tighter shadow-xl shadow-black/10 active:scale-95 transition-all"
+                                    className="w-full h-16 rounded-[1.5rem] text-[16px] font-black uppercase tracking-tighter shadow-xl shadow-black/10 active:scale-95 transition-all cursor-pointer"
                                     disabled={cart.length === 0}
                                 >
                                     <CreditCard className="w-5 h-5 mr-3" />
@@ -221,3 +254,4 @@ export function ListCategoryMobile() {
         </div>
     );
 }
+

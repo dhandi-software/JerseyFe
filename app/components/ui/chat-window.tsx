@@ -340,7 +340,7 @@ export function ChatWindow({
                                         className={cn(
                                             "max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 relative shadow-sm text-[15px] break-words flex flex-col min-w-[140px] transition-all",
                                             isMe
-                                                ? "bg-gradient-to-br from-[#E85C2F] to-[#D25026] text-white rounded-tr-none"
+                                                ? "bg-[#FFF0EB] text-[#2C1A14] border border-[#FDE0D5] rounded-tr-none"
                                                 : "bg-white text-[#1A1A1A] rounded-tl-none border border-[#F0F0F0]"
                                         )}
                                     >
@@ -359,14 +359,14 @@ export function ChatWindow({
                                         {msg.parent && (
                                             <div className={cn(
                                                 "rounded-xl p-2 mb-2 border-l-4 text-xs flex flex-col cursor-pointer transition-colors",
-                                                isMe ? "bg-white/10 border-white/40" : "bg-gray-50 border-[#D25026]"
+                                                isMe ? "bg-[#FDE2D7] border-[#D25026]" : "bg-gray-50 border-[#D25026]"
                                             )} onClick={() => {
                                                 const el = document.getElementById(`msg-${msg.parent!.id}`);
                                                 el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                             }}>
-                                                <span className={cn("font-bold mb-1", isMe ? "text-white" : "text-[#D25026]")}>{msg.parent.sender.username}</span>
+                                                <span className={cn("font-bold mb-1", "text-[#D25026]")}>{msg.parent.sender.username}</span>
                                                 <span 
-                                                    className={cn("block break-words overflow-hidden text-ellipsis", isMe ? "text-white/80" : "text-[#666]")}
+                                                    className={cn("block break-words overflow-hidden text-ellipsis", isMe ? "text-[#5C453C]" : "text-[#666]")}
                                                     style={{
                                                         display: '-webkit-box',
                                                         WebkitLineClamp: 1,
@@ -422,12 +422,12 @@ export function ChatWindow({
                                         
                                         {/* Meta (Time & Status) */}
                                         <div className="flex justify-end items-center gap-1.5 mt-2 select-none self-end">
-                                            {msg.isEdited && <span className={cn("text-[10px] italic mr-1", isMe ? "text-white/60" : "text-[#A1A1A1]")}>edited</span>}
-                                            <span className={cn("text-[11px] font-medium", isMe ? "text-white/80" : "text-[#A1A1A1]")}>
+                                            {msg.isEdited && <span className={cn("text-[10px] italic mr-1", isMe ? "text-[#8C6D62]" : "text-[#A1A1A1]")}>edited</span>}
+                                            <span className={cn("text-[11px] font-medium", isMe ? "text-[#8C6D62]" : "text-[#A1A1A1]")}>
                                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             {isMe && !isPublic && (
-                                                <span className={cn(msg.isRead ? (isMe ? "text-white" : "text-[#53bdeb]") : (isMe ? "text-white/40" : "text-[#A1A1A1]"))}>
+                                                <span className={cn(msg.isRead ? "text-[#D25026]" : "text-[#A1A1A1]")}>
                                                     {msg.isRead ? <CheckCheck size={14} /> : <Check size={14} />}
                                                 </span>
                                             )}
@@ -473,7 +473,7 @@ export function ChatWindow({
                         {/* Header with Close */}
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest italic">
-                                {currentUser?.role?.toLowerCase() === "customer" ? "Kamu menanyakan pesanan ini" : "Customer menanyakan pesanan ini"}
+                                {currentUser?.role?.toLowerCase() === "customer" ? "Kamu menanyakan pesanan ini" : "Kamu ingin menanyakan pesanan ini"}
                             </span>
                             <button 
                                 onClick={() => setIsOrderDismissed(true)}

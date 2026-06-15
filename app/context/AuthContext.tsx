@@ -72,6 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 case 'desain':
                     navigate("/desain");
                     break;
+                case 'gudang':
+                    navigate("/gudang");
+                    break;
                 case 'dosen':
                 case 'dosen_pembimbing':
                     navigate("/dosen");

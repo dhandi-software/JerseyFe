@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
     ChevronLeft, 
     User, 
@@ -113,9 +113,41 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const [pdfFile, setPdfFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [shippingMethod, setShippingMethod] = useState("PICKUP");
+    const [shippingAddress, setShippingAddress] = useState("");
 
     const [pasteText, setPasteText] = useState("");
     const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    useEffect(() => {
+        if (isPasteDialogOpen) {
+            const isEmptyDefaultList = customDetails.length === 1 && !customDetails[0].name && !customDetails[0].number;
+            if (!isEmptyDefaultList && customDetails.length > 0) {
+                const serializedLines = customDetails.map((detail, idx) => {
+                    const parts: string[] = [];
+                    if (detail.name) parts.push(detail.name);
+                    if (detail.number) parts.push(detail.number);
+                    if (detail.size) parts.push(detail.size);
+                    if (detail.sleeve) {
+                        const shortSleeve = detail.sleeve.replace("Lengan ", "");
+                        parts.push(shortSleeve);
+                    }
+                    return `${idx + 1}. ${parts.join(", ")}`;
+                });
+                serializedLines.push(`${customDetails.length + 1}. `);
+                setPasteText(serializedLines.join("\n"));
+            } else {
+                setPasteText("1. ");
+            }
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.focus();
+                    const length = textareaRef.current.value.length;
+                    textareaRef.current.setSelectionRange(length, length);
+                }
+            }, 50);
+        }
+    }, [isPasteDialogOpen]);
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
     const [playerCountInput, setPlayerCountInput] = useState("");
     const [showValidation, setShowValidation] = useState(false);
@@ -153,6 +185,82 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         variant: "success" 
     });
 
+    const parseSizeAndSleeve = (playerSize: string) => {
+        const match = playerSize.match(/^([^(]+)(?:\(([^)]+)\))?$/);
+        if (match) {
+            const size = match[1].trim();
+            const sleeve = match[2] ? match[2].trim() : "Lengan Pendek";
+            return { size, sleeve };
+        }
+        return { size: playerSize || "L", sleeve: "Lengan Pendek" };
+    };
+
+    const editOrderId = searchParams.get("editOrderId");
+    const [existingOrder, setExistingOrder] = useState<any | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+
+    useEffect(() => {
+        if (editOrderId) {
+            setIsEditing(true);
+            const loadOrderToEdit = async () => {
+                try {
+                    const order = await orderService.trackOrder(editOrderId);
+                    if (order && order.status === "MENUNGGU") {
+                        setExistingOrder(order);
+                        setDesignNote(order.designNote || "");
+                        setShippingMethod(order.shippingMethod || "PICKUP");
+                        setShippingAddress(order.shippingAddress || "");
+                        
+                        // Load details
+                        if (order.details && order.details.length > 0) {
+                            const detailsMapped = order.details.map((detail: any, idx: number) => {
+                                const { size, sleeve } = parseSizeAndSleeve(detail.playerSize);
+                                return {
+                                    id: `edit-${detail.id}-${idx}`,
+                                    productId: detail.productId,
+                                    productTitle: detail.productTitle,
+                                    price: 150000,
+                                    image: "",
+                                    name: detail.playerName || "",
+                                    number: detail.playerNumber || "",
+                                    size: size,
+                                    sleeve: sleeve
+                                };
+                            });
+                            setCustomDetails(detailsMapped);
+                        }
+
+                        // Load product details
+                        const firstDetail = order.details?.[0];
+                        if (firstDetail) {
+                            adminApi.getBahanBaju().then(res => {
+                                if (res.status === "success") {
+                                    const product = res.data.find((b: any) => b.id === Number(firstDetail.productId));
+                                    if (product) {
+                                        setDirectProduct({
+                                            id: product.id,
+                                            title: product.nama,
+                                            price: 150000,
+                                            stock: product.stok,
+                                            image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        setToast({ show: true, message: "Pesanan ini tidak dapat diedit atau tidak ditemukan.", variant: "destructive" });
+                        navigate("/customer");
+                    }
+                } catch (error) {
+                    console.error("Failed to load order for edit:", error);
+                    setToast({ show: true, message: "Gagal memuat detail pesanan.", variant: "destructive" });
+                }
+            };
+            loadOrderToEdit();
+        }
+    }, [editOrderId]);
+
     const generateTable = () => {
         const count = parseInt(playerCountInput);
         if (isNaN(count) || count <= 0) {
@@ -183,7 +291,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             image,
             name: "",
             number: "",
-            size: "L"
+            size: "L",
+            sleeve: "Lengan Pendek"
         }));
         setCustomDetails(newDetails);
         setPlayerCountInput("");
@@ -197,63 +306,113 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        if (customDetails.length === 0 && cart.length > 0) {
-            const initialDetails = cart.flatMap(item => 
-                Array.from({ length: item.quantity }).map((_, idx) => ({
-                    id: `${item.product.id}-${Math.random().toString(36).substr(2, 9)}`,
-                    productId: item.product.id,
-                    productTitle: item.product.title,
-                    price: item.product.price,
-                    image: item.product.image,
+        if (isEditing || editOrderId) return;
+        if (customDetails.length === 0) {
+            if (cart.length > 0) {
+                const initialDetails = cart.flatMap(item => 
+                    Array.from({ length: item.quantity }).map((_, idx) => ({
+                        id: `${item.product.id}-${Math.random().toString(36).substr(2, 9)}`,
+                        productId: item.product.id,
+                        productTitle: item.product.title,
+                        price: item.product.price,
+                        image: item.product.image,
+                        name: "",
+                        number: "",
+                        size: "L",
+                        sleeve: "Lengan Pendek"
+                    }))
+                );
+                setCustomDetails(initialDetails);
+            } else if (activeProduct) {
+                const initialDetails = Array.from({ length: 1 }).map((_, idx) => ({
+                    id: `${activeProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
+                    productId: activeProduct.id,
+                    productTitle: activeProduct.title,
+                    price: activeProduct.price,
+                    image: activeProduct.image,
                     name: "",
                     number: "",
-                    size: "L"
-                }))
-            );
-            setCustomDetails(initialDetails);
+                    size: "L",
+                    sleeve: "Lengan Pendek"
+                }));
+                setCustomDetails(initialDetails);
+            }
         }
-    }, [cart, customDetails.length]);
+    }, [cart, activeProduct, customDetails.length]);
 
     const parsePasteData = () => {
         const lines = pasteText.split('\n').filter(l => l.trim());
-        const maxStock = cart[0]?.product.stock || 0;
+        if (!activeProduct) return;
+        const maxStock = activeProduct.stock || 0;
 
-        if (lines.length > maxStock) {
-            setToast({ show: true, message: `Gagal! Jumlah pemain (${lines.length}) melebihi stok bahan (${maxStock} pcs).`, variant: "destructive" });
+        const totalAfterPaste = lines.length;
+
+        if (totalAfterPaste > maxStock) {
+            setToast({ show: true, message: `Gagal! Total pemain (${totalAfterPaste}) melebihi stok bahan (${maxStock} pcs).`, variant: "destructive" });
             return;
         }
 
         const newDetails = lines.map((line, idx) => {
             let tempLine = line.trim();
             
-            // Extract Size (XXS-5XL)
+            // 1. Detect Sleeve Length (Lengan)
+            let sleeve = "Lengan Pendek";
+            const panjangRegex = /\b(panjang|pjg|long)\b/i;
+            const pendekRegex = /\b(pendek|pdk|short)\b/i;
+            
+            if (panjangRegex.test(tempLine)) {
+                sleeve = "Lengan Panjang";
+                tempLine = tempLine.replace(panjangRegex, '');
+            } else if (pendekRegex.test(tempLine)) {
+                sleeve = "Lengan Pendek";
+                tempLine = tempLine.replace(pendekRegex, '');
+            }
+
+            // 2. Detect Size (Ukuran)
             const sizeRegex = /\b(XXS|XS|S|M|L|XL|XXL|2XL|XXXL|4XL|5XL)\b/i;
             const sizeMatch = tempLine.match(sizeRegex);
             const size = sizeMatch ? sizeMatch[0].toUpperCase() : "L";
-            if (sizeMatch) tempLine = tempLine.replace(sizeMatch[0], "");
+            if (sizeMatch) {
+                tempLine = tempLine.replace(sizeMatch[0], "");
+            }
 
-            // Extract Number (Digits, sometimes in quotes)
-            const numberRegex = /"\s*(\d+)\s*"|\b(\d+)\b/;
-            const numberMatch = tempLine.match(numberRegex);
-            const number = numberMatch ? (numberMatch[1] || numberMatch[2]) : "";
-            if (numberMatch) tempLine = tempLine.replace(numberMatch[0], "");
+            // 3. Detect Numbers (Line Number vs Back Number)
+            const allNumbers = [...tempLine.matchAll(/\b\d+\b/g)].map(m => m[0]);
+            let number = "";
+            
+            if (allNumbers.length >= 2) {
+                const firstNumber = allNumbers[0];
+                const leadingNumberRegex = new RegExp(`^${firstNumber}\\s*[\\.\\)\\-\\,]*\\s*`);
+                if (leadingNumberRegex.test(tempLine)) {
+                    tempLine = tempLine.replace(leadingNumberRegex, '');
+                    number = allNumbers[1];
+                    tempLine = tempLine.replace(new RegExp(`\\b${number}\\b`), '');
+                } else {
+                    number = firstNumber;
+                    tempLine = tempLine.replace(new RegExp(`\\b${number}\\b`), '');
+                }
+            } else if (allNumbers.length === 1) {
+                number = allNumbers[0];
+                tempLine = tempLine.replace(new RegExp(`\\b${number}\\b`), '');
+            }
 
-            // Extract Name (Cleanup remaining text)
+            // 4. Clean up Name (Nama)
             let name = tempLine
-                .replace(/^\d+[\.\)]\s*/, '') // Remove numbering like 1.
-                .replace(/["'\(\)\[\]\{\}]/g, '') // Remove quotes/brackets
-                .replace(/[-–—,;|]/g, ' ') // Remove separators
+                .replace(/["'\(\)\[\]\{\}]/g, '')
+                .replace(/[-–—,;|]/g, ' ')
+                .replace(/\s+/g, ' ')
                 .trim();
 
             return {
                 id: `pasted-${idx}-${Date.now()}`,
-                productId: cart[0]?.product.id || 101,
-                productTitle: cart[0]?.product.title || "Custom Jersey",
-                price: cart[0]?.product.price || 150000,
-                image: cart[0]?.product.image || "",
+                productId: activeProduct?.id || 101,
+                productTitle: activeProduct?.title || "Custom Jersey",
+                price: activeProduct?.price || 150000,
+                image: activeProduct?.image || "",
                 name: name.toUpperCase(),
                 number: number,
-                size: size
+                size: size,
+                sleeve: sleeve
             };
         });
 
@@ -261,6 +420,158 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         setIsPasteDialogOpen(false);
         setPasteText("");
         setToast({ show: true, message: `Successfully parsed ${newDetails.length} players!`, variant: "success" });
+    };
+
+    const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        const textarea = e.currentTarget;
+        const val = textarea.value;
+        const selStart = textarea.selectionStart;
+        const selEnd = textarea.selectionEnd;
+
+        const beforeCursor = val.substring(0, selStart);
+        const afterCursor = val.substring(selEnd);
+        const linesBefore = beforeCursor.split("\n");
+        const currentLine = linesBefore[linesBefore.length - 1];
+        const trimmedLine = currentLine.trim();
+
+        // 1. MS Word style auto-numbering when pressing Enter
+        if (e.key === "Enter") {
+            const leadingNumberMatch = currentLine.match(/^(\d+)([\.\)\-\s]+)/);
+            if (leadingNumberMatch) {
+                e.preventDefault();
+                const currentNum = parseInt(leadingNumberMatch[1], 10);
+                const delimiter = leadingNumberMatch[2];
+                const remainingContent = currentLine.substring(leadingNumberMatch[0].length).trim();
+                
+                if (remainingContent === "") {
+                    const newBefore = linesBefore.slice(0, -1).join("\n") + (linesBefore.length > 1 ? "\n" : "");
+                    textarea.value = newBefore + afterCursor;
+                    textarea.selectionStart = textarea.selectionEnd = newBefore.length;
+                    setPasteText(textarea.value);
+                } else {
+                    const nextNum = currentNum + 1;
+                    const nextLineText = `\n${nextNum}${delimiter}`;
+                    textarea.value = beforeCursor + nextLineText + afterCursor;
+                    textarea.selectionStart = textarea.selectionEnd = selStart + nextLineText.length;
+                    setPasteText(textarea.value);
+                }
+                return;
+            }
+        }
+
+        // Auto-comma triggers ONLY when the character before cursor is a space
+        if (beforeCursor.endsWith(" ")) {
+            // 2. Smart auto-inserting comma after Name when typing the back number
+            if (/^\d+[\.\)\-\s]+[A-Za-z_\s]+$/i.test(trimmedLine)) {
+                if (/^\d$/.test(e.key)) {
+                    e.preventDefault();
+                    const insertText = `, ${e.key}`;
+                    textarea.value = beforeCursor + insertText + afterCursor;
+                    textarea.selectionStart = textarea.selectionEnd = selStart + insertText.length;
+                    setPasteText(textarea.value);
+                    return;
+                }
+            }
+
+            // 3. Smart auto-inserting comma after Back Number when typing size
+            if (/^\d+[\.\)\-\s]+.*,\s*\d+$/i.test(trimmedLine)) {
+                if (/^[a-zA-Z]$/.test(e.key)) {
+                    e.preventDefault();
+                    const insertText = `, ${e.key.toUpperCase()}`;
+                    textarea.value = beforeCursor + insertText + afterCursor;
+                    textarea.selectionStart = textarea.selectionEnd = selStart + insertText.length;
+                    setPasteText(textarea.value);
+                    return;
+                }
+            }
+
+            // 4. Smart auto-inserting comma after Size when typing sleeve length
+            if (/^\d+[\.\)\-\s]+.*,\s*\d+\s*,\s*(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL|5XL)$/i.test(trimmedLine)) {
+                if (/^[a-zA-Z]$/.test(e.key)) {
+                    e.preventDefault();
+                    const insertText = `, ${e.key.toUpperCase()}`;
+                    textarea.value = beforeCursor + insertText + afterCursor;
+                    textarea.selectionStart = textarea.selectionEnd = selStart + insertText.length;
+                    setPasteText(textarea.value);
+                    return;
+                }
+            }
+        }
+    };
+
+    const handleTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        e.preventDefault();
+        const pastedText = e.clipboardData.getData("text");
+        const textarea = e.currentTarget;
+        const val = textarea.value;
+        const selStart = textarea.selectionStart;
+        const selEnd = textarea.selectionEnd;
+
+        // Get the text before and after the selection
+        const before = val.substring(0, selStart);
+        const after = val.substring(selEnd);
+
+        // Let's split the pasted text into lines
+        const lines = pastedText.split(/\r?\n/);
+        
+        // We need to determine the starting number.
+        const lastLineBefore = before.split("\n").pop() || "";
+        const numMatch = lastLineBefore.match(/^(\d+)([\.\)\-\s]+)/);
+        
+        let currentNum = 1;
+        let delimiter = ". ";
+        
+        if (numMatch) {
+            currentNum = parseInt(numMatch[1], 10);
+            delimiter = numMatch[2];
+        } else {
+            const beforeLines = before.split("\n");
+            let lastNumFound = 0;
+            for (let i = beforeLines.length - 1; i >= 0; i--) {
+                const m = beforeLines[i].match(/^(\d+)([\.\)\-\s]+)/);
+                if (m) {
+                    lastNumFound = parseInt(m[1], 10);
+                    delimiter = m[2];
+                    break;
+                }
+            }
+            if (lastNumFound > 0) {
+                currentNum = lastNumFound + 1;
+            }
+        }
+
+        const finalPastedLines: string[] = [];
+        lines.forEach((line, index) => {
+            const trimmed = line.trim();
+            if (!trimmed) {
+                finalPastedLines.push("");
+            } else {
+                const lineNumMatch = trimmed.match(/^(\d+)([\.\)\-\s]+)(.*)/);
+                let lineText = trimmed;
+                if (lineNumMatch) {
+                    lineText = lineNumMatch[3].trim();
+                }
+                const isFirstLine = index === 0;
+                const hasPrefixAlready = isFirstLine && numMatch && (lastLineBefore.trim() === numMatch[0].trim());
+                if (isFirstLine && hasPrefixAlready) {
+                    finalPastedLines.push(lineText);
+                    currentNum++;
+                } else {
+                    const numToUse = currentNum;
+                    currentNum++;
+                    finalPastedLines.push(`${numToUse}${delimiter}${lineText}`);
+                }
+            }
+        });
+
+        const insertText = finalPastedLines.join("\n");
+        const newVal = before + insertText + after;
+        setPasteText(newVal);
+
+        const newCursorPos = selStart + insertText.length;
+        setTimeout(() => {
+            textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+        }, 0);
     };
 
     const removeUnit = (id: string) => {
@@ -274,10 +585,12 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             return customDetails.every(d => d.name.trim() !== "" && d.number.trim() !== "" && d.size !== "");
         }
         if (step === 2) {
-            return true; // Design note/ref is optional but good to have
+            const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
+            const hasAddressIfCod = shippingMethod !== "COD" || shippingAddress.trim() !== "";
+            return hasDesign && hasAddressIfCod;
         }
         if (step === 3) {
-            return !!paymentProofFile;
+            return !!paymentProofFile || !!existingOrder?.paymentUrl;
         }
         return true;
     };
@@ -285,9 +598,20 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const handleNextStep = () => {
         if (!isStepValid()) {
             setShowValidation(true);
+            let msg = "Lengkapi langkah ini terlebih dahulu";
+            if (step === 1) {
+                msg = "Mohon lengkapi detail pemain (Nama, Nomor, Size)";
+            } else if (step === 2) {
+                const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
+                if (!hasDesign) {
+                    msg = "Mohon unggah referensi desain jersey Anda";
+                } else {
+                    msg = "Mohon isi alamat pengiriman untuk metode COD";
+                }
+            }
             setToast({ 
                 show: true, 
-                message: step === 1 ? "Mohon lengkapi detail pemain (Nama, Nomor, Size)" : "Lengkapi langkah ini terlebih dahulu", 
+                message: msg, 
                 variant: "destructive" 
             });
             return;
@@ -309,7 +633,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                 image: product.image,
                 name: "",
                 number: "",
-                size: "L"
+                size: "L",
+                sleeve: "Lengan Pendek"
             }]);
         } else {
             const lastIdx = [...customDetails].reverse().findIndex(d => d.productId === productId);
@@ -346,8 +671,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         setIsUploading(true);
         setUploadProgress(10);
         try {
-            let designUrl = "";
-            let paymentUrl = "";
+            let designUrl = existingOrder?.designUrl || "";
+            let paymentUrl = existingOrder?.paymentUrl || "";
 
             if (designReferenceFile) {
                 setUploadProgress(20);
@@ -368,32 +693,41 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             setUploadProgress(90);
 
             try {
-                await orderService.createOrder({
+                const payload = {
                     customerId: user?.id || 0,
-                    bahanBajuId: cart[0]?.product.id,
+                    bahanBajuId: activeProduct?.id,
                     totalAmount: totalCalculated,
                     designNote: designNote,
                     designUrl: designUrl,
                     paymentUrl: paymentUrl,
+                    shippingMethod: shippingMethod,
+                    shippingAddress: shippingMethod === "COD" ? shippingAddress : "",
                     details: customDetails.map(d => ({
                         productId: d.productId,
                         productTitle: d.productTitle,
                         playerName: d.name,
                         playerNumber: d.number,
-                        playerSize: d.size
+                        playerSize: `${d.size} (${d.sleeve || "Lengan Pendek"})`
                     }))
-                });
+                };
+
+                if (isEditing && existingOrder) {
+                    await orderService.updateOrder(existingOrder.id, payload);
+                    setUploadProgress(100);
+                    setToast({ show: true, message: "Pesanan berhasil diperbarui!", variant: "success" });
+                } else {
+                    await orderService.createOrder(payload);
+                    setUploadProgress(100);
+                    setToast({ show: true, message: "Pesanan berhasil dibuat dan telah terkirim ke sistem admin!", variant: "success" });
+                }
                 
-                // Remove WhatsApp redirect, since data is already in Admin Dashboard
-                setUploadProgress(100);
-                setToast({ show: true, message: "Pesanan berhasil dibuat dan telah terkirim ke sistem admin!", variant: "success" });
                 setTimeout(() => {
                     clearCart();
                     navigate("/customer");
                 }, 1500);
             } catch (apiErr) {
                 console.error("API Order failed", apiErr);
-                setToast({ show: true, message: "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
+                setToast({ show: true, message: isEditing ? "Gagal memperbarui pesanan. Silakan coba lagi." : "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
             }
         } catch (error) {
             console.error("Upload failed:", error);
@@ -414,13 +748,24 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             {/* Top Navigation */}
             <div className="bg-white border-b border-neutral-100 sticky top-0 z-50">
                 <div className="max-w-[87.5rem] mx-auto px-8 h-20 flex items-center justify-between">
-                    <button 
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 text-neutral-400 hover:text-black transition-colors font-bold text-sm group"
-                    >
-                        <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        BACK TO SHOP
-                    </button>
+                    <div className="flex items-center gap-6">
+                        <button 
+                            onClick={() => navigate("/customer/custom-jersey")}
+                            className="flex items-center gap-2 text-neutral-400 hover:text-black transition-colors font-bold text-sm group"
+                        >
+                            <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                            BACK TO SHOP
+                        </button>
+                        {step > 1 && (
+                            <button 
+                                onClick={() => setStep(prev => prev - 1)}
+                                className="flex items-center gap-2 text-neutral-400 hover:text-[#D25026] transition-colors font-bold text-sm group border-l border-neutral-200 pl-6"
+                            >
+                                <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                PREVIOUS STEP
+                            </button>
+                        )}
+                    </div>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[#D25026] rounded-xl flex items-center justify-center shadow-lg shadow-[#D25026]/20">
                             <ShoppingCart className="text-white w-5 h-5" />
@@ -531,16 +876,28 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                         <div className="relative h-32 w-full bg-black flex flex-col justify-center px-10 shrink-0">
                                                             <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 0.0625rem 0.0625rem, white 0.0625rem, transparent 0)', backgroundSize: '1.5rem 1.5rem' }}></div>
                                                             <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white relative z-10">Paste Player List</DialogTitle>
-                                                            <DialogDescription className="text-neutral-400 font-medium text-xs mt-1 relative z-10 italic">Format: 1. Nama "No" Ukuran</DialogDescription>
+                                                            <DialogDescription className="text-neutral-400 font-medium text-xs mt-1 relative z-10 italic">Format: No. Nama Nomor_Punggung Ukuran Lengan (opsional)</DialogDescription>
                                                         </div>
                                                         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                                                            <div className="bg-orange-50/50 border border-orange-100/50 rounded-2xl p-4 mb-6 flex items-start gap-3">
+                                                                <Info className="w-4 h-4 text-[#D25026] mt-0.5 shrink-0" />
+                                                                <div className="text-[11px] leading-relaxed text-neutral-600 font-medium">
+                                                                    <p className="font-bold text-slate-800 mb-1">Panduan Penginputan Otomatis:</p>
+                                                                    <p>• Masukkan list berisi <span className="font-bold">No, Nama, No Punggung, Ukuran Baju</span>, dan <span className="font-bold">Lengan</span>.</p>
+                                                                    <p>• Jika kolom lengan dikosongkan, sistem akan otomatis memilih <span className="font-bold">Lengan Pendek</span>.</p>
+                                                                    <p>• Contoh: <span className="italic">1. BAYU 10 L Pendek</span> atau <span className="italic">2. YUSUF 23 XL Panjang</span></p>
+                                                                </div>
+                                                            </div>
                                                             <div className="space-y-2">
                                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ml-1">Paste Your List Here</Label>
                                                                 <Textarea 
+                                                                    ref={textareaRef}
                                                                     value={pasteText}
                                                                     onChange={(e) => setPasteText(e.target.value)}
-                                                                    placeholder={"1. zax_two \" 42 \" (XL)\n2. yusuf \" 23 \" (XL)"}
-                                                                    className="min-h-[21.875rem] rounded-[1.5rem] border-neutral-100 text-sm p-6 focus:ring-[#D25026]/10 focus:border-[#D25026]/20 bg-neutral-50/50 resize-none transition-all"
+                                                                    onKeyDown={handleTextareaKeyDown}
+                                                                    onPaste={handleTextareaPaste}
+                                                                    placeholder={"1. BAYU, 10, L, Pendek\n2. YUSUF, 23, XL, Lengan Panjang"}
+                                                                    className="min-h-[18rem] rounded-[1.5rem] border-neutral-100 text-sm p-6 focus:ring-[#D25026]/10 focus:border-[#D25026]/20 bg-neutral-50/50 resize-none transition-all"
                                                                 />
                                                             </div>
                                                         </div>
@@ -590,7 +947,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                             <th className="p-6 pl-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic w-20 text-center">No</th>
                                                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic">Nama</th>
                                                             <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-center w-40">Nomor Punggung</th>
-                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-center w-80">Ukuran Baju</th>
+                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-center w-[300px]">Ukuran Baju</th>
+                                                            <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-center w-[220px]">Lengan</th>
                                                             <th className="p-6 pr-10 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-700 italic text-right w-28">Action</th>
                                                         </tr>
                                                     </thead>
@@ -644,6 +1002,27 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                                         ))}
                                                                     </div>
                                                                 </td>
+                                                                <td className="p-5">
+                                                                    <div className="flex gap-1 bg-neutral-50 p-1.5 rounded-2xl border border-neutral-100 w-max mx-auto">
+                                                                        {[
+                                                                            { value: "Lengan Pendek", label: "Pendek" },
+                                                                            { value: "Lengan Panjang", label: "Panjang" }
+                                                                        ].map(sleeve => (
+                                                                            <button
+                                                                                key={sleeve.value}
+                                                                                onClick={() => handleDetailChange(detail.id, "sleeve", sleeve.value)}
+                                                                                className={cn(
+                                                                                    "px-4 h-9 rounded-xl text-xs font-black transition-all duration-300",
+                                                                                    (detail.sleeve || "Lengan Pendek") === sleeve.value 
+                                                                                        ? "bg-[#D25026] text-white shadow-lg" 
+                                                                                        : "text-neutral-600 hover:text-black hover:bg-neutral-100"
+                                                                                )}
+                                                                            >
+                                                                                {sleeve.label}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </td>
                                                                 <td className="p-5 pr-10 text-right">
                                                                     <button 
                                                                         onClick={() => removeUnit(detail.id)}
@@ -689,27 +1068,42 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                             value={designNote}
                                             onChange={(e) => setDesignNote(e.target.value)}
                                             placeholder="Jelaskan detail desain tambahan (warna logo, sponsor, posisi nomor, dll)..." 
-                                            className="min-h-[15.625rem] rounded-[2.5rem] border-neutral-100 p-8 focus:ring-[#D25026]/10 focus:border-[#D25026] bg-white shadow-sm ring-1 ring-black/5 text-sm font-medium leading-relaxed"
+                                            className="min-h-[22rem] rounded-[2.5rem] border-neutral-100 p-8 focus:ring-[#D25026]/10 focus:border-[#D25026] bg-white shadow-sm ring-1 ring-black/5 text-sm font-medium leading-relaxed"
                                         />
                                     </div>
                                     <div className="space-y-3">
                                         <Label className="text-[11px] font-black uppercase tracking-widest italic text-neutral-900">Upload Referensi</Label>
                                         <div className="h-[15.625rem] border-2 border-dashed border-neutral-200 rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 bg-white hover:bg-neutral-50 hover:border-[#D25026]/30 transition-all cursor-pointer group relative overflow-hidden shadow-sm ring-1 ring-black/5">
-                                            {designReferenceFile ? (
+                                            {designReferenceFile || existingOrder?.designUrl ? (
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white p-4">
-                                                    {designReferenceFile.type.includes("pdf") || designReferenceFile.name.toLowerCase().endsWith(".pdf") ? (
-                                                        <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-3 border border-red-100">
-                                                            <FileText className="w-10 h-10 text-red-500" />
-                                                        </div>
+                                                    {designReferenceFile ? (
+                                                        (designReferenceFile.type.includes("pdf") || designReferenceFile.name.toLowerCase().endsWith(".pdf")) ? (
+                                                            <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-3 border border-red-100">
+                                                                <FileText className="w-10 h-10 text-red-500" />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={URL.createObjectURL(designReferenceFile)} className="w-full h-full object-contain mb-2 rounded-xl" />
+                                                        )
                                                     ) : (
-                                                        <img src={URL.createObjectURL(designReferenceFile)} className="w-full h-full object-contain mb-2 rounded-xl" />
+                                                        existingOrder.designUrl.toLowerCase().endsWith(".pdf") ? (
+                                                            <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mb-3 border border-red-100">
+                                                                <FileText className="w-10 h-10 text-red-500" />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={existingOrder.designUrl.startsWith('http') ? existingOrder.designUrl : `${UPLOADS_URL}${existingOrder.designUrl.startsWith('/') ? '' : '/'}${existingOrder.designUrl}`} className="w-full h-full object-contain mb-2 rounded-xl" />
+                                                        )
                                                     )}
-                                                    <p className="text-[10px] font-black uppercase text-neutral-400 truncate w-full text-center px-4 italic">{designReferenceFile.name}</p>
+                                                    <p className="text-[10px] font-black uppercase text-neutral-400 truncate w-full text-center px-4 italic">
+                                                        {designReferenceFile ? designReferenceFile.name : "Existing Design Reference"}
+                                                    </p>
                                                     
                                                     <button 
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setDesignReferenceFile(null);
+                                                            if (existingOrder) {
+                                                                setExistingOrder((prev: any) => ({ ...prev, designUrl: "" }));
+                                                            }
                                                         }}
                                                         className="absolute top-4 right-4 z-20 w-8 h-8 bg-white text-red-500 rounded-full flex items-center justify-center border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
                                                         title="Remove File"
@@ -742,6 +1136,64 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                             />
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Opsi Pengiriman */}
+                                <div className="bg-white rounded-[2.5rem] border border-neutral-100 p-8 shadow-sm ring-1 ring-black/5 space-y-6">
+                                    <div>
+                                        <h3 className="text-lg font-black italic uppercase tracking-tighter text-neutral-900">Opsi Pengiriman</h3>
+                                        <p className="text-neutral-400 text-xs font-medium mt-1">Pilih metode pengiriman pesanan jersey Anda.</p>
+                                    </div>
+
+                                    <div className="flex gap-4">
+                                        {[
+                                            { value: "PICKUP", label: "Ambil di Tempat (Self-Pickup)" },
+                                            { value: "COD", label: "COD (Penerima Yang Bayar)" }
+                                        ].map((method) => (
+                                            <button
+                                                key={method.value}
+                                                type="button"
+                                                onClick={() => setShippingMethod(method.value)}
+                                                className={cn(
+                                                    "flex-1 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest italic border transition-all duration-300",
+                                                    shippingMethod === method.value
+                                                        ? "bg-black text-white border-black shadow-lg"
+                                                        : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-450 hover:text-black"
+                                                )}
+                                            >
+                                                {method.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {shippingMethod === "PICKUP" ? (
+                                        <div className="bg-orange-50/50 border border-orange-100/50 rounded-2xl p-6 flex items-start gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="w-10 h-10 bg-[#D25026]/10 rounded-xl flex items-center justify-center shrink-0">
+                                                <Info className="text-[#D25026] w-5 h-5" />
+                                            </div>
+                                            <div className="text-xs leading-relaxed text-neutral-700">
+                                                <p className="font-black uppercase tracking-wider text-[#D25026] mb-1">Catatan Pengambilan:</p>
+                                                <p className="font-medium">Anda harus mengunjungi toko kami secara langsung untuk mengambil pesanan jersey Anda setelah selesai diproduksi.</p>
+                                                <p className="font-black uppercase tracking-wider text-neutral-900 mt-2 mb-0.5">Alamat Toko:</p>
+                                                <p className="font-bold font-mono text-neutral-900 bg-white/60 p-3 rounded-lg border border-orange-200/50">
+                                                    Jalan raya cikande kopo. Kp padaharan, Ds Rancasumur rt 001 rw 001 kecamatan kopo. Kabupaten Serang. Provinsi Banten 42178
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest italic text-neutral-900">Alamat yang Dituju (Penerima)</Label>
+                                            <Textarea
+                                                value={shippingAddress}
+                                                onChange={(e) => setShippingAddress(e.target.value)}
+                                                placeholder="Tulis alamat pengiriman secara detail (Nama penerima, No HP, Nama Jalan, RT/RW, Kecamatan, Kabupaten, Kode Pos)..."
+                                                className={cn(
+                                                    "min-h-[8rem] rounded-2xl border-neutral-100 p-6 focus:ring-[#D25026]/10 focus:border-[#D25026] bg-neutral-50/50 text-sm font-medium leading-relaxed",
+                                                    showValidation && shippingAddress.trim() === "" && "border-red-500 bg-red-50/20"
+                                                )}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -820,23 +1272,38 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                         <Label className="text-[11px] font-black uppercase tracking-widest italic text-neutral-900">Upload Bukti Transfer</Label>
                                         <div className={cn(
                                             "h-[25rem] border-2 border-dashed border-neutral-200 rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 bg-white hover:bg-neutral-50 hover:border-[#D25026]/30 transition-all cursor-pointer group relative overflow-hidden shadow-sm ring-1 ring-black/5",
-                                            showValidation && step === 3 && !paymentProofFile && "border-red-500 bg-red-50/10"
+                                            showValidation && step === 3 && !paymentProofFile && !existingOrder?.paymentUrl && "border-red-500 bg-red-50/10"
                                         )}>
-                                            {paymentProofFile ? (
+                                            {paymentProofFile || existingOrder?.paymentUrl ? (
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white p-4">
-                                                    {paymentProofFile.type.includes("pdf") || paymentProofFile.name.toLowerCase().endsWith(".pdf") ? (
-                                                        <div className="w-24 h-24 bg-red-50 rounded-2xl flex items-center justify-center mb-4 border border-red-100">
-                                                            <FileText className="w-12 h-12 text-red-500" />
-                                                        </div>
+                                                    {paymentProofFile ? (
+                                                        (paymentProofFile.type.includes("pdf") || paymentProofFile.name.toLowerCase().endsWith(".pdf")) ? (
+                                                            <div className="w-24 h-24 bg-red-50 rounded-2xl flex items-center justify-center mb-4 border border-red-100">
+                                                                <FileText className="w-12 h-12 text-red-500" />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={URL.createObjectURL(paymentProofFile)} className="w-full h-full object-contain mb-2 rounded-xl" />
+                                                        )
                                                     ) : (
-                                                        <img src={URL.createObjectURL(paymentProofFile)} className="w-full h-full object-contain mb-2 rounded-xl" />
+                                                        existingOrder.paymentUrl.toLowerCase().endsWith(".pdf") ? (
+                                                            <div className="w-24 h-24 bg-red-50 rounded-2xl flex items-center justify-center mb-4 border border-red-100">
+                                                                <FileText className="w-12 h-12 text-red-500" />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={existingOrder.paymentUrl.startsWith('http') ? existingOrder.paymentUrl : `${UPLOADS_URL}${existingOrder.paymentUrl.startsWith('/') ? '' : '/'}${existingOrder.paymentUrl}`} className="w-full h-full object-contain mb-2 rounded-xl" />
+                                                        )
                                                     )}
-                                                    <p className="text-[10px] font-black uppercase text-neutral-400 truncate w-full text-center px-4 italic">{paymentProofFile.name}</p>
+                                                    <p className="text-[10px] font-black uppercase text-neutral-400 truncate w-full text-center px-4 italic">
+                                                        {paymentProofFile ? paymentProofFile.name : "Existing Payment Proof"}
+                                                    </p>
                                                     
                                                     <button 
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setPaymentProofFile(null);
+                                                            if (existingOrder) {
+                                                                setExistingOrder((prev: any) => ({ ...prev, paymentUrl: "" }));
+                                                            }
                                                         }}
                                                         className="absolute top-6 right-6 z-20 w-10 h-10 bg-white text-red-500 rounded-full flex items-center justify-center border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
                                                         title="Remove File"
@@ -914,7 +1381,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                     <Button 
                                         onClick={() => step === 3 ? handleSubmit() : handleNextStep()}
                                         className="h-[52px] px-8 rounded-xl bg-[#D25026] hover:bg-[#B34320] text-white text-[12px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 transition-all flex gap-3 shrink-0"
-                                        disabled={isUploading || (step === 3 && !paymentProofFile)}
+                                        disabled={isUploading || (step === 3 && !paymentProofFile && !existingOrder?.paymentUrl)}
                                     >
                                         {isUploading ? (
                                             <>

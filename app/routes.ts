@@ -13,6 +13,11 @@ export default [
         route("/", "routes/landing/Home.tsx"),
         route("category", "routes/landing/ListCategory.tsx"),
         route("tracking", "./routes/customer/tracking-pesanan.tsx"),
+        route("product/:id", "routes/landing/ProductDetail.tsx"),
+        route("about", "routes/landing/About.tsx"),
+        route("visi-misi", "routes/landing/VisiMisi.tsx"),
+        route("faq", "routes/landing/FAQ.tsx"),
+        route("contact", "routes/landing/Contact.tsx"),
     ]),
 
     // Customer
@@ -32,6 +37,7 @@ export default [
     layout("routes/admin/layout.tsx", [
         ...prefix("admin", [
             index("routes/admin/dashboard.tsx"),
+            route("omset", "routes/admin/omset.tsx"),
             route("users", "routes/admin/users.tsx"),
             route("monitoring-pesanan", "routes/admin/monitoring-pesanan.tsx"),
             route("bahan-baju/create", "routes/admin/bahan-baju-create.tsx"),
@@ -49,6 +55,13 @@ export default [
         ...prefix("desain", [
             index("routes/desain/dashboard.tsx"),
             route("chat", "routes/desain/chat_new.tsx"),
+        ]),
+    ]),
+
+    // Gudang
+    layout("routes/gudang/layout.tsx", [
+        ...prefix("gudang", [
+            index("routes/gudang/dashboard.tsx"),
         ]),
     ]),
    

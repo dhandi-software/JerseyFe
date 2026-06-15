@@ -83,23 +83,23 @@ export function BahanBajuCreateMobile() {
                     <span className="font-bold text-xs tracking-tight uppercase">Kembali</span>
                 </Button>
 
-                <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-                    <div className="mb-8">
+                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/40">
+                    <div className="mb-6">
                         <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest mb-3">
                             New Material
                         </div>
-                        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Tambah Bahan</h1>
+                        <h1 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Tambah Bahan</h1>
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-2 italic leading-relaxed">Input spesifikasi bahan baku untuk katalog.</p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-8">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Image Upload Area */}
                         <div className="space-y-3">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                 Foto Katalog
                             </label>
-                            <div className="relative group w-full aspect-[4/3] rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center overflow-hidden cursor-pointer">
+                            <div className="relative group w-full aspect-[4/3] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center overflow-hidden cursor-pointer">
                                 {imagePreview ? (
                                     <>
                                         <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -109,7 +109,7 @@ export function BahanBajuCreateMobile() {
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
-                                                className="rounded-xl font-bold uppercase tracking-widest text-[9px] px-5 h-9 shadow-lg"
+                                                className="rounded-lg font-bold uppercase tracking-widest text-[9px] px-4 h-8 shadow-lg"
                                             >
                                                 Ganti Foto
                                             </Button>
@@ -117,8 +117,8 @@ export function BahanBajuCreateMobile() {
                                     </>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
-                                        <div className="w-12 h-12 rounded-xl bg-white shadow-md flex items-center justify-center text-slate-300">
-                                            <ImagePlus className="w-6 h-6" />
+                                        <div className="w-12 h-12 rounded-xl bg-white shadow flex items-center justify-center text-slate-300">
+                                            <ImagePlus className="w-5 h-5" />
                                         </div>
                                         <div className="space-y-0.5">
                                             <span className="block text-[10px] font-black text-slate-900 uppercase">Upload Foto</span>
@@ -136,8 +136,8 @@ export function BahanBajuCreateMobile() {
                         </div>
 
                         {/* Text Inputs Area */}
-                        <div className="space-y-6">
-                            <div className="space-y-3">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Nama Bahan</label>
                                 <input 
                                     required
@@ -145,13 +145,13 @@ export function BahanBajuCreateMobile() {
                                     value={nama}
                                     onChange={(e) => setNama(e.target.value)}
                                     placeholder="Contoh: Milano Drifit"
-                                    className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-300 shadow-sm"
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-350 shadow-sm"
                                 />
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Harga Satuan (Rp)</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-black italic">Rp</span>
+                                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-extrabold italic">Rp</span>
                                     <input 
                                         required
                                         type="text" 
@@ -161,11 +161,11 @@ export function BahanBajuCreateMobile() {
                                             setHarga(val === "" ? "" : Number(val));
                                         }}
                                         placeholder="150.000"
-                                        className="w-full h-14 pl-12 pr-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-300 shadow-sm"
+                                        className="w-full h-11 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-350 shadow-sm"
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Stok Awal</label>
                                 <input 
                                     required
@@ -174,25 +174,25 @@ export function BahanBajuCreateMobile() {
                                     value={stok}
                                     onChange={(e) => setStok(e.target.value === "" ? "" : Number(e.target.value))}
                                     placeholder="0"
-                                    className="w-full h-14 px-5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-300 shadow-sm"
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-355 shadow-sm"
                                 />
                             </div>
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Deskripsi Bahan</label>
                                 <textarea 
                                     value={deskripsi}
                                     onChange={(e) => setDeskripsi(e.target.value)}
                                     placeholder="Karakteristik bahan..."
-                                    className="w-full min-h-[140px] p-5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-600 resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-300 leading-relaxed shadow-sm"
+                                    className="w-full min-h-[100px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-650 resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-350 leading-relaxed shadow-sm"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 pt-6 border-t border-slate-50">
+                        <div className="flex flex-col gap-2 pt-4 border-t border-slate-50">
                             <Button 
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full h-14 bg-[#0F172A] hover:bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center justify-center group"
+                                className="w-full h-11 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow transition-all active:scale-95 flex items-center justify-center group"
                             >
                                 {isSubmitting ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -207,7 +207,7 @@ export function BahanBajuCreateMobile() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => navigate("/admin/bahan-baju")}
-                                className="w-full h-14 border-slate-200 hover:bg-slate-50 text-slate-500 rounded-2xl font-bold uppercase tracking-widest text-[10px] transition-all"
+                                className="w-full h-11 border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all"
                             >
                                 <X className="w-4 h-4 mr-2" /> Batal
                             </Button>

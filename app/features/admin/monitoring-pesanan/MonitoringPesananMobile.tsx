@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy, Truck, Download, Search, ChevronDown } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -7,7 +7,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { adminApi } from "~/api/admin";
 import { Toast } from "~/components/ui/toast";
 import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
-import { Download } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationPrevious,
+    PaginationNext,
+    PaginationEllipsis,
+} from "~/components/ui/pagination";
 
 export function MonitoringPesananMobile() {
     const [orders, setOrders] = useState<any[]>([]);
@@ -18,6 +28,30 @@ export function MonitoringPesananMobile() {
     const [selectedDesignerId, setSelectedDesignerId] = useState<number | "">("");
     const [orderToAssign, setOrderToAssign] = useState<number | null>(null);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
+
+    // Search, Sort, and Pagination states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [sortBy, setSortBy] = useState("newest");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showSortDropdown, setShowSortDropdown] = useState(false);
+    const itemsPerPage = 10;
+    const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Reset page on filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, sortBy]);
+
+    // Click outside handler for dropdown
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+                setShowSortDropdown(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -31,6 +65,8 @@ export function MonitoringPesananMobile() {
                     product: o.details.length > 0 ? o.details[0].productTitle : "Custom Jersey",
                     qty: o.details.length,
                     status: o.status,
+                    queueNumber: o.queueNumber,
+                    isWorking: o.isWorking,
                     date: new Date(o.createdAt).toISOString().split('T')[0],
                     playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
                         name: d.playerName || "-",
@@ -41,6 +77,11 @@ export function MonitoringPesananMobile() {
                     designUrl: o.designUrl,
                     paymentProofUrl: o.paymentUrl,
                     totalAmount: o.totalAmount,
+                    shippingMethod: o.shippingMethod,
+                    shippingAddress: o.shippingAddress,
+                    mockupUrl: o.mockupUrl,
+                    designStatus: o.designStatus,
+                    designFeedback: o.designFeedback,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
                         day: 'numeric', 
@@ -102,6 +143,70 @@ export function MonitoringPesananMobile() {
         }
     };
 
+    // Search, Filter and Sort orders
+    const filteredAndSortedOrders = orders.filter(o => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return true;
+        return (
+            (o.id && o.id.toLowerCase().includes(query)) ||
+            (o.customer && o.customer.toLowerCase().includes(query)) ||
+            (o.product && o.product.toLowerCase().includes(query))
+        );
+    }).sort((a, b) => {
+        if (sortBy === "newest") {
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+        if (sortBy === "oldest") {
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+        }
+        if (sortBy === "name-asc") {
+            return (a.customer || "").localeCompare(b.customer || "");
+        }
+        if (sortBy === "name-desc") {
+            return (b.customer || "").localeCompare(a.customer || "");
+        }
+        if (sortBy === "price-highest") {
+            return (b.totalAmount || 0) - (a.totalAmount || 0);
+        }
+        if (sortBy === "price-lowest") {
+            return (a.totalAmount || 0) - (b.totalAmount || 0);
+        }
+        if (sortBy === "qty-highest") {
+            return (b.qty || 0) - (a.qty || 0);
+        }
+        if (sortBy === "qty-lowest") {
+            return (a.qty || 0) - (b.qty || 0);
+        }
+        return 0;
+    });
+
+    // Pagination calculations
+    const totalItems = filteredAndSortedOrders.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const paginatedOrders = filteredAndSortedOrders.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const getPageNumbers = () => {
+        const pages: (number | "ellipsis")[] = [];
+        const maxVisiblePages = 5;
+        if (totalPages <= maxVisiblePages) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (currentPage <= 3) {
+                pages.push(1, 2, 3, 4, "ellipsis", totalPages);
+            } else if (currentPage >= totalPages - 2) {
+                pages.push(1, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages);
+            }
+        }
+        return pages;
+    };
+
     if (selectedOrder) {
         return (
             <div className="min-h-screen bg-white font-geist flex flex-col">
@@ -138,6 +243,11 @@ export function MonitoringPesananMobile() {
                                 >
                                     <Copy size={14} />
                                 </button>
+                                {selectedOrder.queueNumber && (
+                                    <span className="bg-[#D25026]/10 text-[#D25026] px-2 py-0.5 rounded-md text-[8px] font-black uppercase italic border border-[#D25026]/20">
+                                        Antrean: {selectedOrder.queueNumber}
+                                    </span>
+                                )}
                             </div>
                          </div>
                     </div>
@@ -221,19 +331,111 @@ export function MonitoringPesananMobile() {
                         )}
                     </div>
 
+                    {/* Mockup Hasil Desain Section (Mobile Admin Monitor) */}
+                    {selectedOrder.status !== "MENUNGGU" && (
+                        <div className="space-y-3">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                                <ImageIcon className="text-[#D25026]" size={14} /> Progress Mockup Desain
+                            </h3>
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                                {selectedOrder.mockupUrl ? (
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Persetujuan:</span>
+                                            {selectedOrder.designStatus === "SENT" && (
+                                                <span className="bg-amber-50 text-amber-700 border-amber-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Menunggu Persetujuan Customer
+                                                </span>
+                                            )}
+                                            {selectedOrder.designStatus === "APPROVED" && (
+                                                <span className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Disetujui
+                                                </span>
+                                            )}
+                                            {selectedOrder.designStatus === "REVISI" && (
+                                                <span className="bg-red-50 text-red-700 border-red-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Revisi Diminta
+                                                </span>
+                                            )}
+                                            {selectedOrder.designStatus === "PENDING" && (
+                                                <span className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Belum Diupload
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {selectedOrder.designStatus === "REVISI" && selectedOrder.designFeedback && (
+                                            <div className="bg-red-50/50 p-3 rounded-lg border border-red-100">
+                                                <p className="text-[7px] font-black text-red-600 uppercase tracking-widest italic mb-0.5">Catatan Revisi:</p>
+                                                <p className="text-[10px] text-red-700 font-bold leading-relaxed italic">"{selectedOrder.designFeedback}"</p>
+                                            </div>
+                                        )}
+
+                                        <div className="w-full bg-slate-100 rounded-xl overflow-hidden relative border border-slate-200">
+                                            {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
+                                                <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center">
+                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                    <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                        Buka Mockup (PDF)
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <img 
+                                                    src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl}`} 
+                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto" 
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
+                                        <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada mockup diupload</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Shipping Info Section Mobile */}
+                    <div className="space-y-3">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                            <Truck className="text-[#D25026]" size={14} /> Informasi Pengiriman
+                        </h3>
+                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                            <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Metode Pengiriman:</p>
+                                <p className="text-xs font-black text-slate-900 uppercase italic">
+                                    {selectedOrder.shippingMethod === "COD" ? "COD (Penerima yang bayar)" : "Ambil di tempat"}
+                                </p>
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">
+                                    {selectedOrder.shippingMethod === "COD" ? "Alamat Tujuan COD:" : "Alamat Toko (Kunjungi Toko):"}
+                                </p>
+                                <p className="text-[10px] text-slate-700 font-medium italic leading-relaxed font-mono">
+                                    {selectedOrder.shippingMethod === "COD" 
+                                        ? (selectedOrder.shippingAddress || "Alamat tidak diisi.")
+                                        : "Jalan raya cikande kopo. Kp padaharan, Ds Rancasumur rt 001 rw 001 kecamatan kopo. Kabupaten Serang. Provinsi Banten 42178"
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Player Info Section */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
                                 <User className="text-[#D25026]" size={14} /> Data Pemain ({selectedOrder.playerInfo.length})
                             </h3>
-                            <button 
+                            <Button 
+                                variant="outline"
                                 onClick={() => downloadPlayersPDF(selectedOrder)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[7px] font-black uppercase tracking-widest italic shadow-sm"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[7px] font-black uppercase tracking-widest italic shadow-sm cursor-pointer"
                             >
                                 <FileText size={10} className="text-[#D25026]" />
                                 PDF
-                            </button>
+                            </Button>
                         </div>
                         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -271,21 +473,22 @@ export function MonitoringPesananMobile() {
                     <div className="flex gap-2">
                         {selectedOrder.status === "MENUNGGU" && (
                             <>
-                                <button 
+                                <Button 
+                                    variant="destructive"
                                     onClick={() => handleUpdateStatus(selectedOrder.rawId, "DITOLAK")}
-                                    className="flex-1 h-12 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest italic border border-red-100"
+                                    className="flex-1 h-12 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest italic border border-red-100 cursor-pointer"
                                 >
                                     Reject
-                                </button>
-                                <button 
+                                </Button>
+                                <Button 
                                     onClick={() => {
                                         setOrderToAssign(selectedOrder.rawId);
                                         setIsAssignModalOpen(true);
                                     }}
-                                    className="flex-[2] h-12 bg-[#D25026] text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#D25026]/20"
+                                    className="flex-[2] h-12 bg-[#D25026] text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#D25026]/20 cursor-pointer border-none"
                                 >
                                     Terima & Serahkan
-                                </button>
+                                </Button>
                             </>
                         )}
                         {/* Status update flow removed from Admin */}
@@ -312,13 +515,14 @@ export function MonitoringPesananMobile() {
                             </select>
                         </div>
                         <div className="flex justify-end gap-2 mt-2">
-                            <button
+                            <Button
+                                variant="ghost"
                                 onClick={() => setIsAssignModalOpen(false)}
-                                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-xs"
+                                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-xs cursor-pointer"
                             >
                                 Batal
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={async () => {
                                     if (!selectedDesignerId || !orderToAssign) {
                                         alert("Pilih desainer terlebih dahulu");
@@ -329,10 +533,10 @@ export function MonitoringPesananMobile() {
                                     setSelectedDesignerId("");
                                 }}
                                 disabled={!selectedDesignerId}
-                                className="px-4 py-2 bg-[#D25026] text-white font-bold rounded-lg text-xs disabled:opacity-50"
+                                className="px-4 py-2 bg-[#D25026] text-white font-bold rounded-lg text-xs disabled:opacity-50 cursor-pointer"
                             >
                                 Konfirmasi
-                            </button>
+                            </Button>
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -379,6 +583,71 @@ export function MonitoringPesananMobile() {
                 </div>
             </div>
 
+            {/* Search & Sort Controls Mobile */}
+            <div className="px-4 space-y-3 mb-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                        type="text"
+                        placeholder="Cari ID Pesanan, Customer, Produk..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 pr-4 py-2.5 bg-white border-slate-200 rounded-xl w-full text-xs font-medium focus:ring-1 focus:ring-[#D25026]"
+                    />
+                </div>
+                
+                <div ref={sortDropdownRef} className="flex items-center gap-2 bg-white px-4 py-3 rounded-xl border border-slate-200/80 justify-between relative">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Urutkan:</span>
+                    <div className="relative flex-1 text-right">
+                        <button
+                            onClick={() => setShowSortDropdown(!showSortDropdown)}
+                            className="inline-flex items-center gap-2 text-slate-700 text-[10px] font-black uppercase tracking-widest italic cursor-pointer justify-end w-full"
+                        >
+                            <span>
+                                {sortBy === "newest" && "Terbaru (Tanggal)"}
+                                {sortBy === "oldest" && "Terlama (Tanggal)"}
+                                {sortBy === "name-asc" && "Customer A-Z"}
+                                {sortBy === "name-desc" && "Customer Z-A"}
+                                {sortBy === "price-highest" && "Harga Tertinggi"}
+                                {sortBy === "price-lowest" && "Harga Terendah"}
+                                {sortBy === "qty-highest" && "Jumlah Terbanyak"}
+                                {sortBy === "qty-lowest" && "Jumlah Tersedikit"}
+                            </span>
+                            <ChevronDown className={cn("w-3 h-3 text-slate-400 transition-transform duration-200", showSortDropdown && "rotate-180")} />
+                        </button>
+
+                        {showSortDropdown && (
+                            <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-150 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-left">
+                                {[
+                                    { val: "newest", label: "Terbaru (Tanggal)" },
+                                    { val: "oldest", label: "Terlama (Tanggal)" },
+                                    { val: "name-asc", label: "Customer A-Z" },
+                                    { val: "name-desc", label: "Customer Z-A" },
+                                    { val: "price-highest", label: "Harga Tertinggi" },
+                                    { val: "price-lowest", label: "Harga Terendah" },
+                                    { val: "qty-highest", label: "Jumlah Terbanyak" },
+                                    { val: "qty-lowest", label: "Jumlah Tersedikit" }
+                                ].map((opt) => (
+                                    <button
+                                        key={opt.val}
+                                        onClick={() => {
+                                            setSortBy(opt.val);
+                                            setShowSortDropdown(false);
+                                        }}
+                                        className={cn(
+                                            "w-full text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-widest italic transition-colors hover:bg-[#FFF0EB]/50 hover:text-[#D25026] cursor-pointer border-none",
+                                            sortBy === opt.val ? "bg-[#FFF0EB]/30 text-[#D25026] font-bold" : "text-slate-600"
+                                        )}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* Order Cards */}
             <div className="px-4 space-y-3 mt-2">
                 {loading ? (
@@ -386,23 +655,28 @@ export function MonitoringPesananMobile() {
                         <Loader2 className="w-8 h-8 animate-spin text-[#D25026]" />
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Memuat Pesanan...</p>
                     </div>
-                ) : orders.length === 0 ? (
+                ) : filteredAndSortedOrders.length === 0 ? (
                     <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 text-center space-y-3">
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
                             <ShoppingBag className="text-slate-200" size={32} />
                         </div>
-                        <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada pesanan masuk</p>
+                        <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Pesanan tidak ditemukan</p>
                     </div>
                 ) : (
-                    orders.map((order) => (
+                    paginatedOrders.map((order) => (
                         <div 
                             key={order.rawId}
                             onClick={() => setSelectedOrder(order)}
-                            className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm active:scale-[0.98] transition-all flex items-center justify-between group"
+                            className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm active:scale-[0.98] transition-all flex items-center justify-between group cursor-pointer"
                         >
                             <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-2">
                                     <span className="text-[9px] font-black text-slate-300 font-mono tracking-tighter">{order.id}</span>
+                                    {order.queueNumber && (
+                                        <span className="bg-[#D25026]/10 text-[#D25026] px-1.5 py-0.5 rounded text-[7px] font-black uppercase italic border border-[#D25026]/20">
+                                            Antrean: {order.queueNumber}
+                                        </span>
+                                    )}
                                     <span className={cn("px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border", getStatusStyle(order.status))}>
                                         {order.status}
                                     </span>
@@ -423,6 +697,63 @@ export function MonitoringPesananMobile() {
                     ))
                 )}
             </div>
+
+            {/* Pagination Controls Mobile */}
+            {totalPages > 1 && (
+                <div className="mt-6 px-4 flex justify-center pb-6">
+                    <Pagination>
+                        <PaginationContent className="gap-1">
+                            <PaginationItem>
+                                <PaginationPrevious
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                                    }}
+                                    className={cn(
+                                        "h-8 w-8 p-0 cursor-pointer hover:bg-slate-100",
+                                        currentPage === 1 && "pointer-events-none opacity-40"
+                                    )}
+                                />
+                            </PaginationItem>
+
+                            {getPageNumbers().map((page, index) => (
+                                <PaginationItem key={index}>
+                                    {page === "ellipsis" ? (
+                                        <PaginationEllipsis className="h-8 w-8" />
+                                    ) : (
+                                        <PaginationLink
+                                            href="#"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setCurrentPage(page as number);
+                                            }}
+                                            isActive={currentPage === page}
+                                            className="h-8 w-8 p-0 cursor-pointer font-bold font-mono text-xs"
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    )}
+                                </PaginationItem>
+                            ))}
+
+                            <PaginationItem>
+                                <PaginationNext
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                                    }}
+                                    className={cn(
+                                        "h-8 w-8 p-0 cursor-pointer hover:bg-slate-100",
+                                        currentPage === totalPages && "pointer-events-none opacity-40"
+                                    )}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
+                </div>
+            )}
         </div>
     );
 }

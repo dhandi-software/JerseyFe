@@ -11,6 +11,8 @@ import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import React from "react";
+import { chatService } from "~/services/chatService";
+import { orderService } from "~/services/orderService";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -49,6 +51,43 @@ export function AppSidebar() {
   const { user, logout } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
   const active = pathToKey(location.pathname) ?? "dashboard";
+
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [pendingCount, setPendingCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchUnread = async () => {
+      if (!user) return;
+      try {
+        const data = await chatService.getUnreadCount(user.id);
+        setUnreadCount(data.count || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread chat count:", error);
+      }
+    };
+    const fetchPending = async () => {
+      if (!user) return;
+      try {
+        const data = await orderService.getDesignerOrders(user.id);
+        if (Array.isArray(data)) {
+          const count = data.filter((order: any) => {
+            const status = (order.status || "").toUpperCase();
+            return status === "DESAIN";
+          }).length;
+          setPendingCount(count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending count:", error);
+      }
+    };
+    fetchUnread();
+    fetchPending();
+    const interval = setInterval(() => {
+        fetchUnread();
+        fetchPending();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleNavigate = React.useCallback((key: MenuKey) => {
     const item = menuItems.find((item) => item.key === key);
@@ -113,6 +152,16 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "dashboard" && pendingCount > 0 && (
+                        <div className="w-8 h-8 rounded-full border-2 border-amber-500 bg-white flex items-center justify-center shrink-0 ml-auto shadow-sm">
+                            <span className="text-neutral-800 text-sm font-bold leading-none">{pendingCount}</span>
+                        </div>
+                      )}
+                      {item.key === "chat" && unreadCount > 0 && (
+                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 ml-2">
+                          {unreadCount}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -144,9 +193,9 @@ export default function DesignerLayout() {
   const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
-      <RoleGuard allowedRoles={["desain"]}>
+      <RoleGuard allowedRoles={["desain", "admin"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-slate-50 font-geist">
+          <div className="flex w-full h-screen bg-slate-50 font-geist">
             <AppSidebar />
             <main className={cn(
               "flex-1 w-full h-full overflow-y-auto"

@@ -102,8 +102,8 @@ export const adminApi = {
      * Get dashboard stats
      * GET /admin/dashboard-stats
      */
-     getDashboardStats: async (): Promise<ApiResponse<any>> => {
-        const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats");
+     getDashboardStats: async (params?: { year?: number; month?: number }): Promise<ApiResponse<any>> => {
+        const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats", { params });
         return response.data;
     },
 
@@ -135,8 +135,9 @@ export const adminApi = {
         const response = await client.put<ApiResponse<any>>(`/bahan-baju/${id}`, data);
         return response.data;
     },
-    deleteBahanBaju: async (id: number): Promise<ApiResponse<any>> => {
-        const response = await client.delete<ApiResponse<any>>(`/bahan-baju/${id}`);
+    deleteBahanBaju: async (id: number, actor?: string): Promise<ApiResponse<any>> => {
+        const url = actor ? `/bahan-baju/${id}?actor=${encodeURIComponent(actor)}` : `/bahan-baju/${id}`;
+        const response = await client.delete<ApiResponse<any>>(url);
         return response.data;
     }
 };

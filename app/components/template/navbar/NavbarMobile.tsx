@@ -9,6 +9,7 @@ export function NavbarMobile() {
     const inactiveStyle = "text-neutral-500 whitespace-nowrap hover:text-black transition-colors";
 
     const links = [
+        { href: "/", label: "Home" },
         { href: "/category", label: "Koleksi Jersey" },
         { href: "/about", label: "Tentang Kami" },
         { href: "/visi-misi", label: "Visi & Misi" },

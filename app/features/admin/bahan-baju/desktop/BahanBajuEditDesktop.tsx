@@ -136,46 +136,46 @@ export function BahanBajuEditDesktop() {
                     <span className="font-bold text-sm tracking-tight uppercase">Kembali</span>
                 </Button>
 
-                <div className="bg-white p-16 rounded-[4rem] border border-slate-100 shadow-2xl shadow-slate-200/50">
-                    <div className="mb-14">
-                        <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-orange-50 text-orange-600 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+                <div className="bg-white p-10 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/40">
+                    <div className="mb-8">
+                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-[9px] font-black uppercase tracking-[0.2em] mb-3">
                             Inventory Management / Update
                         </div>
-                        <h1 className="text-6xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Edit Bahan Baku</h1>
-                        <p className="text-base font-bold text-slate-400 uppercase tracking-widest mt-4 italic leading-relaxed">Perbarui informasi spesifikasi atau sesuaikan stok fisik di gudang.</p>
+                        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Edit Bahan Baku</h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 italic leading-relaxed">Perbarui informasi spesifikasi atau sesuaikan stok fisik di gudang.</p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-12">
-                        <div className="grid grid-cols-12 gap-16">
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="grid grid-cols-12 gap-8">
                             {/* Image Upload Area */}
-                            <div className="col-span-4 space-y-6">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1 flex items-center gap-3">
-                                    <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <div className="col-span-4 space-y-4">
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
                                     Katalog Visual
                                 </label>
-                                <div className="relative group w-full aspect-square rounded-[3.5rem] border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-white hover:border-orange-400 hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-700 flex flex-col items-center justify-center overflow-hidden cursor-pointer">
+                                <div className="relative group w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-white hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden cursor-pointer">
                                     {imagePreview ? (
                                         <>
-                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center backdrop-blur-md">
+                                            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover transition-transform duration-550 group-hover:scale-105" />
+                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
                                                 <Button 
                                                     type="button"
                                                     variant="destructive"
                                                     onClick={(e) => { e.stopPropagation(); handleRemoveImage(); }}
-                                                    className="rounded-2xl font-black uppercase tracking-widest text-xs px-10 h-14 shadow-2xl"
+                                                    className="rounded-xl font-bold uppercase tracking-widest text-[10px] px-6 h-10 shadow-lg"
                                                 >
                                                     Ganti Gambar
                                                 </Button>
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center p-12 text-center space-y-6">
-                                            <div className="w-24 h-24 rounded-[2rem] bg-white shadow-xl flex items-center justify-center text-slate-300 group-hover:text-orange-500 group-hover:rotate-6 group-hover:scale-110 transition-all duration-700">
-                                                <ImagePlus className="w-10 h-10" />
+                                        <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+                                            <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center text-slate-300 group-hover:text-orange-500 group-hover:scale-105 transition-all duration-300">
+                                                <ImagePlus className="w-6 h-6" />
                                             </div>
-                                            <div className="space-y-2">
-                                                <span className="block text-sm font-black text-slate-900 uppercase tracking-tighter">Upload Katalog</span>
-                                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Max file size: 5MB</span>
+                                            <div className="space-y-1">
+                                                <span className="block text-xs font-black text-slate-900 uppercase">Upload Katalog</span>
+                                                <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest">Max file size: 5MB</span>
                                             </div>
                                         </div>
                                     )}
@@ -189,22 +189,22 @@ export function BahanBajuEditDesktop() {
                             </div>
 
                             {/* Text Inputs Area */}
-                            <div className="col-span-8 space-y-10">
-                                <div className="grid grid-cols-3 gap-10">
-                                    <div className="space-y-4">
+                            <div className="col-span-8 space-y-6">
+                                <div className="grid grid-cols-3 gap-6">
+                                    <div className="space-y-2">
                                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1">Nama Bahan</label>
                                         <input 
                                             required
                                             type="text" 
                                             value={nama}
                                             onChange={(e) => setNama(e.target.value)}
-                                            className="w-full h-20 px-8 bg-slate-50 border border-slate-200 rounded-3xl text-lg font-bold text-slate-900 focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
+                                            className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
                                         />
                                     </div>
-                                    <div className="space-y-4">
+                                    <div className="space-y-2">
                                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1">Harga Satuan (Rp)</label>
                                         <div className="relative">
-                                            <span className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-300 font-black italic">Rp</span>
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black italic">Rp</span>
                                             <input 
                                                 required
                                                 type="text" 
@@ -213,11 +213,11 @@ export function BahanBajuEditDesktop() {
                                                     const val = e.target.value.replace(/[^0-9]/g, "");
                                                     setHarga(val === "" ? "" : Number(val));
                                                 }}
-                                                className="w-full h-20 pl-20 pr-8 bg-slate-50 border border-slate-200 rounded-3xl text-lg font-bold text-slate-900 focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
+                                                className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
                                             />
                                         </div>
                                     </div>
-                                    <div className="space-y-4">
+                                    <div className="space-y-2">
                                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1">Stok Saat Ini</label>
                                         <input 
                                             required
@@ -225,55 +225,55 @@ export function BahanBajuEditDesktop() {
                                             min="0"
                                             value={stok}
                                             onChange={(e) => setStok(e.target.value === "" ? "" : Number(e.target.value))}
-                                            className="w-full h-20 px-8 bg-slate-50 border border-slate-200 rounded-3xl text-lg font-bold text-slate-900 focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
+                                            className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
                                         />
                                     </div>
                                 </div>
                                 
-                                <div className="space-y-4">
+                                <div className="space-y-2">
                                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1">Karakteristik Bahan</label>
                                     <textarea 
                                         value={deskripsi}
                                         onChange={(e) => setDeskripsi(e.target.value)}
-                                        className="w-full min-h-[180px] p-8 bg-slate-50 border border-slate-200 rounded-[2.5rem] text-base font-medium text-slate-600 resize-none focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all leading-relaxed shadow-sm"
+                                        className="w-full min-h-[120px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all leading-relaxed shadow-sm"
                                     />
                                 </div>
 
-                                <div className="space-y-4">
-                                    <label className="text-xs font-black text-orange-600 uppercase tracking-widest italic ml-1">Log Catatan Perubahan (Wajib)</label>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-orange-655 uppercase tracking-widest italic ml-1">Log Catatan Perubahan (Wajib)</label>
                                     <input 
                                         required
                                         type="text" 
                                         value={keteranganUbah}
                                         onChange={(e) => setKeteranganUbah(e.target.value)}
                                         placeholder="Alasan perubahan (contoh: Penambahan stok dari supplier baru, revisi deskripsi)"
-                                        className="w-full h-20 px-8 bg-orange-50 border border-orange-100 rounded-3xl text-base font-bold text-orange-700 focus:outline-none focus:ring-8 focus:ring-orange-500/5 focus:border-orange-400 focus:bg-white transition-all placeholder:text-orange-200 shadow-sm"
+                                        className="w-full h-11 px-4 bg-orange-50 border border-orange-100 rounded-xl text-sm font-semibold text-orange-850 focus:outline-none focus:ring-4 focus:ring-orange-500/5 focus:border-orange-400 focus:bg-white transition-all placeholder:text-orange-200 shadow-sm"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-6 pt-12 border-t border-slate-100">
+                        <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
                             <Button 
                                 type="button"
                                 variant="outline"
                                 onClick={() => navigate("/admin/bahan-baju")}
-                                className="h-20 px-12 border-slate-200 hover:bg-slate-50 text-slate-500 rounded-3xl font-black uppercase tracking-widest text-xs transition-all flex items-center group"
+                                className="h-11 px-6 border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all flex items-center group"
                             >
-                                <X className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform" /> 
-                                Cancel
+                                <X className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" /> 
+                                Batal
                             </Button>
                             <Button 
                                 type="submit"
                                 disabled={isSubmitting || !keteranganUbah}
-                                className="h-20 px-16 bg-[#0F172A] hover:bg-slate-800 text-white rounded-3xl font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-slate-900/20 transition-all active:scale-95 flex items-center justify-center group"
+                                className="h-11 px-8 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-md transition-all active:scale-95 flex items-center justify-center group"
                             >
                                 {isSubmitting ? (
-                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
                                     <>
-                                        <Save className="w-5 h-5 mr-4 group-hover:scale-125 transition-transform" /> 
-                                        Apply Updates
+                                        <Save className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> 
+                                        Simpan Perubahan
                                     </>
                                 )}
                             </Button>

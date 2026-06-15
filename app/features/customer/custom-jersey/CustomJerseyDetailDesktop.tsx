@@ -2,16 +2,20 @@ import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import { adminApi } from "~/api/admin";
 import { ArrowLeft, Loader2, ImageIcon, Package, Calendar, ChevronLeft, ChevronRight, CreditCard, ShoppingBag, Info, Ruler, Heart } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 
 export function CustomJerseyDetailDesktop() {
     const navigate = useNavigate();
     const { id } = useParams();
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    const isPublicView = location.pathname.startsWith("/product/");
+    const basePath = isPublicView ? "/product" : "/customer/custom-jersey/detail";
 
     useEffect(() => {
         const fetchAllBahan = async () => {
@@ -34,18 +38,18 @@ export function CustomJerseyDetailDesktop() {
     const handleNext = () => {
         const nextIdx = (currentIndex + 1) % bahanList.length;
         setCurrentIndex(nextIdx);
-        navigate(`/customer/custom-jersey/detail/${bahanList[nextIdx].id}`, { replace: true });
+        navigate(`${basePath}/${bahanList[nextIdx].id}`, { replace: true });
     };
 
     const handlePrev = () => {
         const prevIdx = (currentIndex - 1 + bahanList.length) % bahanList.length;
         setCurrentIndex(prevIdx);
-        navigate(`/customer/custom-jersey/detail/${bahanList[prevIdx].id}`, { replace: true });
+        navigate(`${basePath}/${bahanList[prevIdx].id}`, { replace: true });
     };
 
     const selectBahan = (idx: number) => {
         setCurrentIndex(idx);
-        navigate(`/customer/custom-jersey/detail/${bahanList[idx].id}`, { replace: true });
+        navigate(`${basePath}/${bahanList[idx].id}`, { replace: true });
     };
 
     const handleCustomize = () => {
@@ -80,7 +84,7 @@ export function CustomJerseyDetailDesktop() {
                 <header className="flex items-center justify-between mb-16">
                     <Button 
                         variant="ghost" 
-                        onClick={() => navigate("/customer/custom-jersey")}
+                        onClick={() => navigate(isPublicView ? "/" : "/customer/custom-jersey")}
                         className="text-slate-500 hover:text-slate-900 rounded-2xl px-6 bg-slate-50 border border-slate-100 group transition-all h-14"
                     >
                         <ArrowLeft className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform" />
