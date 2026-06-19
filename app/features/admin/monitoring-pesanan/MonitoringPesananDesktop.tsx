@@ -94,6 +94,9 @@ export function MonitoringPesananDesktop() {
                     mockupUrl: o.mockupUrl,
                     designStatus: o.designStatus,
                     designFeedback: o.designFeedback,
+                    layoutUrl: o.layoutUrl,
+                    layoutStatus: o.layoutStatus,
+                    layoutFeedback: o.layoutFeedback,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
                         day: 'numeric', 
@@ -422,19 +425,19 @@ export function MonitoringPesananDesktop() {
                                     </h3>
                                     <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
                                         {selectedOrder.designUrl ? (
-                                            <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                                            <div className="w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
                                                 {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
-                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
+                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
                                                         <FileText className="w-12 h-12 text-red-500 mb-3" />
-                                                        <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                        <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
                                                             Buka Referensi (PDF)
                                                         </a>
                                                     </div>
                                                 ) : (
                                                     <img 
-                                                        src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
+                                                        src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} 
                                                         alt="Design Reference" 
-                                                        className="w-full h-auto max-h-[400px] object-contain mx-auto" 
+                                                        className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-xl" 
                                                     />
                                                 )}
                                             </div>
@@ -461,24 +464,22 @@ export function MonitoringPesananDesktop() {
                                         Verifikasi Pembayaran
                                     </h3>
                                     {selectedOrder.paymentProofUrl ? (
-                                        <div className="w-full bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
-                                            <div className="w-full bg-slate-100 rounded-[1.5rem] overflow-hidden border border-slate-200">
+                                            <div className="w-full bg-slate-50 rounded-[1.5rem] overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
                                                 {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
-                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
+                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
                                                         <FileText className="w-12 h-12 text-red-500 mb-3" />
-                                                        <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                        <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
                                                             Buka Bukti (PDF)
                                                         </a>
                                                     </div>
                                                 ) : (
                                                     <img 
-                                                        src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} 
+                                                        src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} 
                                                         alt="Payment Proof" 
-                                                        className="w-full h-auto max-h-[500px] object-contain mx-auto" 
+                                                        className="w-full h-auto max-h-[500px] object-contain mx-auto rounded-xl" 
                                                     />
                                                 )}
                                             </div>
-                                        </div>
                                     ) : (
                                         <div className="w-full h-32 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-100">
                                             <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada bukti pembayaran</p>
@@ -552,6 +553,77 @@ export function MonitoringPesananDesktop() {
                                         ) : (
                                             <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-100">
                                                 <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Desainer belum mengupload mockup desain.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mockup Layout Pola Cetak (Admin Monitor) */}
+                            {(selectedOrder.status === "LAYOUT" || selectedOrder.layoutUrl) && (
+                                <div className="space-y-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                            <ImageIcon className="text-[#D25026]" size={16} />
+                                        </div>
+                                        Progress Layout Pola Cetak (Oleh: {selectedOrder.designer})
+                                    </h3>
+                                    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
+                                        {selectedOrder.layoutUrl ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="space-y-4">
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Status Persetujuan Layout:</span>
+                                                        {selectedOrder.layoutStatus === "SENT" && (
+                                                            <span className="bg-amber-50 text-amber-700 border-amber-200 border px-3 py-1 rounded-lg text-xs font-black italic">
+                                                                Menunggu Persetujuan Customer
+                                                            </span>
+                                                        )}
+                                                        {selectedOrder.layoutStatus === "APPROVED" && (
+                                                            <span className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-3 py-1 rounded-lg text-xs font-black italic">
+                                                                Disetujui
+                                                            </span>
+                                                        )}
+                                                        {selectedOrder.layoutStatus === "REVISI" && (
+                                                            <span className="bg-red-50 text-red-700 border-red-200 border px-3 py-1 rounded-lg text-xs font-black italic">
+                                                                Revisi Diminta
+                                                            </span>
+                                                        )}
+                                                        {selectedOrder.layoutStatus === "PENDING" && (
+                                                            <span className="bg-slate-50 text-slate-700 border-slate-200 border px-3 py-1 rounded-lg text-xs font-black italic">
+                                                                Belum Diupload
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {selectedOrder.layoutStatus === "REVISI" && selectedOrder.layoutFeedback && (
+                                                        <div className="bg-red-50/50 p-6 rounded-2xl border border-red-100 space-y-1">
+                                                            <p className="text-[10px] font-black text-red-600 uppercase tracking-widest italic">Feedback Layout Customer:</p>
+                                                            <p className="text-sm text-red-700 font-bold leading-relaxed italic">"{selectedOrder.layoutFeedback}"</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 p-2 flex items-center justify-center">
+                                                    {selectedOrder.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                                        <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
+                                                            <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                            <a href={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline flex items-center gap-2">
+                                                                <Eye size={14} /> Buka Layout (PDF)
+                                                            </a>
+                                                        </div>
+                                                    ) : (
+                                                        <img 
+                                                            src={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
+                                                            alt="Mockup Layout" 
+                                                            className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-100">
+                                                <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Desainer belum mengupload layout pola cetak.</p>
                                             </div>
                                         )}
                                     </div>

@@ -471,6 +471,74 @@ export function TrackingPesananDesktop() {
                         </div>
                     )}
 
+                    {/* Layout Pola Cetak Section */}
+                    {order.layoutUrl && (
+                        <div className="bg-slate-900 text-white rounded-[3rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden mt-8">
+                            <div className="relative z-10 flex flex-col lg:flex-row gap-10">
+                                <div className="flex-1 space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-lg font-black uppercase tracking-widest text-[#D25026] italic">
+                                            Layout Pola Cetak Jersey Anda
+                                        </h3>
+                                    </div>
+                                    <p className="text-sm text-slate-300 font-medium italic leading-relaxed">
+                                        Layout pola cetak jersey Anda.
+                                    </p>
+                                    
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Status Layout:</span>
+                                        {order.layoutStatus === "SENT" && (
+                                            <span className="bg-amber-500 text-slate-955 px-3 py-1 rounded-xl text-xs font-black italic">
+                                                Menunggu Persetujuan
+                                            </span>
+                                        )}
+                                        {order.layoutStatus === "APPROVED" && (
+                                            <span className="bg-emerald-500 text-slate-955 px-3 py-1 rounded-xl text-xs font-black italic">
+                                                Disetujui
+                                            </span>
+                                        )}
+                                        {order.layoutStatus === "REVISI" && (
+                                            <span className="bg-red-500 text-white px-3 py-1 rounded-xl text-xs font-black italic">
+                                                Revisi Diajukan
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="w-full lg:w-96 space-y-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-2">Preview Layout:</p>
+                                    <div className="bg-white rounded-3xl overflow-hidden border border-slate-800 shadow-xl flex items-center justify-center p-2">
+                                        {order.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                            <div className="flex flex-col items-center justify-center p-8 bg-slate-50 gap-4 w-full rounded-2xl">
+                                                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-sm">
+                                                    <FileText size={32} />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-xs font-black text-slate-900 uppercase italic">Dokumen PDF</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Mockup Layout</p>
+                                                </div>
+                                                <a 
+                                                    href={order.layoutUrl.startsWith('http') ? order.layoutUrl : `${UPLOADS_URL}${order.layoutUrl.startsWith('/') ? '' : '/'}${order.layoutUrl}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="px-6 py-2.5 bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 italic shadow-md shadow-red-500/20"
+                                                >
+                                                    <Eye size={12} /> Buka PDF
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <img 
+                                                src={order.layoutUrl.startsWith('http') ? order.layoutUrl : `${UPLOADS_URL}${order.layoutUrl.startsWith('/') ? '' : '/'}${order.layoutUrl}`} 
+                                                alt="Mockup Layout" 
+                                                className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-2xl" 
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                         {/* Order Info Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/20">

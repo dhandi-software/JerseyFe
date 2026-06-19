@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Clock, Eye, CheckCircle, Package, Truck, Image as ImageIcon, CreditCard, ChevronLeft, MessageCircle, FileText, User } from "lucide-react";
+import { Clock, Eye, CheckCircle, Package, Truck, Image as ImageIcon, CreditCard, ChevronLeft, MessageCircle, FileText, User, UploadCloud } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -20,6 +20,7 @@ export function DashboardDesainDesktop() {
     const [uploading, setUploading] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [windowDragging, setWindowDragging] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -44,6 +45,9 @@ export function DashboardDesainDesktop() {
                     mockupUrl: o.mockupUrl,
                     designStatus: o.designStatus,
                     designFeedback: o.designFeedback,
+                    layoutUrl: o.layoutUrl,
+                    layoutStatus: o.layoutStatus,
+                    layoutFeedback: o.layoutFeedback,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
                         day: 'numeric', 
@@ -213,6 +217,123 @@ export function DashboardDesainDesktop() {
         }
     };
 
+    const handleCancelLayout = async () => {
+        if (!selectedOrder) return;
+        requestConfirmation(
+            "Batalkan Kirim Layout",
+            "Apakah Anda yakin ingin membatalkan / menarik kembali layout ini agar bisa diedit kembali?",
+            async () => {
+                try {
+                    await orderService.cancelLayout(selectedOrder.rawId);
+                    setOrders(prev => prev.map(o => o.rawId === selectedOrder.rawId ? { 
+                        ...o, 
+                        layoutStatus: "PENDING",
+                        layoutUrl: null
+                    } : o));
+                    setSelectedOrder((prev: any) => ({
+                        ...prev,
+                        layoutStatus: "PENDING",
+                        layoutUrl: null
+                    }));
+                    setToast({ title: "Pengiriman layout berhasil dibatalkan", variant: "success" });
+                } catch (error) {
+                    console.error("Gagal membatalkan layout:", error);
+                    setToast({ title: "Gagal membatalkan layout", variant: "destructive" });
+                } finally {
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
+            }
+        );
+    };
+
+    const handleUploadLayout = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {
+        let file: File | undefined;
+        if (fileOrEvent instanceof File) {
+            file = fileOrEvent;
+        } else if (fileOrEvent && 'target' in fileOrEvent) {
+            file = fileOrEvent.target.files?.[0];
+        }
+        if (!file) return;
+        setUploading(true);
+        try {
+            const updated = await orderService.uploadLayout(selectedOrder.rawId, file);
+            setOrders(prev => prev.map(o => o.rawId === selectedOrder.rawId ? { 
+                ...o, 
+                layoutUrl: updated.layoutUrl,
+                layoutStatus: updated.layoutStatus,
+                layoutFeedback: null 
+            } : o));
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                layoutUrl: updated.layoutUrl,
+                layoutStatus: updated.layoutStatus,
+                layoutFeedback: null
+            }));
+            setToast({ title: "Layout berhasil diunggah dan dikirim!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal mengupload layout:", error);
+            setToast({ title: "Gagal mengupload layout", variant: "destructive" });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const canUpload = selectedOrder && selectedOrder.isWorking && selectedOrder.status === "DESAIN" && 
+        (selectedOrder.designStatus === "PENDING" || selectedOrder.designStatus === "REVISI");
+
+    const canUploadLayout = selectedOrder && selectedOrder.status === "LAYOUT" &&
+        (selectedOrder.layoutStatus === "PENDING" || selectedOrder.layoutStatus === "REVISI");
+
+    useEffect(() => {
+        if (!canUpload && !canUploadLayout) {
+            setWindowDragging(false);
+            return;
+        }
+
+        const handleDragOver = (e: DragEvent) => {
+            if (e.dataTransfer?.types.includes("Files")) {
+                e.preventDefault();
+                setWindowDragging(true);
+            }
+        };
+
+        const handleDragLeave = (e: DragEvent) => {
+            e.preventDefault();
+            if (
+                e.relatedTarget === null ||
+                e.clientX <= 0 ||
+                e.clientY <= 0 ||
+                e.clientX >= window.innerWidth ||
+                e.clientY >= window.innerHeight
+            ) {
+                setWindowDragging(false);
+            }
+        };
+
+        const handleDrop = (e: DragEvent) => {
+            e.preventDefault();
+            setWindowDragging(false);
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) {
+                if (canUpload) {
+                    handleUploadMockup(files[0]);
+                } else if (canUploadLayout) {
+                    handleUploadLayout(files[0]);
+                }
+            }
+        };
+
+        window.addEventListener("dragover", handleDragOver);
+        window.addEventListener("dragleave", handleDragLeave);
+        window.addEventListener("drop", handleDrop);
+
+        return () => {
+            window.removeEventListener("dragover", handleDragOver);
+            window.removeEventListener("dragleave", handleDragLeave);
+            window.removeEventListener("drop", handleDrop);
+        };
+    }, [canUpload, canUploadLayout, selectedOrder?.rawId]);
+
     const getStatusStyle = (status: string) => {
         switch (status) {
             case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -249,6 +370,17 @@ export function DashboardDesainDesktop() {
                                             No. Antrean: {selectedOrder.queueNumber}
                                         </span>
                                     )}
+                                    {selectedOrder.status === "DESAIN" && (
+                                        selectedOrder.isWorking ? (
+                                            <span className="bg-purple-100 text-purple-800 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider animate-pulse border border-purple-200">
+                                                Sedang Dikerjakan
+                                            </span>
+                                        ) : (
+                                            <span className="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border border-slate-200">
+                                                Belum Mulai Kerja
+                                            </span>
+                                        )
+                                    )}
                                 </div>
                                 <p className="text-sm font-bold text-slate-900 font-mono tracking-tighter bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
                                     {selectedOrder.id}
@@ -274,19 +406,19 @@ export function DashboardDesainDesktop() {
                                 </h3>
                                 <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
                                     {selectedOrder.designUrl ? (
-                                        <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200">
+                                        <div className="w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
                                             {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
-                                                <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
+                                                <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
                                                     <FileText className="w-12 h-12 text-red-500 mb-3" />
-                                                    <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                    <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
                                                         Buka Referensi (PDF)
                                                     </a>
                                                 </div>
                                             ) : (
                                                 <img 
-                                                    src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
+                                                    src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} 
                                                     alt="Design Reference" 
-                                                    className="w-full h-auto max-h-[400px] object-contain mx-auto" 
+                                                    className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-xl" 
                                                 />
                                             )}
                                         </div>
@@ -314,52 +446,89 @@ export function DashboardDesainDesktop() {
                                     {selectedOrder.mockupUrl ? (
                                         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
                                              <div className="space-y-4">
-                                                 <div 
-                                                     onDragOver={(e) => {
-                                                         if (selectedOrder.status === "DESAIN" && selectedOrder.designStatus === "REVISI") {
-                                                             e.preventDefault();
-                                                             setIsDragging(true);
-                                                         }
-                                                     }}
-                                                     onDragLeave={() => setIsDragging(false)}
-                                                     onDrop={(e) => {
-                                                         if (selectedOrder.status === "DESAIN" && selectedOrder.designStatus === "REVISI") {
-                                                             e.preventDefault();
-                                                             setIsDragging(false);
-                                                             const file = e.dataTransfer.files?.[0];
-                                                             if (file) handleUploadMockup(file);
-                                                         }
-                                                     }}
-                                                     className={cn(
-                                                         "relative w-full bg-slate-100 rounded-2xl overflow-hidden border transition-all",
-                                                         isDragging && selectedOrder.status === "DESAIN" && selectedOrder.designStatus === "REVISI"
-                                                             ? "border-[#D25026] ring-2 ring-[#D25026]/20"
-                                                             : "border-slate-200"
-                                                     )}
-                                                 >
-                                                     {/* Drag overlay for REVISI upload */}
-                                                     {isDragging && selectedOrder.status === "DESAIN" && selectedOrder.designStatus === "REVISI" && (
-                                                         <div className="absolute inset-0 bg-[#D25026]/90 backdrop-blur-sm flex flex-col items-center justify-center text-slate-900 p-4 z-10 transition-all">
-                                                             <ImageIcon className="w-12 h-12 mb-2 animate-bounce" />
-                                                             <p className="text-sm font-black uppercase tracking-widest text-center">Lepaskan File untuk Upload Mockup Baru</p>
+                                                 {selectedOrder.status === "DESAIN" && selectedOrder.designStatus === "REVISI" ? (
+                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                         {/* Kolom Kiri: Mockup Sebelumnya */}
+                                                         <div className="space-y-3">
+                                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Mockup Sebelumnya</p>
+                                                             <div className="relative w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
+                                                                 {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                     <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
+                                                                         <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                                         <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                                             Buka Mockup (PDF)
+                                                                         </a>
+                                                                     </div>
+                                                                 ) : (
+                                                                     <img 
+                                                                         src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} 
+                                                                         alt="Mockup Design" 
+                                                                         className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                                                     />
+                                                                 )}
+                                                             </div>
                                                          </div>
-                                                     )}
 
-                                                     {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
-                                                         <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center">
-                                                             <FileText className="w-12 h-12 text-red-500 mb-3" />
-                                                             <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
-                                                                 Buka Mockup (PDF)
-                                                             </a>
+                                                         {/* Kolom Kanan: Dropzone Baru */}
+                                                         <div className="space-y-3">
+                                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Upload Mockup Baru</p>
+                                                             <label 
+                                                                 onDragOver={(e) => {
+                                                                     e.preventDefault();
+                                                                     setIsDragging(true);
+                                                                 }}
+                                                                 onDragLeave={() => setIsDragging(false)}
+                                                                 onDrop={(e) => {
+                                                                     e.preventDefault();
+                                                                     setIsDragging(false);
+                                                                     const file = e.dataTransfer.files?.[0];
+                                                                     if (file) handleUploadMockup(file);
+                                                                 }}
+                                                                 className={cn(
+                                                                     "flex flex-col items-center justify-center p-8 h-[300px] rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center",
+                                                                     isDragging 
+                                                                         ? "border-[#D25026] bg-[#D25026]/5 scale-[1.01]" 
+                                                                         : "border-slate-200 bg-slate-50 hover:border-[#D25026] hover:bg-slate-100/50 shadow-sm"
+                                                                 )}
+                                                             >
+                                                                 <input 
+                                                                     type="file" 
+                                                                     accept="image/*,application/pdf"
+                                                                     onChange={handleUploadMockup}
+                                                                     disabled={uploading}
+                                                                     className="hidden"
+                                                                     style={{ display: "none" }}
+                                                                 />
+                                                                 <div className="pointer-events-none w-10 h-10 rounded-xl bg-[#D25026]/10 flex items-center justify-center text-[#D25026] mb-3">
+                                                                     <UploadCloud size={20} className="animate-pulse" />
+                                                                 </div>
+                                                                 <p className="pointer-events-none text-xs font-black uppercase tracking-widest text-slate-800">
+                                                                     {uploading ? "Mengunggah..." : "Klik atau Tarik File Baru ke Sini"}
+                                                                 </p>
+                                                                 <p className="pointer-events-none text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1.5">
+                                                                     PNG, JPG, JPEG, atau PDF (Maks. 10MB)
+                                                                 </p>
+                                                             </label>
                                                          </div>
-                                                     ) : (
-                                                         <img 
-                                                             src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl}`} 
-                                                             alt="Mockup Design" 
-                                                             className="w-full h-auto max-h-[400px] object-contain mx-auto" 
-                                                         />
-                                                     )}
-                                                 </div>
+                                                     </div>
+                                                 ) : (
+                                                     <div className="relative w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
+                                                         {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
+                                                             <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
+                                                                 <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                                 <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                                     Buka Mockup (PDF)
+                                                                 </a>
+                                                             </div>
+                                                         ) : (
+                                                             <img 
+                                                                 src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} 
+                                                                 alt="Mockup Design" 
+                                                                 className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-xl" 
+                                                             />
+                                                         )}
+                                                     </div>
+                                                 )}
 
                                                  {/* Action Buttons directly below the file mockup */}
                                                  {selectedOrder.status === "DESAIN" && selectedOrder.isWorking && (
@@ -372,25 +541,7 @@ export function DashboardDesainDesktop() {
                                                                  Batalkan Kirim Mockup
                                                              </button>
                                                          )}
-                                                         {selectedOrder.designStatus === "REVISI" && (
-                                                             <>
-                                                                 <input 
-                                                                     type="file" 
-                                                                     ref={fileInputRef} 
-                                                                     onChange={handleUploadMockup} 
-                                                                     className="hidden" 
-                                                                     accept="image/*,application/pdf"
-                                                                 />
-                                                                 <button 
-                                                                     onClick={() => fileInputRef.current?.click()}
-                                                                     className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-xl text-xs font-black uppercase tracking-widest italic transition-colors flex items-center gap-2 shadow-md shadow-amber-500/10"
-                                                                 >
-                                                                     <ImageIcon size={14} />
-                                                                     Upload Mockup Baru
-                                                                 </button>
-                                                                 {uploading && <p className="text-xs font-bold text-[#D25026] italic animate-pulse">Sedang mengupload...</p>}
-                                                             </>
-                                                         )}
+                                                         {uploading && <p className="text-xs font-bold text-[#D25026] italic animate-pulse">Sedang mengupload...</p>}
                                                      </div>
                                                  )}
 
@@ -438,7 +589,7 @@ export function DashboardDesainDesktop() {
                                                         "flex flex-col items-center justify-center p-12 rounded-[2rem] border-2 border-dashed transition-all cursor-pointer text-center",
                                                         isDragging 
                                                             ? "border-[#D25026] bg-[#D25026]/5 scale-[1.01]" 
-                                                            : "border-slate-200 bg-white hover:border-[#D25026] hover:bg-slate-50/50 shadow-sm ring-1 ring-black/5"
+                                                            : "border-slate-200 bg-slate-50 hover:border-[#D25026] hover:bg-slate-100/50 shadow-sm ring-1 ring-black/5"
                                                     )}
                                                 >
                                                     <input 
@@ -446,10 +597,11 @@ export function DashboardDesainDesktop() {
                                                         accept="image/*,application/pdf"
                                                         onChange={handleUploadMockup}
                                                         disabled={uploading}
-                                                        className="sr-only"
+                                                        className="hidden"
+                                                        style={{ display: "none" }}
                                                     />
                                                     <div className="pointer-events-none w-12 h-12 rounded-2xl bg-[#D25026]/10 flex items-center justify-center text-[#D25026] mb-3 group-hover:scale-110 transition-transform">
-                                                        <ImageIcon size={24} />
+                                                        <UploadCloud size={24} className="animate-pulse" />
                                                     </div>
                                                     <p className="pointer-events-none text-xs font-black uppercase tracking-widest text-slate-800">
                                                         {uploading ? "Mengunggah..." : "Klik atau Tarik File ke Sini untuk Upload Mockup"}
@@ -463,6 +615,191 @@ export function DashboardDesainDesktop() {
                                         ) : (
                                             <div className="w-full h-32 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-200">
                                                 <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada mockup diupload</p>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Mockup Layout Pola Cetak Section */}
+                            {(selectedOrder.status === "LAYOUT" || selectedOrder.layoutUrl) && (
+                                <div>
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-6 flex items-center gap-3 italic">
+                                        <ImageIcon className="text-[#D25026]" size={16} />
+                                        Mockup Layout Pola Cetak
+                                    </h3>
+                                    {selectedOrder.layoutUrl ? (
+                                        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5 space-y-6">
+                                             <div className="space-y-4">
+                                                 {selectedOrder.status === "LAYOUT" && selectedOrder.layoutStatus === "REVISI" ? (
+                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                         {/* Kolom Kiri: Layout Sebelumnya */}
+                                                         <div className="space-y-3">
+                                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Layout Sebelumnya</p>
+                                                             <div className="relative w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
+                                                                 {selectedOrder.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                     <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
+                                                                         <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                                         <a href={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                                             Buka Layout (PDF)
+                                                                         </a>
+                                                                     </div>
+                                                                 ) : (
+                                                                     <img 
+                                                                         src={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
+                                                                         alt="Mockup Layout" 
+                                                                         className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                                                     />
+                                                                 )}
+                                                             </div>
+                                                         </div>
+
+                                                         {/* Kolom Kanan: Dropzone Baru */}
+                                                         <div className="space-y-3">
+                                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Upload Layout Baru</p>
+                                                             <label 
+                                                                 onDragOver={(e) => {
+                                                                     e.preventDefault();
+                                                                     setIsDragging(true);
+                                                                 }}
+                                                                 onDragLeave={() => setIsDragging(false)}
+                                                                 onDrop={(e) => {
+                                                                     e.preventDefault();
+                                                                     setIsDragging(false);
+                                                                     const file = e.dataTransfer.files?.[0];
+                                                                     if (file) handleUploadLayout(file);
+                                                                 }}
+                                                                 className={cn(
+                                                                     "flex flex-col items-center justify-center p-8 h-[300px] rounded-2xl border-2 border-dashed transition-all cursor-pointer text-center",
+                                                                     isDragging 
+                                                                         ? "border-[#D25026] bg-[#D25026]/5 scale-[1.01]" 
+                                                                         : "border-slate-200 bg-slate-50 hover:border-[#D25026] hover:bg-slate-100/50 shadow-sm"
+                                                                 )}
+                                                             >
+                                                                 <input 
+                                                                     type="file" 
+                                                                     accept="image/*,application/pdf"
+                                                                     onChange={handleUploadLayout}
+                                                                     disabled={uploading}
+                                                                     className="hidden"
+                                                                     style={{ display: "none" }}
+                                                                 />
+                                                                 <div className="pointer-events-none w-10 h-10 rounded-xl bg-[#D25026]/10 flex items-center justify-center text-[#D25026] mb-3">
+                                                                     <UploadCloud size={20} className="animate-pulse" />
+                                                                 </div>
+                                                                 <p className="pointer-events-none text-xs font-black uppercase tracking-widest text-slate-800">
+                                                                     {uploading ? "Mengunggah..." : "Klik atau Tarik File Baru ke Sini"}
+                                                                 </p>
+                                                                 <p className="pointer-events-none text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1.5">
+                                                                     PNG, JPG, JPEG, atau PDF (Maks. 10MB)
+                                                                 </p>
+                                                             </label>
+                                                         </div>
+                                                     </div>
+                                                 ) : (
+                                                     <div className="relative w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
+                                                         {selectedOrder.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                                             <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
+                                                                 <FileText className="w-12 h-12 text-red-500 mb-3" />
+                                                                 <a href={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                                     Buka Layout (PDF)
+                                                                 </a>
+                                                             </div>
+                                                         ) : (
+                                                             <img 
+                                                                 src={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
+                                                                 alt="Mockup Layout" 
+                                                                 className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-xl" 
+                                                             />
+                                                         )}
+                                                     </div>
+                                                 )}
+
+                                                 {/* Action Buttons directly below the file layout */}
+                                                 {selectedOrder.status === "LAYOUT" && (
+                                                     <div className="flex flex-wrap items-center gap-3">
+                                                         {selectedOrder.layoutStatus === "SENT" && (
+                                                             <button 
+                                                                 onClick={handleCancelLayout}
+                                                                 className="px-6 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-xs font-black uppercase tracking-widest italic border border-red-200 transition-colors"
+                                                             >
+                                                                 Batalkan Kirim Layout
+                                                             </button>
+                                                         )}
+                                                         {uploading && <p className="text-xs font-bold text-[#D25026] italic animate-pulse">Sedang mengupload...</p>}
+                                                     </div>
+                                                 )}
+
+                                                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-50">
+                                                     <div className="flex items-center gap-3">
+                                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic pr-1">Status Persetujuan Layout:</span>
+                                                         {selectedOrder.layoutStatus === "SENT" && (
+                                                             <span className="bg-amber-50 text-amber-700 border-amber-200 border px-3 py-1 rounded-lg text-xs font-black italic pr-1">
+                                                                 Menunggu Persetujuan Customer
+                                                             </span>
+                                                         )}
+                                                         {selectedOrder.layoutStatus === "APPROVED" && (
+                                                             <span className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-3 py-1 rounded-lg text-xs font-black italic pr-1">
+                                                                 Disetujui
+                                                             </span>
+                                                         )}
+                                                         {selectedOrder.layoutStatus === "REVISI" && (
+                                                             <span className="bg-red-50 text-red-700 border-red-200 border px-3 py-1 rounded-lg text-xs font-black italic pr-1">
+                                                                 Revisi Diminta
+                                                             </span>
+                                                         )}
+                                                     </div>
+                                                 </div>
+                                                 {selectedOrder.layoutStatus === "REVISI" && selectedOrder.layoutFeedback && (
+                                                     <div className="bg-red-50/50 p-4 rounded-xl border border-red-100 space-y-1">
+                                                         <p className="text-[9px] font-black text-red-600 uppercase tracking-widest italic">Catatan Revisi Layout Customer:</p>
+                                                         <p className="text-xs text-red-700 font-bold leading-relaxed italic pr-1">{selectedOrder.layoutFeedback}</p>
+                                                     </div>
+                                                 )}
+                                             </div>
+                                        </div>
+                                    ) : (
+                                        selectedOrder.status === "LAYOUT" && (selectedOrder.layoutStatus === "PENDING" || selectedOrder.layoutStatus === "REVISI") ? (
+                                            <div className="space-y-2">
+                                                <label 
+                                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                                    onDragLeave={() => setIsDragging(false)}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        setIsDragging(false);
+                                                        const file = e.dataTransfer.files?.[0];
+                                                        if (file) handleUploadLayout(file);
+                                                    }}
+                                                    className={cn(
+                                                        "flex flex-col items-center justify-center p-12 rounded-[2rem] border-2 border-dashed transition-all cursor-pointer text-center",
+                                                        isDragging 
+                                                            ? "border-[#D25026] bg-[#D25026]/5 scale-[1.01]" 
+                                                            : "border-slate-200 bg-slate-50 hover:border-[#D25026] hover:bg-slate-100/50 shadow-sm ring-1 ring-black/5"
+                                                    )}
+                                                >
+                                                    <input 
+                                                        type="file" 
+                                                        accept="image/*,application/pdf"
+                                                        onChange={handleUploadLayout}
+                                                        disabled={uploading}
+                                                        className="hidden"
+                                                        style={{ display: "none" }}
+                                                    />
+                                                    <div className="pointer-events-none w-12 h-12 rounded-2xl bg-[#D25026]/10 flex items-center justify-center text-[#D25026] mb-3 group-hover:scale-110 transition-transform">
+                                                        <UploadCloud size={24} className="animate-pulse" />
+                                                    </div>
+                                                    <p className="pointer-events-none text-xs font-black uppercase tracking-widest text-slate-800">
+                                                        {uploading ? "Mengunggah..." : "Klik atau Tarik File ke Sini untuk Upload Layout"}
+                                                    </p>
+                                                    <p className="pointer-events-none text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1.5">
+                                                        PNG, JPG, JPEG, atau PDF (Maks. 10MB)
+                                                    </p>
+                                                </label>
+                                                {uploading && <p className="text-xs font-bold text-[#D25026] italic mt-2 animate-pulse text-center">Sedang mengupload file...</p>}
+                                            </div>
+                                        ) : (
+                                            <div className="w-full h-32 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-200">
+                                                <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada layout diupload</p>
                                             </div>
                                         )
                                     )}
@@ -558,7 +895,9 @@ export function DashboardDesainDesktop() {
                             {selectedOrder.status === "LAYOUT" && (
                                 <button 
                                     onClick={() => handleUpdateStatus(selectedOrder.rawId, "PRINT")}
-                                    className="px-12 py-5 bg-cyan-100 text-cyan-800 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-cyan-200 transition-all border border-cyan-200 italic"
+                                    disabled={selectedOrder.layoutStatus !== "APPROVED"}
+                                    className="px-12 py-5 bg-cyan-100 text-cyan-800 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-cyan-200 transition-all border border-cyan-200 italic disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={selectedOrder.layoutStatus !== "APPROVED" ? "Menunggu persetujuan layout dari customer" : "Lanjut ke proses cetak/print"}
                                 >
                                     Selesai Layout & Lanjut Print
                                 </button>
@@ -585,7 +924,7 @@ export function DashboardDesainDesktop() {
                 {/* Modals & Toasts */}
                 {confirmModal.isOpen && (
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-[2rem] max-w-md w-full p-8 border border-slate-100 shadow-2xl space-y-6 transform animate-in zoom-in-95 duration-200">
+                        <div className="bg-white rounded-[2rem] w-[90vw] max-w-[450px] p-8 border border-slate-100 shadow-2xl space-y-6 transform animate-in zoom-in-95 duration-200">
                             <div className="space-y-2">
                                 <h3 className="text-xl font-bold text-slate-900">{confirmModal.title}</h3>
                                 <p className="text-sm font-normal text-slate-500 leading-relaxed">{confirmModal.message}</p>
@@ -613,6 +952,26 @@ export function DashboardDesainDesktop() {
                         variant={toast.variant} 
                         onClose={() => setToast(null)} 
                     />
+                )}
+                {windowDragging && (
+                    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-8 animate-in fade-in duration-300">
+                        <div className="max-w-md w-full border-4 border-dashed border-[#D25026]/65 rounded-[2.5rem] p-12 bg-slate-900/50 flex flex-col items-center justify-center text-center space-y-6 transform scale-100 transition-transform animate-in zoom-in-95 duration-300">
+                            <div className="w-20 h-20 rounded-full bg-[#D25026]/10 flex items-center justify-center text-[#D25026] animate-bounce">
+                                <UploadCloud size={48} />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black italic uppercase tracking-wider text-white">
+                                    Lepaskan File {selectedOrder?.status === "LAYOUT" ? "Layout" : "Mockup"}
+                                </h3>
+                                <p className="text-sm font-medium text-slate-300">
+                                    Tarik file Anda ke sini untuk langsung mengunggah {selectedOrder?.status === "LAYOUT" ? "layout" : "mockup"} jersey.
+                                </p>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                PNG, JPG, JPEG, atau PDF (Maks. 10MB)
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
         );
@@ -728,9 +1087,22 @@ export function DashboardDesainDesktop() {
                                             <p className="text-xs text-slate-500 font-medium mt-1">{order.qty} Items</p>
                                         </td>
                                         <td className="px-8 py-5 text-center">
-                                            <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest border uppercase inline-block", getStatusStyle(order.status))}>
-                                                {order.status}
-                                            </span>
+                                            <div className="flex flex-col items-center gap-1.5 justify-center">
+                                                <span className={cn("px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest border uppercase inline-block", getStatusStyle(order.status))}>
+                                                    {order.status}
+                                                </span>
+                                                {order.status === "DESAIN" && (
+                                                    order.isWorking ? (
+                                                        <span className="bg-purple-100 text-purple-800 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider animate-pulse border border-purple-200">
+                                                            Sedang Dikerjakan
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-slate-100 text-slate-500 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider border border-slate-200">
+                                                            Belum Mulai Kerja
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-5 text-center">
                                             <button 
@@ -753,7 +1125,7 @@ export function DashboardDesainDesktop() {
             {/* Modals & Toasts */}
             {confirmModal.isOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] max-w-md w-full p-8 border border-slate-100 shadow-2xl space-y-6 transform animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-[2rem] w-[90vw] max-w-[450px] p-8 border border-slate-100 shadow-2xl space-y-6 transform animate-in zoom-in-95 duration-200">
                         <div className="space-y-2">
                             <h3 className="text-xl font-bold text-slate-900">{confirmModal.title}</h3>
                             <p className="text-sm font-normal text-slate-500 leading-relaxed">{confirmModal.message}</p>

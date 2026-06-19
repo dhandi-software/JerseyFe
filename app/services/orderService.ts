@@ -4,7 +4,8 @@ const mapOrder = (o: any) => {
     if (!o) return o;
     return {
         ...o,
-        designStatus: o.designStatus === "PENDING" || !o.designStatus ? (o.mockupUrl ? "SENT" : "PENDING") : o.designStatus
+        designStatus: o.designStatus === "PENDING" || !o.designStatus ? (o.mockupUrl ? "SENT" : "PENDING") : o.designStatus,
+        layoutStatus: o.layoutStatus === "PENDING" || !o.layoutStatus ? (o.layoutUrl ? "SENT" : "PENDING") : o.layoutStatus
     };
 };
 
@@ -80,6 +81,32 @@ export const orderService = {
 
     async selectAlternative(id: number, selectedBahanId: number) {
         const response = await client.patch(`/orders/${id}/select-alternative`, { selectedBahanId });
+        return mapOrder(response.data);
+    },
+
+    async uploadLayout(id: number, file: File) {
+        const formData = new FormData();
+        formData.append("layout", file);
+        const response = await client.post(`/orders/${id}/layout`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return mapOrder(response.data);
+    },
+
+    async approveLayout(id: number) {
+        const response = await client.patch(`/orders/${id}/approve-layout`);
+        return mapOrder(response.data);
+    },
+
+    async revisiLayout(id: number, feedback: string) {
+        const response = await client.patch(`/orders/${id}/revisi-layout`, { feedback });
+        return mapOrder(response.data);
+    },
+
+    async cancelLayout(id: number) {
+        const response = await client.patch(`/orders/${id}/cancel-layout`);
         return mapOrder(response.data);
     }
 };

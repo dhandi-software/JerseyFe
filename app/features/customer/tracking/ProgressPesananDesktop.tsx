@@ -39,6 +39,8 @@ export function ProgressPesananDesktop() {
 
     const [feedbackInput, setFeedbackInput] = useState("");
     const [showRevisiForm, setShowRevisiForm] = useState(false);
+    const [showLayoutRevisiForm, setShowLayoutRevisiForm] = useState(false);
+    const [layoutFeedbackInput, setLayoutFeedbackInput] = useState("");
     const [submittingAction, setSubmittingAction] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
 
@@ -120,6 +122,59 @@ export function ProgressPesananDesktop() {
         } catch (error) {
             console.error("Gagal mengajukan revisi:", error);
             setToast({ title: "Gagal mengajukan revisi", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    const handleApproveLayout = async () => {
+        if (!selectedOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.approveLayout(selectedOrder.id);
+            const updatedStatus = "APPROVED";
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                layoutStatus: updatedStatus,
+                layoutFeedback: null
+            }));
+            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
+                ...o,
+                layoutStatus: updatedStatus,
+                layoutFeedback: null
+            } : o));
+            setToast({ title: "Layout berhasil disetujui!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal menyetujui layout:", error);
+            setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    const handleRevisiLayout = async () => {
+        if (!selectedOrder || !layoutFeedbackInput.trim()) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.revisiLayout(selectedOrder.id, layoutFeedbackInput);
+            const updatedStatus = "REVISI";
+            const feedbackVal = layoutFeedbackInput;
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                layoutStatus: updatedStatus,
+                layoutFeedback: feedbackVal
+            }));
+            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
+                ...o,
+                layoutStatus: updatedStatus,
+                layoutFeedback: feedbackVal
+            } : o));
+            setShowLayoutRevisiForm(false);
+            setLayoutFeedbackInput("");
+            setToast({ title: "Revisi layout berhasil diajukan!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal mengajukan revisi layout:", error);
+            setToast({ title: "Gagal mengajukan revisi layout", variant: "destructive" });
         } finally {
             setSubmittingAction(false);
         }
@@ -337,7 +392,7 @@ export function ProgressPesananDesktop() {
 
                                 <div className="w-full lg:w-96 space-y-4">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-2">Preview Mockup:</p>
-                                    <div className="bg-white rounded-3xl overflow-hidden border border-slate-800 shadow-xl flex items-center justify-center p-2">
+                                    <div className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center p-3">
                                         {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
                                             <div className="flex flex-col items-center justify-center p-8 bg-slate-50 gap-4 w-full rounded-2xl">
                                                 <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-sm">
@@ -368,6 +423,163 @@ export function ProgressPesananDesktop() {
                             </div>
                         </div>
                     )}
+
+                    {/* Layout Pola Cetak Section */}
+                    {selectedOrder.layoutUrl && (
+                        <div className="mt-16 bg-slate-900 text-white rounded-[3rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden">
+                            <div className="relative z-10 flex flex-col lg:flex-row gap-10">
+                                <div className="flex-1 space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-lg font-black uppercase tracking-widest text-[#D25026] italic">
+                                            Layout Pola Cetak Jersey Anda
+                                        </h3>
+                                    </div>
+                                    <p className="text-sm text-slate-300 font-medium italic leading-relaxed">
+                                        Tim desainer kami telah mengunggah layout pola cetak jersey Anda. Silakan tinjau layout di bawah ini sebelum kami melanjutkan ke proses print cetak kain.
+                                    </p>
+                                    
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Status Layout:</span>
+                                        {selectedOrder.layoutStatus === "SENT" && (
+                                            <span className="bg-amber-500 text-slate-955 px-3 py-1 rounded-xl text-xs font-black italic">
+                                                Menunggu Persetujuan Anda
+                                            </span>
+                                        )}
+                                        {selectedOrder.layoutStatus === "APPROVED" && (
+                                            <span className="bg-emerald-500 text-slate-955 px-3 py-1 rounded-xl text-xs font-black italic">
+                                                Disetujui
+                                            </span>
+                                        )}
+                                        {selectedOrder.layoutStatus === "REVISI" && (
+                                            <span className="bg-red-500 text-white px-3 py-1 rounded-xl text-xs font-black italic">
+                                                Revisi Diajukan
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Action Panel for SENT status */}
+                                    {selectedOrder.layoutStatus === "SENT" && !showLayoutRevisiForm && (
+                                        <div className="space-y-4 pt-4 border-t border-slate-800">
+                                            <div className="flex gap-4">
+                                                <button 
+                                                    onClick={handleApproveLayout}
+                                                    disabled={submittingAction}
+                                                    className="bg-emerald-500 hover:bg-emerald-600 text-slate-955 px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest italic flex items-center gap-2 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+                                                >
+                                                    Setujui Layout
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        setLayoutFeedbackInput("");
+                                                        setShowLayoutRevisiForm(true);
+                                                    }}
+                                                    className="bg-red-500 hover:bg-red-600 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest italic flex items-center gap-2 active:scale-95 transition-all shadow-lg shadow-red-500/20"
+                                                >
+                                                    Ajukan Revisi
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showLayoutRevisiForm && (selectedOrder.layoutStatus === "SENT" || selectedOrder.layoutStatus === "REVISI") && (
+                                        <div className="space-y-4 pt-4 border-t border-slate-800">
+                                            <div className="space-y-3">
+                                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest italic">
+                                                    Detail Revisi Layout yang Diinginkan:
+                                                </label>
+                                                <textarea
+                                                    value={layoutFeedbackInput}
+                                                    onChange={(e) => setLayoutFeedbackInput(e.target.value)}
+                                                    placeholder="Contoh: Tolong penempatan nama pemain dan nomor punggung diselaraskan kembali."
+                                                    rows={3}
+                                                    className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 text-white placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#D25026] focus:border-transparent"
+                                                />
+                                                <div className="flex gap-3">
+                                                    <button 
+                                                        onClick={handleRevisiLayout}
+                                                        disabled={submittingAction || !layoutFeedbackInput.trim()}
+                                                        className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest italic disabled:opacity-50"
+                                                    >
+                                                        Kirim Revisi Layout
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setShowLayoutRevisiForm(false);
+                                                            setLayoutFeedbackInput("");
+                                                        }}
+                                                        className="bg-slate-800 text-slate-400 hover:text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest italic"
+                                                    >
+                                                        Batal
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedOrder.layoutStatus === "REVISI" && selectedOrder.layoutFeedback && !showLayoutRevisiForm && (
+                                        <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl space-y-4">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-black text-red-400 uppercase tracking-widest italic">Catatan Revisi Layout Anda:</p>
+                                                <p className="text-sm text-red-200 font-bold leading-relaxed italic">"{selectedOrder.layoutFeedback}"</p>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2">
+                                                <p className="text-[9px] text-slate-400 italic">Menunggu desainer memperbarui layout berdasarkan feedback Anda.</p>
+                                                <button 
+                                                    onClick={() => {
+                                                        setLayoutFeedbackInput(selectedOrder.layoutFeedback);
+                                                        setShowLayoutRevisiForm(true);
+                                                    }}
+                                                    className="bg-[#D25026]/10 text-[#D25026] hover:bg-[#D25026]/20 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all"
+                                                >
+                                                    Edit Catatan Revisi
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedOrder.layoutStatus === "APPROVED" && (
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl">
+                                            <p className="text-sm text-emerald-300 font-bold italic">
+                                                Layout telah disetujui! Pesanan akan segera dilanjutkan ke tahap Print Cetak Kain.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="w-full lg:w-96 space-y-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-2">Preview Layout:</p>
+                                    <div className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center p-3">
+                                        {selectedOrder.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                            <div className="flex flex-col items-center justify-center p-8 bg-slate-50 gap-4 w-full rounded-2xl">
+                                                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-sm">
+                                                    <FileText size={32} />
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-xs font-black text-slate-900 uppercase italic">Dokumen PDF</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Mockup Layout</p>
+                                                </div>
+                                                <a 
+                                                    href={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="px-6 py-2.5 bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-2 italic shadow-md shadow-red-500/20"
+                                                >
+                                                    <Eye size={12} /> Buka PDF
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <img 
+                                                src={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
+                                                alt="Mockup Layout" 
+                                                className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-2xl" 
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Shipping Information */}
                     <div className="space-y-6 mt-16 pt-16 border-t border-slate-50">
                         <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">

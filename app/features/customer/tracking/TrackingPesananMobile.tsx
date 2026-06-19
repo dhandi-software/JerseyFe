@@ -447,6 +447,60 @@ export function TrackingPesananMobile() {
                         </div>
                     )}
 
+                    {/* Layout Pola Cetak Card Mobile */}
+                    {order.layoutUrl && (
+                        <div className="bg-slate-900 text-white p-6 rounded-[2rem] border border-slate-800 shadow-xl space-y-6">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-[#D25026] italic">
+                                Layout Pola Cetak
+                            </h3>
+                            <p className="text-[10px] text-slate-300 font-medium italic leading-relaxed">
+                                Layout pola cetak jersey Anda.
+                            </p>
+                            
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Status:</span>
+                                {order.layoutStatus === "SENT" && (
+                                    <span className="bg-amber-500 text-slate-955 px-2.5 py-0.5 rounded-lg text-[10px] font-black italic">
+                                        Menunggu Persetujuan
+                                    </span>
+                                )}
+                                {order.layoutStatus === "APPROVED" && (
+                                    <span className="bg-emerald-500 text-slate-955 px-2.5 py-0.5 rounded-lg text-[10px] font-black italic">
+                                        Disetujui
+                                    </span>
+                                )}
+                                {order.layoutStatus === "REVISI" && (
+                                    <span className="bg-red-500 text-white px-2.5 py-0.5 rounded-lg text-[10px] font-black italic">
+                                        Revisi Diajukan
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Preview Layout */}
+                            <div className="bg-white rounded-2xl overflow-hidden border border-slate-800 shadow-md p-1.5">
+                                {order.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                    <div className="flex flex-col items-center justify-center p-6 bg-slate-50 gap-3 rounded-xl">
+                                        <FileText size={28} className="text-red-500" />
+                                        <p className="text-[10px] font-black text-slate-900 uppercase italic">Layout PDF</p>
+                                        <a 
+                                            href={order.layoutUrl.startsWith('http') ? order.layoutUrl : `${UPLOADS_URL}${order.layoutUrl.startsWith('/') ? '' : '/'}${order.layoutUrl}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="px-4 py-2 bg-red-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-red-600 transition-all flex items-center gap-1 italic"
+                                        >
+                                            <Eye size={10} /> Buka PDF
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <img 
+                                        src={order.layoutUrl.startsWith('http') ? order.layoutUrl : `${UPLOADS_URL}${order.layoutUrl.startsWith('/') ? '' : '/'}${order.layoutUrl}`} 
+                                        className="w-full h-auto max-h-[200px] object-contain mx-auto rounded-xl" 
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Order Details Mini Card */}
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
                             <div className="flex justify-between items-center">

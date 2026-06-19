@@ -94,6 +94,9 @@ export function MonitoringPesananMobile() {
                     mockupUrl: o.mockupUrl,
                     designStatus: o.designStatus,
                     designFeedback: o.designFeedback,
+                    layoutUrl: o.layoutUrl,
+                    layoutStatus: o.layoutStatus,
+                    layoutFeedback: o.layoutFeedback,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
                         day: 'numeric', 
@@ -409,18 +412,18 @@ export function MonitoringPesananMobile() {
                         </h3>
                         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                             {selectedOrder.designUrl ? (
-                                <div className="w-full bg-slate-100 rounded-xl overflow-hidden relative border border-slate-200">
+                                <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
                                     {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
-                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center">
+                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
                                             <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                            <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                            <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
                                                 Buka Referensi (PDF)
                                             </a>
                                         </div>
                                     ) : (
                                         <img 
-                                            src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl}`} 
-                                            className="w-full h-auto max-h-[300px] object-contain mx-auto" 
+                                            src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} 
+                                            className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
                                         />
                                     )}
                                 </div>
@@ -443,18 +446,18 @@ export function MonitoringPesananMobile() {
                         </h3>
                         {selectedOrder.paymentProofUrl ? (
                             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <div className="w-full bg-slate-100 rounded-xl overflow-hidden relative border border-slate-200">
+                                <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
                                     {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
-                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center">
+                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
                                             <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                            <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                            <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
                                                 Buka Bukti (PDF)
                                             </a>
                                         </div>
                                     ) : (
                                         <img 
-                                            src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl}`} 
-                                            className="w-full h-auto max-h-[400px] object-contain mx-auto" 
+                                            src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} 
+                                            className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-lg" 
                                         />
                                     )}
                                 </div>
@@ -506,18 +509,18 @@ export function MonitoringPesananMobile() {
                                             </div>
                                         )}
 
-                                        <div className="w-full bg-slate-100 rounded-xl overflow-hidden relative border border-slate-200">
+                                        <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
                                             {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
-                                                <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center">
+                                                <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
                                                     <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                                    <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                    <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
                                                         Buka Mockup (PDF)
                                                     </a>
                                                 </div>
                                             ) : (
                                                 <img 
-                                                    src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl}`} 
-                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto" 
+                                                    src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} 
+                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
                                                 />
                                             )}
                                         </div>
@@ -525,6 +528,71 @@ export function MonitoringPesananMobile() {
                                 ) : (
                                     <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
                                         <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada mockup diupload</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Mockup Layout Pola Cetak Section (Mobile Admin Monitor) */}
+                    {(selectedOrder.status === "LAYOUT" || selectedOrder.layoutUrl) && (
+                        <div className="space-y-3">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                                <ImageIcon className="text-[#D25026]" size={14} /> Progress Layout Pola Cetak
+                            </h3>
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                                {selectedOrder.layoutUrl ? (
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Persetujuan Layout:</span>
+                                            {selectedOrder.layoutStatus === "SENT" && (
+                                                <span className="bg-amber-50 text-amber-700 border-amber-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Menunggu Persetujuan Customer
+                                                </span>
+                                            )}
+                                            {selectedOrder.layoutStatus === "APPROVED" && (
+                                                <span className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Disetujui
+                                                </span>
+                                            )}
+                                            {selectedOrder.layoutStatus === "REVISI" && (
+                                                <span className="bg-red-50 text-red-700 border-red-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Revisi Diminta
+                                                </span>
+                                            )}
+                                            {selectedOrder.layoutStatus === "PENDING" && (
+                                                <span className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[8px] font-black italic">
+                                                    Belum Diupload
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {selectedOrder.layoutStatus === "REVISI" && selectedOrder.layoutFeedback && (
+                                            <div className="bg-red-50/50 p-3 rounded-lg border border-red-100">
+                                                <p className="text-[7px] font-black text-red-600 uppercase tracking-widest italic mb-0.5">Catatan Revisi Layout:</p>
+                                                <p className="text-[10px] text-red-700 font-bold leading-relaxed italic">"{selectedOrder.layoutFeedback}"</p>
+                                            </div>
+                                        )}
+
+                                        <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
+                                            {selectedOrder.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                                <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
+                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
+                                                    <a href={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                                        Buka Layout (PDF)
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <img 
+                                                    src={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
+                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
+                                        <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada layout diupload</p>
                                     </div>
                                 )}
                             </div>
