@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { adminApi } from "~/api/admin";
 import { 
@@ -14,6 +15,7 @@ import { useAuth } from "~/hooks/useAuth";
 
 export function DashboardGudangDesktop() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"manajemen" | "riwayat">("manajemen");
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [historyList, setHistoryList] = useState<any[]>([]);
@@ -34,18 +36,6 @@ export function DashboardGudangDesktop() {
     const [adjustNote, setAdjustNote] = useState("");
     const [adjustLoading, setAdjustLoading] = useState(false);
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [createLoading, setCreateLoading] = useState(false);
-    const [createForm, setCreateForm] = useState({
-        nama: "",
-        deskripsi: "",
-        stok: 0,
-        harga: 0,
-    });
-    const [createImage, setCreateImage] = useState<File | null>(null);
-    const [createImagePreview, setCreateImagePreview] = useState<string | null>(null);
-    const createFileInputRef = useRef<HTMLInputElement>(null);
-
     const [selectedDetailItem, setSelectedDetailItem] = useState<any | null>(null);
 
     // Edit states
@@ -55,9 +45,12 @@ export function DashboardGudangDesktop() {
     const [editForm, setEditForm] = useState({
         nama: "",
         deskripsi: "",
-        stok: 0,
+        kuantitasKg: 0,
+        rasioKonversi: "" as string | number,
         harga: 0,
+        status: "Tersedia",
     });
+    const parsedEditRasio = parseFloat(String(editForm.rasioKonversi).replace(',', '.')) || 2.5;
     const [editImage, setEditImage] = useState<File | null>(null);
     const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
     const [deleteExistingImage, setDeleteExistingImage] = useState(false);
@@ -109,26 +102,27 @@ export function DashboardGudangDesktop() {
 
         setAdjustLoading(true);
         try {
-            const currentStok = adjustItem.stok;
+            const currentKuantitas = adjustItem.kuantitasKg || 0;
             const change = adjustAction === "TAMBAH" ? adjustAmount : -adjustAmount;
-            const newStok = Math.max(0, currentStok + change);
+            const newKuantitas = Math.max(0, currentKuantitas + change);
 
             // API expects FormData
             const formData = new FormData();
             formData.append("nama", adjustItem.nama);
             formData.append("deskripsi", adjustItem.deskripsi || "");
-            formData.append("stok", newStok.toString());
+            formData.append("kuantitasKg", newKuantitas.toString());
+            formData.append("rasioKonversi", (adjustItem.rasioKonversi || 2.5).toString());
             formData.append("harga", (adjustItem.harga || 0).toString());
-            formData.append("keterangan_ubah", adjustNote || (adjustAction === "TAMBAH" ? "Penambahan stok gudang" : "Pengurangan stok gudang"));
+            formData.append("keterangan_ubah", adjustNote || (adjustAction === "TAMBAH" ? "Penambahan ketersediaan bahan" : "Pengurangan ketersediaan bahan"));
             formData.append("actor", user?.name || "Staf Gudang");
 
             const res = await adminApi.updateBahanBaju(adjustItem.id, formData);
             if (res.status === "success") {
-                setToast({ title: `Berhasil menyesuaikan stok ${adjustItem.nama}`, variant: "success" });
+                setToast({ title: `Berhasil menyesuaikan ketersediaan ${adjustItem.nama}`, variant: "success" });
                 setIsAdjustModalOpen(false);
                 fetchData();
             } else {
-                setToast({ title: "Gagal menyimpan perubahan stok", variant: "destructive" });
+                setToast({ title: "Gagal menyimpan penyesuaian ketersediaan", variant: "destructive" });
             }
         } catch (error) {
             console.error(error);
@@ -138,52 +132,7 @@ export function DashboardGudangDesktop() {
         }
     };
 
-    // Create new material handler
-    const handleCreateImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setCreateImage(file);
-            setCreateImagePreview(URL.createObjectURL(file));
-        }
-    };
 
-    const handleCreateSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!createForm.nama.trim()) {
-            setToast({ title: "Nama bahan tidak boleh kosong", variant: "destructive" });
-            return;
-        }
-
-        setCreateLoading(true);
-        try {
-            const formData = new FormData();
-            formData.append("nama", createForm.nama);
-            formData.append("deskripsi", createForm.deskripsi);
-            formData.append("stok", createForm.stok.toString());
-            formData.append("harga", createForm.harga.toString());
-            formData.append("actor", user?.name || "Staf Gudang");
-            if (createImage) {
-                formData.append("image", createImage);
-            }
-
-            const res = await adminApi.createBahanBaju(formData);
-            if (res.status === "success") {
-                setToast({ title: "Bahan baru berhasil ditambahkan", variant: "success" });
-                setIsCreateModalOpen(false);
-                setCreateForm({ nama: "", deskripsi: "", stok: 0, harga: 0 });
-                setCreateImage(null);
-                setCreateImagePreview(null);
-                fetchData();
-            } else {
-                setToast({ title: "Gagal menyimpan bahan baru", variant: "destructive" });
-            }
-        } catch (error) {
-            console.error(error);
-            setToast({ title: "Terjadi kesalahan saat menambahkan bahan", variant: "destructive" });
-        } finally {
-            setCreateLoading(false);
-        }
-    };
 
     // Edit material handlers
     const handleOpenEdit = (item: any) => {
@@ -191,8 +140,10 @@ export function DashboardGudangDesktop() {
         setEditForm({
             nama: item.nama,
             deskripsi: item.deskripsi || "",
-            stok: item.stok,
+            kuantitasKg: item.kuantitasKg || 0,
+            rasioKonversi: item.rasioKonversi ? String(item.rasioKonversi).replace('.', ',') : "",
             harga: item.harga || 0,
+            status: item.status || "Tersedia",
         });
         setEditImage(null);
         setEditImagePreview(item.imageUrl ? UPLOADS_URL + item.imageUrl : null);
@@ -222,8 +173,10 @@ export function DashboardGudangDesktop() {
             const formData = new FormData();
             formData.append("nama", editForm.nama);
             formData.append("deskripsi", editForm.deskripsi);
-            formData.append("stok", editForm.stok.toString());
+            formData.append("kuantitasKg", editForm.kuantitasKg.toString());
+            formData.append("rasioKonversi", String(parsedEditRasio));
             formData.append("harga", editForm.harga.toString());
+            formData.append("status", editForm.status);
             formData.append("actor", user?.name || "Staf Gudang");
             
             if (editImage) {
@@ -278,10 +231,10 @@ export function DashboardGudangDesktop() {
     };
 
     // Sorting states
-    const [sortColumn, setSortColumn] = useState<"nama" | "stok" | "harga" | null>(null);
+    const [sortColumn, setSortColumn] = useState<"nama" | "kuantitasKg" | "harga" | null>(null);
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-    const toggleSort = (col: "nama" | "stok" | "harga") => {
+    const toggleSort = (col: "nama" | "kuantitasKg" | "harga") => {
         if (sortColumn === col) {
             setSortDirection(sortDirection === "asc" ? "desc" : "asc");
         } else {
@@ -296,9 +249,9 @@ export function DashboardGudangDesktop() {
         
         let matchesStock = true;
         if (stockFilter === "low") {
-            matchesStock = item.stok > 0 && item.stok <= 20;
+            matchesStock = item.status === "Tersedia" && (item.kuantitasKg * (item.rasioKonversi || 2.5)) <= 20;
         } else if (stockFilter === "empty") {
-            matchesStock = item.stok === 0;
+            matchesStock = item.status === "Habis" || item.kuantitasKg <= 0;
         }
 
         return matchesSearch && matchesStock;
@@ -331,9 +284,10 @@ export function DashboardGudangDesktop() {
 
     // Overview Stats
     const totalMaterialsCount = bahanList.length;
-    const totalStockUnits = bahanList.reduce((sum, item) => sum + item.stok, 0);
-    const lowStockCount = bahanList.filter(item => item.stok > 0 && item.stok <= 20).length;
-    const outOfStockCount = bahanList.filter(item => item.stok === 0).length;
+    const totalKetersediaanKg = bahanList.reduce((sum, item) => sum + (item.kuantitasKg || 0), 0);
+    const totalKetersediaanMeter = bahanList.reduce((sum, item) => sum + ((item.kuantitasKg || 0) * (item.rasioKonversi || 2.5)), 0);
+    const lowStockCount = bahanList.filter(item => item.status === "Tersedia" && (item.kuantitasKg * (item.rasioKonversi || 2.5)) <= 20).length;
+    const outOfStockCount = bahanList.filter(item => item.status === "Habis" || item.kuantitasKg <= 0).length;
 
     return (
         <div className="w-full min-h-screen bg-[#F8FAFC] font-['Inter'] p-8 relative">
@@ -357,7 +311,7 @@ export function DashboardGudangDesktop() {
                         Refresh
                     </button>
                     <button 
-                        onClick={() => setIsCreateModalOpen(true)}
+                        onClick={() => navigate("/gudang/bahan-baju/create")}
                         className="h-11 px-6 bg-[#D25026] hover:bg-[#B34320] text-slate-900 font-bold rounded-2xl flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-[#D25026]/10"
                     >
                         <Plus className="w-4 h-4 text-slate-900" />
@@ -381,14 +335,18 @@ export function DashboardGudangDesktop() {
                 </div>
 
                 {/* Total Stock */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden group">
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between relative overflow-hidden group col-span-1 md:col-span-2">
                     <div className="absolute right-0 top-0 w-20 h-20 bg-blue-50 rounded-bl-[4rem] flex items-center justify-center">
                         <Package className="w-7 h-7 text-blue-500 opacity-60" />
                     </div>
                     <div>
-                        <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Total Stok Fisik</span>
-                        <h3 className="text-slate-900 text-3xl font-black mt-2 text-blue-600">{totalStockUnits} <span className="text-sm font-bold text-slate-400">Pcs</span></h3>
-                        <p className="text-slate-500 text-xs mt-2 italic">Akumulasi seluruh bahan di gudang</p>
+                        <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Total Ketersediaan Bahan</span>
+                        <h3 className="text-slate-900 text-2xl font-black mt-2 text-blue-600">
+                            {totalKetersediaanKg.toFixed(1)} <span className="text-sm font-bold text-slate-400">kg</span>
+                            <span className="text-slate-400 mx-2 text-lg">/</span>
+                            {totalKetersediaanMeter.toFixed(1)} <span className="text-sm font-bold text-slate-400">meter</span>
+                        </h3>
+                        <p className="text-slate-500 text-xs mt-2 italic">Akumulasi seluruh bahan di gudang (berat & panjang)</p>
                     </div>
                 </div>
 
@@ -523,15 +481,16 @@ export function DashboardGudangDesktop() {
                                                 </th>
                                                 <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Deskripsi</th>
                                                 <th 
-                                                    className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[150px] cursor-pointer hover:bg-slate-50/50 transition-colors text-center"
-                                                    onClick={() => toggleSort("stok")}
+                                                    className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[160px] cursor-pointer hover:bg-slate-50/50 transition-colors text-center"
+                                                    onClick={() => toggleSort("kuantitasKg")}
                                                 >
                                                     <div className="flex items-center justify-center gap-2">
-                                                        Stok Gudang
+                                                        Ketersediaan
                                                         <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
                                                     </div>
                                                 </th>
-                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[340px]">Aksi</th>
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[220px] text-center">Estimasi Hasil Jersey</th>
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[320px]">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
@@ -574,15 +533,40 @@ export function DashboardGudangDesktop() {
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-5 align-top text-center">
-                                                            <span className={cn(
-                                                                "inline-flex flex-col items-center justify-center min-w-[70px] py-1 px-3 rounded-xl text-xs font-extrabold mt-2 shadow-sm border",
-                                                                item.stok > 50 ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                                                                item.stok > 20 ? "bg-amber-50 text-amber-700 border-amber-100" :
-                                                                "bg-red-50 text-red-700 border-red-100"
-                                                            )}>
-                                                                <span className="text-base font-black leading-tight">{item.stok}</span>
-                                                                <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">unit</span>
-                                                            </span>
+                                                            <div className="flex flex-col items-center justify-center gap-1 mt-2">
+                                                                <span className={cn(
+                                                                    "inline-flex py-0.5 px-2 rounded-lg text-[10px] font-black border uppercase tracking-wider",
+                                                                    item.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                                                                )}>
+                                                                    {item.status}
+                                                                </span>
+                                                                <span className="text-xs font-black text-slate-700">
+                                                                    {item.kuantitasKg} kg
+                                                                </span>
+                                                                <span className="text-[10px] font-medium text-slate-400">
+                                                                    ~{(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top">
+                                                            <div className="grid grid-cols-2 gap-1 w-full mt-2">
+                                                                <div className="bg-blue-50 border border-blue-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-blue-500 uppercase tracking-wide leading-none mb-0.5">Lengan Pendek S-2XL</div>
+                                                                    <div className="text-[10.5px] font-black text-blue-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 0.8333))} pcs</div>
+                                                                </div>
+                                                                <div className="bg-blue-50/60 border border-blue-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-blue-500 uppercase tracking-wide leading-none mb-0.5">Lengan Pendek 3XL+</div>
+                                                                    <div className="text-[10.5px] font-black text-blue-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                </div>
+                                                                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-indigo-500 uppercase tracking-wide leading-none mb-0.5">Lengan Panjang S-2XL</div>
+                                                                    <div className="text-[10.5px] font-black text-indigo-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                </div>
+                                                                <div className="bg-indigo-50/60 border border-indigo-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-indigo-500 uppercase tracking-wide leading-none mb-0.5">Lengan Panjang 3XL+</div>
+                                                                    <div className="text-[10.5px] font-black text-indigo-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 2.5))} pcs</div>
+                                                                </div>
+                                                            </div>
                                                         </td>
                                                         <td className="px-8 py-5 align-top">
                                                             <div className="flex items-center gap-2 mt-2">
@@ -624,7 +608,7 @@ export function DashboardGudangDesktop() {
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan={6} className="px-8 py-20 text-center">
+                                                    <td colSpan={7} className="px-8 py-20 text-center">
                                                         <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
                                                             <Package className="w-12 h-12 text-slate-200" />
                                                             <p className="text-sm font-bold italic uppercase tracking-wider">Tidak ada bahan baku yang cocok</p>
@@ -749,7 +733,7 @@ export function DashboardGudangDesktop() {
                             )}
                             <div>
                                 <h4 className="text-sm font-bold text-slate-800 leading-tight">{adjustItem.nama}</h4>
-                                <p className="text-xs font-semibold text-[#D25026] mt-0.5">Stok Saat Ini: {adjustItem.stok} unit</p>
+                                <p className="text-xs font-semibold text-[#D25026] mt-0.5">Ketersediaan Saat Ini: {adjustItem.kuantitasKg || 0} kg (~ {((adjustItem.kuantitasKg || 0) * (adjustItem.rasioKonversi || 2.5)).toFixed(1)} meter)</p>
                             </div>
                         </div>
 
@@ -787,16 +771,34 @@ export function DashboardGudangDesktop() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Jumlah Unit</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Jumlah Selisih (kg)</label>
                                 <input
                                     type="number"
-                                    min="1"
+                                    step="0.01"
+                                    min="0.01"
                                     required
                                     value={adjustAmount === 0 ? "" : adjustAmount}
-                                    onChange={(e) => setAdjustAmount(Math.max(1, parseInt(e.target.value) || 0))}
-                                    placeholder="Masukkan jumlah stok..."
+                                    onChange={(e) => setAdjustAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
+                                    placeholder="0.00"
                                     className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
                                 />
+                                {adjustAmount > 0 && (
+                                    <div className="text-[10px] text-slate-500 font-semibold space-y-0.5 mt-1 italic text-left">
+                                        <p>Estimasi Penyesuaian Ketersediaan: <span className="text-[#D25026] font-bold">{(adjustAmount * (adjustItem.rasioKonversi || 2.5)).toFixed(1)} meter</span> bahan.</p>
+                                        <p className="text-slate-400">Total Ketersediaan Baru:</p>
+                                        <span className="text-slate-700 font-bold block">
+                                            {Math.max(0, (adjustAction === "TAMBAH" ? (adjustItem.kuantitasKg || 0) + adjustAmount : (adjustItem.kuantitasKg || 0) - adjustAmount)).toFixed(2)} kg
+                                            (~ {Math.max(0, (adjustAction === "TAMBAH" ? (adjustItem.kuantitasKg || 0) + adjustAmount : (adjustItem.kuantitasKg || 0) - adjustAmount) * (adjustItem.rasioKonversi || 2.5)).toFixed(1)} meter).
+                                        </span>
+                                        <p className="text-slate-400 mt-1">Estimasi Hasil Baru:</p>
+                                        <div className="grid grid-cols-2 gap-1 mt-0.5">
+                                            <span className="text-blue-600 font-bold block">• Lengan Pendek S-2XL: ~{Math.floor(Math.max(0, adjustAction === "TAMBAH" ? (adjustItem.kuantitasKg || 0) + adjustAmount : (adjustItem.kuantitasKg || 0) - adjustAmount) * ((adjustItem.rasioKonversi || 2.5) / 0.8333))} pcs</span>
+                                            <span className="text-blue-500 font-bold block">• Lengan Pendek 3XL+: ~{Math.floor(Math.max(0, adjustAction === "TAMBAH" ? (adjustItem.kuantitasKg || 0) + adjustAmount : (adjustItem.kuantitasKg || 0) - adjustAmount) * ((adjustItem.rasioKonversi || 2.5) / 1.25))} pcs</span>
+                                            <span className="text-indigo-600 font-bold block">• Lengan Panjang S-2XL: ~{Math.floor(Math.max(0, adjustAction === "TAMBAH" ? (adjustItem.kuantitasKg || 0) + adjustAmount : (adjustItem.kuantitasKg || 0) - adjustAmount) * ((adjustItem.rasioKonversi || 2.5) / 1.25))} pcs</span>
+                                            <span className="text-indigo-500 font-bold block">• Lengan Panjang 3XL+: ~{Math.floor(Math.max(0, adjustAction === "TAMBAH" ? (adjustItem.kuantitasKg || 0) + adjustAmount : (adjustItem.kuantitasKg || 0) - adjustAmount) * ((adjustItem.rasioKonversi || 2.5) / 2.5))} pcs</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-1.5">
@@ -839,135 +841,6 @@ export function DashboardGudangDesktop() {
                 </div>
             )}
 
-            {/* ADD MATERIAL MODAL */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] w-[90vw] max-w-[500px] p-8 border border-slate-100 shadow-2xl space-y-6 transform animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Tambah Bahan Baku Baru</h3>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateSubmit} className="space-y-4">
-                            {/* Upload image slot */}
-                            <div className="flex flex-col items-center gap-2">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic align-self-start">Foto Bahan (Opsional)</span>
-                                {createImagePreview ? (
-                                    <div className="relative w-32 h-32 rounded-2xl overflow-hidden border border-slate-200 shadow-sm group">
-                                        <img src={createImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                setCreateImage(null);
-                                                setCreateImagePreview(null);
-                                            }}
-                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 border border-white hover:bg-red-600 transition-colors shadow-sm"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => createFileInputRef.current?.click()}
-                                        className="w-full h-28 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:bg-slate-100/50 hover:border-[#D25026] hover:text-[#D25026] transition-all cursor-pointer"
-                                    >
-                                        <ImagePlus className="w-7 h-7" />
-                                        <span className="text-xs font-bold">Pilih / Drag Gambar Bahan</span>
-                                        <span className="text-[9px] uppercase tracking-wider opacity-60">PNG, JPG, JPEG (Maks. 5MB)</span>
-                                    </button>
-                                )}
-                                <input 
-                                    type="file" 
-                                    ref={createFileInputRef} 
-                                    onChange={handleCreateImageChange}
-                                    accept="image/*"
-                                    className="hidden" 
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Nama Bahan</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={createForm.nama}
-                                    onChange={(e) => setCreateForm(prev => ({ ...prev, nama: e.target.value }))}
-                                    placeholder="Contoh: Dryfit Milano / Milano Premium"
-                                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Stok Awal</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        required
-                                        value={createForm.stok === 0 ? "" : createForm.stok}
-                                        onChange={(e) => setCreateForm(prev => ({ ...prev, stok: Math.max(0, parseInt(e.target.value) || 0) }))}
-                                        placeholder="0"
-                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Harga Beli / unit (Rp)</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formatThousands(createForm.harga)}
-                                        onChange={(e) => {
-                                            const val = e.target.value.replace(/[^0-9]/g, "");
-                                            setCreateForm(prev => ({ ...prev, harga: val === "" ? 0 : Number(val) }));
-                                        }}
-                                        placeholder="0"
-                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Deskripsi Spesifikasi</label>
-                                <textarea
-                                    rows={3}
-                                    value={createForm.deskripsi}
-                                    onChange={(e) => setCreateForm(prev => ({ ...prev, deskripsi: e.target.value }))}
-                                    placeholder="Tuliskan spesifikasi ketebalan serat kain, peruntukan jenis jersey, dll..."
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold focus:outline-none focus:border-[#D25026] transition-colors leading-relaxed"
-                                />
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="h-11 px-5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-all"
-                                >
-                                    Batal
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={createLoading}
-                                    className="h-11 px-6 bg-[#D25026] hover:bg-[#B34320] text-slate-900 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-[#D25026]/10 flex items-center gap-2"
-                                >
-                                    {createLoading ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin text-slate-900" />
-                                            Membuat...
-                                        </>
-                                    ) : (
-                                        "Buat Bahan"
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
             {/* DETAIL MODAL */}
             {selectedDetailItem && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -998,19 +871,25 @@ export function DashboardGudangDesktop() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic block">Stok Gudang</span>
-                                    <span className={cn(
-                                        "text-lg font-black mt-1 inline-block",
-                                        selectedDetailItem.stok > 20 ? "text-slate-800" : "text-amber-500"
-                                    )}>
-                                        {selectedDetailItem.stok} <span className="text-xs font-semibold text-slate-400">unit</span>
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Ketersediaan</span>
+                                    <span className="text-sm font-extrabold text-slate-800 mt-1 inline-block">
+                                        {selectedDetailItem.kuantitasKg} kg <span className="text-xs font-normal text-slate-400">~ {(selectedDetailItem.kuantitasKg * (selectedDetailItem.rasioKonversi || 2.5)).toFixed(1)} m</span>
                                     </span>
                                 </div>
                                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic block">Harga / unit</span>
-                                    <span className="text-lg font-black mt-1 text-[#D25026] inline-block">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Harga Jual / unit</span>
+                                    <span className="text-sm font-extrabold text-[#D25026] mt-1 inline-block">
                                         Rp {new Intl.NumberFormat('id-ID').format(selectedDetailItem.harga || 0)}
                                     </span>
+                                </div>
+                                <div className="col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Estimasi Hasil Jersey (Dinamis: {selectedDetailItem.rasioKonversi || 2.5} m)</span>
+                                    <div className="text-xs text-slate-550 font-semibold space-y-1 mt-2">
+                                        <p>Lengan Pendek S-2XL: <span className="text-blue-600 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 0.8333))} pcs</span></p>
+                                        <p>Lengan Pendek 3XL+: <span className="text-blue-500 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 1.25))} pcs</span></p>
+                                        <p>Lengan Panjang S-2XL: <span className="text-indigo-600 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 1.25))} pcs</span></p>
+                                        <p>Lengan Panjang 3XL+: <span className="text-indigo-500 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 2.5))} pcs</span></p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1125,21 +1004,50 @@ export function DashboardGudangDesktop() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Stok Gudang</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Ketersediaan (kg)</label>
                                     <input
                                         type="number"
+                                        step="0.01"
                                         min="0"
                                         required
-                                        value={editForm.stok}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, stok: Math.max(0, parseInt(e.target.value) || 0) }))}
-                                        placeholder="0"
-                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors bg-slate-100 cursor-not-allowed"
+                                        value={editForm.kuantitasKg}
+                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none cursor-not-allowed text-slate-500 bg-slate-100"
                                         disabled
-                                        title="Stok hanya dapat diubah melalui tombol 'Update Stok' agar riwayat log tercatat dengan selisih yang sesuai."
+                                        title="Ketersediaan hanya dapat diubah melalui tombol 'Stok' di luar modal ini agar riwayat log tercatat dengan selisih yang sesuai."
                                     />
+                                    {editForm.kuantitasKg > 0 && (
+                                        <div className="text-[10px] text-slate-500 font-semibold space-y-1 mt-2 text-left bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            <p className="text-slate-700 font-bold">Estimasi Konversi: <span className="text-[#D25026] font-black">{(editForm.kuantitasKg * parsedEditRasio).toFixed(1)} meter</span> bahan <span className="text-[8px] font-normal text-slate-400">(1kg = {parsedEditRasio}m)</span>.</p>
+                                            <p className="text-slate-455 text-[9px] font-black uppercase tracking-wider mt-1.5">Estimasi Hasil Jersey:</p>
+                                            <div className="grid grid-cols-2 gap-3 mt-1 not-italic">
+                                                <div className="bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/50 space-y-1">
+                                                    <p className="font-black text-blue-700 text-[8.5px] uppercase tracking-wide">Lengan Pendek</p>
+                                                    <p className="text-slate-600 text-[8px] flex justify-between">
+                                                        <span>Size S-2XL:</span>
+                                                        <span className="font-bold text-blue-800">~{Math.floor(editForm.kuantitasKg * (parsedEditRasio / 0.8333))} pcs <span className="text-[7px] text-slate-400 font-normal">({Math.floor(parsedEditRasio / 0.8333)}/kg)</span></span>
+                                                    </p>
+                                                    <p className="text-slate-600 text-[8px] flex justify-between">
+                                                        <span>Size 3XL-4XL:</span>
+                                                        <span className="font-bold text-blue-800">~{Math.floor(editForm.kuantitasKg * (parsedEditRasio / 1.25))} pcs <span className="text-[7px] text-slate-400 font-normal">({Math.floor(parsedEditRasio / 1.25)}/kg)</span></span>
+                                                    </p>
+                                                </div>
+                                                <div className="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100/50 space-y-1">
+                                                    <p className="font-black text-indigo-700 text-[8.5px] uppercase tracking-wide">Lengan Panjang</p>
+                                                    <p className="text-slate-600 text-[8px] flex justify-between">
+                                                        <span>Size S-2XL:</span>
+                                                        <span className="font-bold text-indigo-800">~{Math.floor(editForm.kuantitasKg * (parsedEditRasio / 1.25))} pcs <span className="text-[7px] text-slate-400 font-normal">({Math.floor(parsedEditRasio / 1.25)}/kg)</span></span>
+                                                    </p>
+                                                    <p className="text-slate-600 text-[8px] flex justify-between">
+                                                        <span>Size 3XL-4XL:</span>
+                                                        <span className="font-bold text-indigo-800">~{Math.floor(editForm.kuantitasKg * (parsedEditRasio / 2.5))} pcs <span className="text-[7px] text-slate-400 font-normal">({Math.floor(parsedEditRasio / 2.5)}/kg)</span></span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Harga Beli / unit (Rp)</label>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Harga Jual / unit (Rp)</label>
                                     <input
                                         type="text"
                                         required
@@ -1151,6 +1059,31 @@ export function DashboardGudangDesktop() {
                                         placeholder="0"
                                         className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
                                     />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Rasio Konversi ({editForm.kuantitasKg || "0"} kg = {String((editForm.kuantitasKg * parsedEditRasio).toFixed(1)).replace('.', ',')} meter)</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editForm.rasioKonversi}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, rasioKonversi: e.target.value.replace(/[^0-9,.]/g, "") }))}
+                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Status</label>
+                                    <select 
+                                        required
+                                        value={editForm.status}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm font-bold focus:outline-none focus:border-[#D25026] transition-colors"
+                                    >
+                                        <option value="Tersedia">Tersedia</option>
+                                        <option value="Habis">Habis</option>
+                                    </select>
                                 </div>
                             </div>
 

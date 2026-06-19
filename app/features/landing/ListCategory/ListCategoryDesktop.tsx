@@ -30,6 +30,9 @@ export function ListCategoryDesktop() {
                     price: m.harga || 150000,
                     image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "https://via.placeholder.com/300?text=Jersey",
                     category: "Jersey",
+                    status: m.status,
+                    kuantitasKg: m.kuantitasKg,
+                    rasioKonversi: m.rasioKonversi,
                     description: m.deskripsi || "Bahan jersey premium."
                 }));
                 setMaterials(mapped);

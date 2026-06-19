@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy, Truck, Download, Search, ChevronDown } from "lucide-react";
+import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy, Truck, Download, Search, ChevronDown, AlertCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -8,6 +8,7 @@ import { adminApi } from "~/api/admin";
 import { Toast } from "~/components/ui/toast";
 import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 import { Button } from "~/components/ui/button";
+import { CustomSelect } from "~/components/ui/custom-select";
 import { Input } from "~/components/ui/input";
 import {
     Pagination,
@@ -28,10 +29,19 @@ export function MonitoringPesananMobile() {
     const [selectedDesignerId, setSelectedDesignerId] = useState<number | "">("");
     const [orderToAssign, setOrderToAssign] = useState<number | null>(null);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
+    const [bahanList, setBahanList] = useState<any[]>([]);
+    const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
+    const [tempRecommendedIds, setTempRecommendedIds] = useState<number[]>([]);
+
+    useEffect(() => {
+        if (selectedOrder) {
+            setTempRecommendedIds(selectedOrder.recommendedBahanIds || []);
+        }
+    }, [selectedOrder]);
 
     // Search, Sort, and Pagination states
     const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState("newest");
+    const [sortBy, setSortBy] = useState("menunggu");
     const [currentPage, setCurrentPage] = useState(1);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const itemsPerPage = 10;
@@ -63,6 +73,8 @@ export function MonitoringPesananMobile() {
                     customer: o.customerName,
                     designer: o.designerName || "Belum Ada",
                     product: o.details.length > 0 ? o.details[0].productTitle : "Custom Jersey",
+                    productId: o.details.length > 0 ? o.details[0].productId : null,
+                    recommendedBahanIds: o.recommendedBahanIds || [],
                     qty: o.details.length,
                     status: o.status,
                     queueNumber: o.queueNumber,
@@ -108,9 +120,38 @@ export function MonitoringPesananMobile() {
             }
         };
 
+        const fetchBahan = async () => {
+            try {
+                const res = await adminApi.getBahanBaju();
+                if (res.status === "success") {
+                    setBahanList(res.data);
+                }
+            } catch (error) {
+                console.error("Error fetching bahan:", error);
+            }
+        };
+
         fetchOrders();
         fetchDesigners();
+        fetchBahan();
     }, []);
+
+    const handleSendRecommendations = async () => {
+        if (!selectedOrder) return;
+        try {
+            await orderService.recommendAlternatives(selectedOrder.rawId, tempRecommendedIds);
+            
+            // Update local state
+            setOrders(prev => prev.map(o => o.rawId === selectedOrder.rawId ? { ...o, recommendedBahanIds: tempRecommendedIds } : o));
+            setSelectedOrder((prev: any) => ({ ...prev, recommendedBahanIds: tempRecommendedIds }));
+            
+            setIsRecommendModalOpen(false);
+            setToast({ title: "Rekomendasi bahan alternatif berhasil dikirim", variant: "success" });
+        } catch (error) {
+            console.error("Error sending recommendations:", error);
+            setToast({ title: "Gagal mengirim rekomendasi", variant: "destructive" });
+        }
+    };
 
     const handleUpdateStatus = async (id: number, newStatus: string, designerId?: number) => {
         try {
@@ -145,6 +186,13 @@ export function MonitoringPesananMobile() {
 
     // Search, Filter and Sort orders
     const filteredAndSortedOrders = orders.filter(o => {
+        if (sortBy === "menunggu") {
+            const status = (o.status || "").toUpperCase();
+            if (status !== "MENUNGGU" && status !== "MENUNGGU VERIFIKASI") {
+                return false;
+            }
+        }
+
         const query = searchQuery.toLowerCase().trim();
         if (!query) return true;
         return (
@@ -153,6 +201,11 @@ export function MonitoringPesananMobile() {
             (o.product && o.product.toLowerCase().includes(query))
         );
     }).sort((a, b) => {
+        if (sortBy === "menunggu") {
+            if (a.status === "MENUNGGU" && b.status !== "MENUNGGU") return -1;
+            if (b.status === "MENUNGGU" && a.status !== "MENUNGGU") return 1;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
         if (sortBy === "newest") {
             return new Date(b.date).getTime() - new Date(a.date).getTime();
         }
@@ -267,6 +320,88 @@ export function MonitoringPesananMobile() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50 pb-32">
+                    {(() => {
+                        const currentBahan = bahanList.find(b => b.id === selectedOrder.productId);
+                        const isBahanHabis = currentBahan?.status === "Habis";
+                        if (!isBahanHabis) return null;
+
+                        return (
+                            <div className="bg-red-50 border border-red-200 p-5 rounded-2xl flex flex-col gap-4 shadow-sm">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+                                        <AlertCircle className="text-red-600 w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-xs font-black uppercase tracking-wider text-red-900 leading-none mb-1">Bahan Terpilih Habis!</h4>
+                                        <p className="text-[10px] text-red-600 font-medium leading-relaxed">
+                                            Bahan "{currentBahan.nama}" saat ini habis/tidak tersedia. Berikan rekomendasi bahan alternatif agar customer dapat memilih bahan pengganti.
+                                        </p>
+                                        {selectedOrder.recommendedBahanIds && selectedOrder.recommendedBahanIds.length > 0 && (
+                                            <p className="text-[10px] text-slate-500 font-bold mt-2">
+                                                Rekomendasi saat ini: {selectedOrder.recommendedBahanIds.map((id: number) => bahanList.find(b => b.id === id)?.nama).filter(Boolean).join(", ")}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                                <Dialog open={isRecommendModalOpen} onOpenChange={setIsRecommendModalOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button className="w-full bg-slate-900 text-white rounded-xl h-12 font-black uppercase tracking-widest text-[10px] hover:bg-[#D25026] active:scale-95 transition-all shadow-md">
+                                            Rekomendasikan Alternatif
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[90%] font-geist border-slate-100 shadow-xl rounded-3xl p-6 w-11/12 mx-auto bg-white">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-lg font-black uppercase italic tracking-tighter text-slate-900">Rekomendasi Bahan</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar">
+                                            <p className="text-[10px] font-bold text-slate-500 italic uppercase">Pilih bahan pengganti:</p>
+                                            {bahanList.filter(b => b.status === "Tersedia").map(b => {
+                                                const isChecked = tempRecommendedIds.includes(b.id);
+                                                return (
+                                                    <label key={b.id} className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all">
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => {
+                                                                if (isChecked) {
+                                                                    setTempRecommendedIds(prev => prev.filter(id => id !== b.id));
+                                                                } else {
+                                                                    setTempRecommendedIds(prev => [...prev, b.id]);
+                                                                }
+                                                            }}
+                                                            className="w-4 h-4 rounded border-slate-300 text-[#D25026] focus:ring-[#D25026]"
+                                                        />
+                                                        <div className="flex-1">
+                                                            <p className="text-xs font-black text-slate-900 uppercase">{b.nama}</p>
+                                                            <p className="text-[10px] font-bold text-[#D25026]">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(b.harga || 150000)}</p>
+                                                        </div>
+                                                    </label>
+                                                );
+                                            })}
+                                            {bahanList.filter(b => b.status === "Tersedia").length === 0 && (
+                                                <p className="text-xs font-medium text-slate-400 italic">Tidak ada bahan tersedia saat ini.</p>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <Button
+                                                variant="ghost"
+                                                onClick={() => setIsRecommendModalOpen(false)}
+                                                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-xs"
+                                            >
+                                                Batal
+                                            </Button>
+                                            <Button
+                                                onClick={handleSendRecommendations}
+                                                className="px-4 py-2 bg-[#D25026] text-white font-bold rounded-lg text-xs"
+                                            >
+                                                Kirim Rekomendasi
+                                            </Button>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        );
+                    })()}
                     {/* Design Reference Section */}
                     <div className="space-y-3">
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
@@ -440,24 +575,41 @@ export function MonitoringPesananMobile() {
                         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 <table className="w-full text-left relative">
-                                    <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
-                                        <tr>
-                                            <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Nama</th>
-                                            <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
-                                            <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50 text-[10px] bg-white">
-                                        {selectedOrder.playerInfo.map((p: any, idx: number) => (
-                                            <tr key={idx}>
-                                                <td className="px-4 py-3 font-bold text-slate-700 uppercase italic truncate max-w-[120px]">{p.name}</td>
-                                                <td className="px-4 py-3 text-center font-black text-slate-900">{p.number}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className="bg-slate-50 px-2 py-1 rounded-md font-bold">{p.size}</span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
+                                     <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
+                                         <tr>
+                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Nama</th>
+                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
+                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
+                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Lengan</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody className="divide-y divide-slate-50 text-[10px] bg-white">
+                                         {selectedOrder.playerInfo.map((p: any, idx: number) => {
+                                             let sizeOnly = p.size || "-";
+                                             let sleeve = "-";
+                                             if (sizeOnly.includes("(")) {
+                                                 const parts = sizeOnly.split("(");
+                                                 sizeOnly = parts[0].trim();
+                                                 sleeve = parts[1].replace(")", "").trim();
+                                             } else if (sizeOnly.includes("-")) {
+                                                 const parts = sizeOnly.split("-");
+                                                 sizeOnly = parts[0].trim();
+                                                 sleeve = parts.slice(1).join("-").trim();
+                                             }
+                                             return (
+                                                 <tr key={idx}>
+                                                     <td className="px-4 py-3 font-bold text-slate-700 uppercase italic truncate max-w-[90px]">{p.name}</td>
+                                                     <td className="px-4 py-3 text-center font-black text-slate-900">{p.number}</td>
+                                                     <td className="px-4 py-3 text-center">
+                                                         <span className="bg-slate-50 px-2 py-1 rounded-md font-bold">{sizeOnly}</span>
+                                                     </td>
+                                                     <td className="px-4 py-3 text-center text-slate-600 truncate max-w-[80px]">
+                                                         {sleeve}
+                                                     </td>
+                                                 </tr>
+                                             );
+                                         })}
+                                     </tbody>
                                 </table>
                             </div>
                             <div className="bg-slate-50 border-t border-slate-100 font-black italic uppercase text-[8px] text-[#D25026] p-4 flex justify-between items-center">
@@ -474,7 +626,7 @@ export function MonitoringPesananMobile() {
                         {selectedOrder.status === "MENUNGGU" && (
                             <>
                                 <Button 
-                                    variant="destructive"
+                                    variant="outline"
                                     onClick={() => handleUpdateStatus(selectedOrder.rawId, "DITOLAK")}
                                     className="flex-1 h-12 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest italic border border-red-100 cursor-pointer"
                                 >
@@ -497,22 +649,23 @@ export function MonitoringPesananMobile() {
 
                 {/* Handover Modal */}
                 <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
-                    <DialogContent className="sm:max-w-[90%] font-geist border-slate-100 shadow-xl rounded-3xl p-6 w-11/12 mx-auto">
+                    <DialogContent className="sm:max-w-[500px] font-geist border-slate-100 shadow-xl rounded-3xl p-8 w-11/12 mx-auto">
                         <DialogHeader>
-                            <DialogTitle className="text-lg font-black uppercase italic tracking-tighter text-slate-900">Serahkan ke Desainer</DialogTitle>
+                            <DialogTitle className="text-lg font-black uppercase italic tracking-tighter text-slate-900 pr-10">Serahkan ke Desainer</DialogTitle>
                         </DialogHeader>
                         <div className="py-4">
                             <label className="block text-xs font-bold text-slate-700 mb-2 italic">Pilih Tim Desain</label>
-                            <select 
-                                value={selectedDesignerId}
-                                onChange={(e) => setSelectedDesignerId(Number(e.target.value))}
-                                className="w-full border border-slate-200 rounded-xl px-4 py-3 bg-slate-50 text-slate-900 text-sm font-medium focus:outline-none focus:border-[#D25026]"
-                            >
-                                <option value="" disabled>-- Pilih Desainer --</option>
-                                {designers.map(d => (
-                                    <option key={d.id} value={d.id}>{d.nama} ({d.email})</option>
-                                ))}
-                            </select>
+                            <CustomSelect
+                                options={designers.map(d => ({
+                                    value: String(d.id),
+                                    label: `${d.nama} (${d.email})`
+                                }))}
+                                value={selectedDesignerId ? String(selectedDesignerId) : ""}
+                                onChange={(val) => setSelectedDesignerId(val ? Number(val) : "")}
+                                placeholder="-- Pilih Desainer --"
+                                searchPlaceholder="Cari desainer..."
+                                emptyMessage="Desainer tidak ditemukan."
+                            />
                         </div>
                         <div className="flex justify-end gap-2 mt-2">
                             <Button
@@ -604,6 +757,7 @@ export function MonitoringPesananMobile() {
                             className="inline-flex items-center gap-2 text-slate-700 text-[10px] font-black uppercase tracking-widest italic cursor-pointer justify-end w-full"
                         >
                             <span>
+                                {sortBy === "menunggu" && "Menunggu Verifikasi"}
                                 {sortBy === "newest" && "Terbaru (Tanggal)"}
                                 {sortBy === "oldest" && "Terlama (Tanggal)"}
                                 {sortBy === "name-asc" && "Customer A-Z"}
@@ -619,6 +773,7 @@ export function MonitoringPesananMobile() {
                         {showSortDropdown && (
                             <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-150 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-left">
                                 {[
+                                    { val: "menunggu", label: "Menunggu Verifikasi" },
                                     { val: "newest", label: "Terbaru (Tanggal)" },
                                     { val: "oldest", label: "Terlama (Tanggal)" },
                                     { val: "name-asc", label: "Customer A-Z" },

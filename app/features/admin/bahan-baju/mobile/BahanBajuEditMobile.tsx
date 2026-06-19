@@ -16,9 +16,14 @@ export function BahanBajuEditMobile() {
     // Form state
     const [nama, setNama] = useState("");
     const [deskripsi, setDeskripsi] = useState("");
-    const [stok, setStok] = useState<number | "">("");
+    const [kuantitasKg, setKuantitasKg] = useState<string>("");
+    const [rasioKonversi, setRasioKonversi] = useState<string>("");
+    const [status, setStatus] = useState("Tersedia");
     const [harga, setHarga] = useState<number | "">("");
     const [keteranganUbah, setKeteranganUbah] = useState("");
+
+    const parsedKuantitas = parseFloat(String(kuantitasKg).replace(',', '.')) || 0;
+    const parsedRasio = parseFloat(String(rasioKonversi).replace(',', '.')) || 2.5;
     
     // Image state
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -34,7 +39,9 @@ export function BahanBajuEditMobile() {
                     if (bahan) {
                         setNama(bahan.nama);
                         setDeskripsi(bahan.deskripsi || "");
-                        setStok(bahan.stok);
+                        setKuantitasKg(bahan.kuantitasKg ? String(bahan.kuantitasKg).replace('.', ',') : "");
+                        setRasioKonversi(bahan.rasioKonversi ? String(bahan.rasioKonversi).replace('.', ',') : "");
+                        setStatus(bahan.status || "Tersedia");
                         setHarga(bahan.harga || 0);
                         if (bahan.imageUrl) {
                             setImagePreview(UPLOADS_URL + bahan.imageUrl);
@@ -85,7 +92,9 @@ export function BahanBajuEditMobile() {
             const formData = new FormData();
             formData.append("nama", nama);
             formData.append("deskripsi", deskripsi);
-            formData.append("stok", String(stok));
+            formData.append("kuantitasKg", String(parsedKuantitas));
+            formData.append("rasioKonversi", String(parsedRasio));
+            formData.append("status", status);
             formData.append("harga", String(harga));
             formData.append("keterangan_ubah", keteranganUbah);
             if (deleteImage) {
@@ -212,16 +221,115 @@ export function BahanBajuEditMobile() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Stok Saat Ini</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Ketersediaan Saat Ini (kg)</label>
                                 <input 
                                     required
-                                    type="number" 
-                                    min="0"
-                                    value={stok}
-                                    onChange={(e) => setStok(e.target.value === "" ? "" : Number(e.target.value))}
+                                    type="text" 
+                                    value={kuantitasKg}
+                                    onChange={(e) => setKuantitasKg(e.target.value.replace(/[^0-9,.]/g, ""))}
                                     className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
                                 />
                             </div>
+                             <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1 flex items-center gap-1">
+                                    Rasio Konversi ({kuantitasKg || "0"} kg = {String((parsedKuantitas * parsedRasio).toFixed(1)).replace('.', ',')} meter)
+                                    <span className="text-slate-350 cursor-help" title="Rasio konversi kain dari kilogram ke meter. Misalnya 1 kg = 2,5 meter.">ⓘ</span>
+                                </label>
+                                <input 
+                                    required
+                                    type="text" 
+                                    value={rasioKonversi}
+                                    onChange={(e) => setRasioKonversi(e.target.value.replace(/[^0-9,.]/g, ""))}
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Status Ketersediaan</label>
+                                <select 
+                                    required
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all shadow-sm"
+                                >
+                                    <option value="Tersedia">Tersedia</option>
+                                    <option value="Habis">Habis</option>
+                                </select>
+                            </div>
+                            
+                            {parsedKuantitas > 0 && (
+                                <div className="space-y-3 mt-2">
+                                    <div className="flex items-center justify-between bg-[#D25026] p-3.5 rounded-xl text-white shadow-sm">
+                                        <div>
+                                            <h4 className="text-[9px] font-black uppercase tracking-wider opacity-90 leading-tight">Total Meter Tersedia</h4>
+                                            <p className="text-[8px] font-medium opacity-90 mt-0.5">Berdasarkan Rasio: 1 kg = {parsedRasio} m</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-lg font-black">{(parsedKuantitas * parsedRasio).toFixed(1)} <span className="text-[10px] font-bold uppercase">meter</span></span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Card 2: Legend Card */}
+                                        <div className="bg-white border border-slate-150 rounded-xl p-3 shadow-sm text-left col-span-2">
+                                            <div className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">
+                                                Keterangan Estimasi Hasil
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 font-medium">
+                                                <div className="space-y-0.5">
+                                                    <p className="font-bold text-slate-800 text-[11px] leading-tight">Lengan Pendek:</p>
+                                                    <p className="flex items-center gap-1 leading-none">👕 S-2XL: <span className="text-slate-900 font-bold">{Math.floor(parsedRasio / 0.8333)} pcs</span></p>
+                                                    <p className="flex items-center gap-1 leading-none">👕 3XL-4XL: <span className="text-slate-900 font-bold">{Math.floor(parsedRasio / 1.25)} pcs</span></p>
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <p className="font-bold text-slate-800 text-[11px] leading-tight">Lengan Panjang:</p>
+                                                    <p className="flex items-center gap-1 leading-none">👕 S-2XL: <span className="text-slate-900 font-bold">{Math.floor(parsedRasio / 1.25)} pcs</span></p>
+                                                    <p className="flex items-center gap-1 leading-none">👕 3XL-4XL: <span className="text-slate-900 font-bold">{Math.floor(parsedRasio / 2.5)} pcs</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Card 3: Lengan Pendek S-2XL */}
+                                        <div className="bg-white border border-slate-150 rounded-xl p-3 text-center shadow-sm flex flex-col justify-between min-h-[80px]">
+                                            <div>
+                                                <div className="text-[8px] font-black text-blue-500 uppercase tracking-wider leading-none">Lengan Pendek S-2XL</div>
+                                                <div className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Size S, M, L, XL, 2XL</div>
+                                            </div>
+                                            <div className="text-base font-black text-blue-700 my-1">~{Math.floor(parsedKuantitas * (parsedRasio / 0.8333))} <span className="text-[9px] font-bold">pcs</span></div>
+                                            <div className="text-[7.5px] font-semibold text-slate-400 uppercase border-t border-slate-100 pt-1 mt-0.5">1 KG - {Math.floor(parsedRasio / 0.8333)} PCS</div>
+                                        </div>
+
+                                        {/* Card 4: Lengan Pendek 3XL-4XL */}
+                                        <div className="bg-white border border-slate-150 rounded-xl p-3 text-center shadow-sm flex flex-col justify-between min-h-[80px]">
+                                            <div>
+                                                <div className="text-[8px] font-black text-blue-500 uppercase tracking-wider leading-none">Lengan Pendek 3XL-4XL</div>
+                                                <div className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Size 3XL, 4XL</div>
+                                            </div>
+                                            <div className="text-base font-black text-blue-600 my-1">~{Math.floor(parsedKuantitas * (parsedRasio / 1.25))} <span className="text-[9px] font-bold">pcs</span></div>
+                                            <div className="text-[7.5px] font-semibold text-slate-400 uppercase border-t border-slate-100 pt-1 mt-0.5">1 KG - {Math.floor(parsedRasio / 1.25)} PCS</div>
+                                        </div>
+
+                                        {/* Card 5: Lengan Panjang S-2XL */}
+                                        <div className="bg-white border border-slate-150 rounded-xl p-3 text-center shadow-sm flex flex-col justify-between min-h-[80px]">
+                                            <div>
+                                                <div className="text-[8px] font-black text-indigo-500 uppercase tracking-wider leading-none">Lengan Panjang S-2XL</div>
+                                                <div className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Size S, M, L, XL, 2XL</div>
+                                            </div>
+                                            <div className="text-base font-black text-indigo-750 my-1">~{Math.floor(parsedKuantitas * (parsedRasio / 1.25))} <span className="text-[9px] font-bold">pcs</span></div>
+                                            <div className="text-[7.5px] font-semibold text-slate-400 uppercase border-t border-slate-100 pt-1 mt-0.5">1 KG - {Math.floor(parsedRasio / 1.25)} PCS</div>
+                                        </div>
+
+                                        {/* Card 6: Lengan Panjang 3XL-4XL */}
+                                        <div className="bg-white border border-slate-150 rounded-xl p-3 text-center shadow-sm flex flex-col justify-between min-h-[80px]">
+                                            <div>
+                                                <div className="text-[8px] font-black text-indigo-500 uppercase tracking-wider leading-none">Lengan Panjang 3XL-4XL</div>
+                                                <div className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wide mt-0.5">Size 3XL, 4XL</div>
+                                            </div>
+                                            <div className="text-base font-black text-indigo-650 my-1">~{Math.floor(parsedKuantitas * (parsedRasio / 2.5))} <span className="text-[9px] font-bold">pcs</span></div>
+                                            <div className="text-[7.5px] font-semibold text-slate-400 uppercase border-t border-slate-100 pt-1 mt-0.5">1 KG - {Math.floor(parsedRasio / 2.5)} PCS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Deskripsi</label>
                                 <textarea 

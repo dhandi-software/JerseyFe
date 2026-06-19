@@ -99,11 +99,11 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("BAHRUDIN YUSUF", 140, 82);
 
     // Table Summary Data
-    const basePrice = order.pricePerItem || 150000;
     const totalUnit = order.details?.length || 0;
+    const totalAmount = order.totalAmount || (totalUnit * 150000);
+    const subtotal = totalAmount;
+    const basePrice = totalUnit > 0 ? Math.round(subtotal / totalUnit) : 150000;
     const productName = order.details?.[0]?.productTitle || "Jersey Custom Full Printing";
-    const subtotal = totalUnit * basePrice;
-    const totalAmount = order.totalAmount || subtotal;
 
     const summaryBody = [
         [productName, totalUnit.toString(), `Rp ${basePrice.toLocaleString('id-ID')}`, `Rp ${subtotal.toLocaleString('id-ID')}`]
@@ -226,7 +226,13 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
-    doc.text("Terima kasih sudah mempercayakan pesanan jersey kepada FSCV! Pesanan telah LUNAS dan sedang diproses.", 14, finalY + 5);
+    doc.text(
+        isPaid 
+            ? "Terima kasih sudah mempercayakan pesanan jersey kepada FSCV! Pesanan telah LUNAS dan sedang diproses." 
+            : "Terima kasih sudah mempercayakan pesanan jersey kepada FSCV! Pesanan menunggu konfirmasi pembayaran dari admin.", 
+        14, 
+        finalY + 5
+    );
 
     // Large Faint Watermark Text
     doc.setFontSize(80);

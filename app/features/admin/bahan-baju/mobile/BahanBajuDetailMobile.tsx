@@ -161,7 +161,16 @@ export function BahanBajuDetailMobile() {
                             </div>
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-xl font-bold text-[10px] border border-orange-100 shadow-sm">
                                 <Package className="w-4 h-4" strokeWidth={2.5} />
-                                Stok: {currentBahan.stok}
+                                Ketersediaan: {currentBahan.kuantitasKg} kg (~ {(currentBahan.kuantitasKg * (currentBahan.rasioKonversi || 2.5)).toFixed(1)} meter)
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl font-bold text-[10px] border border-indigo-100 shadow-sm">
+                                Est. Jersey: Pdk {Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 0.8333))}/{Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 1.25))} pcs | Pjg {Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 1.25))}/{Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 2.5))} pcs
+                            </div>
+                            <div className={cn(
+                                "flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold text-[10px] border shadow-sm",
+                                currentBahan.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-100" : "bg-red-50 text-red-700 border-red-100"
+                            )}>
+                                Status: {currentBahan.status}
                             </div>
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl font-bold text-[10px] border border-slate-100">
                                 <Calendar className="w-4 h-4" strokeWidth={2.5} />

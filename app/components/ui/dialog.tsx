@@ -147,9 +147,9 @@ function DialogContent({
             data-slot="dialog-close"
             className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-lg right-lg rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
-            <Button variant="ghost" size="sm" className="text-muted-foreground flex gap-sm">
+            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full h-8 w-8 flex items-center justify-center p-0">
               <XIcon className="size-md" />
-              Close
+              <span className="sr-only">Close</span>
             </Button>
           </Close>
         )}

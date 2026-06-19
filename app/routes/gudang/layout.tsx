@@ -18,7 +18,11 @@ type MenuKey =
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
-  if (pathname === "/gudang" || pathname.startsWith("/gudang/dashboard"))
+  if (
+    pathname === "/gudang" ||
+    pathname.startsWith("/gudang/dashboard") ||
+    pathname.startsWith("/gudang/bahan-baju")
+  )
     return "dashboard";
   return undefined;
 };

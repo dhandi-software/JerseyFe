@@ -62,6 +62,7 @@ export default [
     layout("routes/gudang/layout.tsx", [
         ...prefix("gudang", [
             index("routes/gudang/dashboard.tsx"),
+            route("bahan-baju/create", "routes/gudang/bahan-baju-create.tsx"),
         ]),
     ]),
    

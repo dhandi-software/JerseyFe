@@ -6,6 +6,7 @@ import { Toast } from "~/components/ui/toast";
 import { useNavigate } from "react-router";
 import { UPLOADS_URL } from "~/api/client";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
+import { cn } from "~/lib/utils";
 
 export function BahanBajuMobile() {
     const navigate = useNavigate();
@@ -141,11 +142,21 @@ export function BahanBajuMobile() {
                                                         <div className="flex justify-between items-start gap-2">
                                                             <h3 className="text-sm font-bold text-slate-900 truncate">{item.nama}</h3>
                                                             <div className="flex flex-col gap-1.5 shrink-0">
-                                                                <div className="bg-[#FFF0EB] px-2 py-1 rounded border border-[#FFD8CC] flex flex-col items-center min-w-[40px]">
-                                                                    <span className="text-[8px] font-black text-[#D25026] uppercase tracking-widest italic">Stok</span>
-                                                                    <span className="text-xs font-black text-[#D25026]">{item.stok}</span>
+                                                                <div className="flex flex-col gap-1 shrink-0 items-end">
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                                                        item.status === "Tersedia" ? "bg-green-50 text-green-700 bg-green-50 border border-green-100" : "bg-red-50 text-red-700 bg-red-50 border border-red-100"
+                                                                    )}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-bold text-slate-700 mt-1">
+                                                                        {item.kuantitasKg} kg
+                                                                    </span>
+                                                                    <span className="text-[9px] font-medium text-slate-400 italic">
+                                                                        ~ {(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m
+                                                                    </span>
                                                                 </div>
-                                                                <div className="bg-blue-50 px-2 py-1 rounded border border-blue-100 flex flex-col items-center min-w-[40px]">
+                                                                <div className="bg-blue-50 px-2 py-1 rounded border border-blue-100 flex flex-col items-center min-w-[40px] mt-1">
                                                                     <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest italic text-center leading-tight">Harga</span>
                                                                     <span className="text-[10px] font-black text-blue-600 whitespace-nowrap">
                                                                         <span className="text-[8px] opacity-60 mr-0.5 italic">Rp</span>
@@ -222,13 +233,13 @@ export function BahanBajuMobile() {
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="font-mono text-sm font-black">
-                                                        {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah}</span> : 
-                                                         hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah}</span> : 
-                                                         hist.aksi === 'HAPUS' ? <span className="text-red-600">-{hist.jumlah}</span> :
-                                                         <span className="text-slate-400">{hist.jumlah}</span>}
+                                                    <div className="font-mono text-xs font-black">
+                                                        {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah} kg</span> : 
+                                                         hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah} kg</span> : 
+                                                         hist.aksi === 'HAPUS' ? <span className="text-red-600">-{hist.jumlah} kg</span> :
+                                                         <span className="text-slate-400">{hist.jumlah} kg</span>}
                                                     </div>
-                                                    <div className="text-[9px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">Akhir: {hist.stokAkhir}</div>
+                                                    <div className="text-[9px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">Akhir: {hist.stokAkhir} kg</div>
                                                 </div>
                                             </div>
                                         </div>

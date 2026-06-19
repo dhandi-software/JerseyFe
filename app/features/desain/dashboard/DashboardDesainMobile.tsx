@@ -487,17 +487,33 @@ export function DashboardDesainMobile() {
                         </div>
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                                {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                    <div key={idx} className="p-4 border-b border-slate-50 last:border-0 flex justify-between items-center">
-                                        <div>
-                                            <p className="text-xs font-black text-slate-800 uppercase italic">{player.name}</p>
+                                {selectedOrder.playerInfo.map((player: any, idx: number) => {
+                                    let sizeOnly = player.size || "-";
+                                    let sleeve = "-";
+                                    if (sizeOnly.includes("(")) {
+                                        const parts = sizeOnly.split("(");
+                                        sizeOnly = parts[0].trim();
+                                        sleeve = parts[1].replace(")", "").trim();
+                                    } else if (sizeOnly.includes("-")) {
+                                        const parts = sizeOnly.split("-");
+                                        sizeOnly = parts[0].trim();
+                                        sleeve = parts.slice(1).join("-").trim();
+                                    }
+                                    return (
+                                        <div key={idx} className="p-4 border-b border-slate-50 last:border-0 flex justify-between items-center">
+                                            <div>
+                                                <p className="text-xs font-black text-slate-800 uppercase italic">{player.name}</p>
+                                                {sleeve !== "-" && (
+                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">{sleeve}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="bg-slate-100 px-2 py-1 rounded text-[10px] font-black italic">{sizeOnly}</span>
+                                                <span className="text-[#D25026] font-black text-lg w-6 text-center">{player.number}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="bg-slate-100 px-2 py-1 rounded text-[10px] font-black italic">{player.size}</span>
-                                            <span className="text-[#D25026] font-black text-lg w-6 text-center">{player.number}</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>

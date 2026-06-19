@@ -192,8 +192,10 @@ export function AppSidebar() {
                         {item.title}
                       </span>
                       {item.key === "monitoring-pesanan" && pendingCount > 0 && (
-                        <div className="w-8 h-8 rounded-full border-2 border-amber-500 bg-white flex items-center justify-center shrink-0 ml-auto shadow-sm">
-                            <span className="text-neutral-800 text-sm font-bold leading-none">{pendingCount}</span>
+                        <div className="relative flex items-center justify-center shrink-0 ml-auto mr-1">
+                          <div className="relative w-6 h-6 rounded-full bg-red-600 flex items-center justify-center shadow-md border border-white">
+                            <span className="text-white text-[10px] font-black leading-none">{pendingCount}</span>
+                          </div>
                         </div>
                       )}
                       {item.key === "chat" && unreadCount > 0 && (

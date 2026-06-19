@@ -9,7 +9,10 @@ interface Product {
     price: number | string;
     image: string;
     category: string;
-    stock: number;
+    stock?: number;
+    status?: string;
+    kuantitasKg?: number;
+    rasioKonversi?: number;
 }
 
 interface CardProductProps {
@@ -35,8 +38,16 @@ export function CardProduct({ product, onCustomize, onPreview, onAdd, className 
                     alt={product.title} 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 />
-                <div className="absolute top-5 right-5 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl text-[10px] font-black text-slate-900 shadow-sm border border-white/50">
-                    {product.stock} STOK
+                <div className={cn(
+                    "absolute top-5 right-5 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl text-[10px] font-black shadow-sm border border-white/50 flex items-center gap-1",
+                    product.status === "Habis" ? "text-red-500" : "text-emerald-600"
+                )}>
+                    {product.status ? (product.status === "Habis" ? "HABIS" : "TERSEDIA") : `${product.stock ?? 0} STOK`}
+                    {product.kuantitasKg !== undefined && product.rasioKonversi !== undefined && (
+                        <span className="text-slate-400 font-bold ml-1">
+                            (~{(product.kuantitasKg * product.rasioKonversi).toFixed(1)}m)
+                        </span>
+                    )}
                 </div>
                 
                 {/* Overlay on Hover */}

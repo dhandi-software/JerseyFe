@@ -172,7 +172,19 @@ export function BahanBajuDetailDesktop() {
                             </div>
                             <div className="flex items-center gap-2.5 px-5 py-2.5 bg-orange-50 text-orange-700 rounded-2xl font-black text-xs border border-orange-100 shadow-sm">
                                 <Package className="w-5 h-5" strokeWidth={2.5} />
-                                Stok ({currentBahan.stok} unit)
+                                Ketersediaan ({currentBahan.kuantitasKg} kg / {(currentBahan.kuantitasKg * (currentBahan.rasioKonversi || 2.5)).toFixed(1)} meter)
+                            </div>
+                            <div className="flex flex-col gap-0.5 px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-2xl font-black text-xs border border-indigo-100 shadow-sm">
+                                <span>Pendek S-2XL: {Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 0.8333))} pcs</span>
+                                <span>Pendek 3XL+: {Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 1.25))} pcs</span>
+                                <span>Panjang S-2XL: {Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 1.25))} pcs</span>
+                                <span>Panjang 3XL+: {Math.floor(currentBahan.kuantitasKg * ((currentBahan.rasioKonversi || 2.5) / 2.5))} pcs</span>
+                            </div>
+                            <div className={cn(
+                                "flex items-center gap-2.5 px-5 py-2.5 rounded-2xl font-black text-xs border shadow-sm",
+                                currentBahan.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-100" : "bg-red-50 text-red-700 border-red-100"
+                            )}>
+                                Status: {currentBahan.status}
                             </div>
                             <div className="flex items-center gap-2.5 px-5 py-2.5 bg-slate-50 text-slate-600 rounded-2xl font-bold text-xs border border-slate-100">
                                 <Calendar className="w-5 h-5" strokeWidth={2.5} />

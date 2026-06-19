@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, X, Loader2, ChevronLeft, Copy, Truck, Search, ChevronDown } from "lucide-react";
+import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, X, Loader2, ChevronLeft, Copy, Truck, Search, ChevronDown, AlertCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { orderService } from "~/services/orderService";
@@ -8,6 +8,7 @@ import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
 import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 import { Button } from "~/components/ui/button";
+import { CustomSelect } from "~/components/ui/custom-select";
 import { Input } from "~/components/ui/input";
 import {
     Pagination,
@@ -28,10 +29,19 @@ export function MonitoringPesananDesktop() {
     const [selectedDesignerId, setSelectedDesignerId] = useState<number | "">("");
     const [orderToAssign, setOrderToAssign] = useState<number | null>(null);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
+    const [bahanList, setBahanList] = useState<any[]>([]);
+    const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
+    const [tempRecommendedIds, setTempRecommendedIds] = useState<number[]>([]);
+
+    useEffect(() => {
+        if (selectedOrder) {
+            setTempRecommendedIds(selectedOrder.recommendedBahanIds || []);
+        }
+    }, [selectedOrder]);
 
     // Search, Sort, and Pagination states
     const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState("newest");
+    const [sortBy, setSortBy] = useState("menunggu");
     const [currentPage, setCurrentPage] = useState(1);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const itemsPerPage = 10;
@@ -63,6 +73,8 @@ export function MonitoringPesananDesktop() {
                     customer: o.customerName,
                     designer: o.designerName || "Belum Ada",
                     product: o.details.length > 0 ? o.details[0].productTitle : "Custom Jersey",
+                    productId: o.details.length > 0 ? o.details[0].productId : null,
+                    recommendedBahanIds: o.recommendedBahanIds || [],
                     qty: o.details.length,
                     status: o.status,
                     queueNumber: o.queueNumber,
@@ -108,9 +120,38 @@ export function MonitoringPesananDesktop() {
             }
         };
 
+        const fetchBahan = async () => {
+            try {
+                const res = await adminApi.getBahanBaju();
+                if (res.status === "success") {
+                    setBahanList(res.data);
+                }
+            } catch (error) {
+                console.error("Error fetching bahan:", error);
+            }
+        };
+
         fetchOrders();
         fetchDesigners();
+        fetchBahan();
     }, []);
+
+    const handleSendRecommendations = async () => {
+        if (!selectedOrder) return;
+        try {
+            await orderService.recommendAlternatives(selectedOrder.rawId, tempRecommendedIds);
+            
+            // Update local state
+            setOrders(prev => prev.map(o => o.rawId === selectedOrder.rawId ? { ...o, recommendedBahanIds: tempRecommendedIds } : o));
+            setSelectedOrder((prev: any) => ({ ...prev, recommendedBahanIds: tempRecommendedIds }));
+            
+            setIsRecommendModalOpen(false);
+            setToast({ title: "Rekomendasi bahan alternatif berhasil dikirim", variant: "success" });
+        } catch (error) {
+            console.error("Error sending recommendations:", error);
+            setToast({ title: "Gagal mengirim rekomendasi", variant: "destructive" });
+        }
+    };
 
     const handleUpdateStatus = async (id: number, newStatus: string, designerId?: number) => {
         try {
@@ -146,6 +187,13 @@ export function MonitoringPesananDesktop() {
 
     // Search, Filter and Sort orders
     const filteredAndSortedOrders = orders.filter(o => {
+        if (sortBy === "menunggu") {
+            const status = (o.status || "").toUpperCase();
+            if (status !== "MENUNGGU" && status !== "MENUNGGU VERIFIKASI") {
+                return false;
+            }
+        }
+
         const query = searchQuery.toLowerCase().trim();
         if (!query) return true;
         return (
@@ -154,6 +202,11 @@ export function MonitoringPesananDesktop() {
             (o.product && o.product.toLowerCase().includes(query))
         );
     }).sort((a, b) => {
+        if (sortBy === "menunggu") {
+            if (a.status === "MENUNGGU" && b.status !== "MENUNGGU") return -1;
+            if (b.status === "MENUNGGU" && a.status !== "MENUNGGU") return 1;
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
         if (sortBy === "newest") {
             return new Date(b.date).getTime() - new Date(a.date).getTime();
         }
@@ -275,6 +328,89 @@ export function MonitoringPesananDesktop() {
                         </div>
 
                         <div className="p-10 bg-slate-50 space-y-12">
+                            {(() => {
+                                const currentBahan = bahanList.find(b => b.id === selectedOrder.productId);
+                                const isBahanHabis = currentBahan?.status === "Habis";
+                                if (!isBahanHabis) return null;
+
+                                return (
+                                    <div className="bg-red-50 border border-red-200 p-6 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center shrink-0">
+                                                <AlertCircle className="text-red-600 w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black uppercase tracking-wider text-red-900">Bahan Terpilih Habis!</h4>
+                                                <p className="text-xs text-red-600 font-medium leading-relaxed mt-1">
+                                                    Bahan "{currentBahan.nama}" saat ini habis/tidak tersedia. Berikan rekomendasi bahan alternatif agar customer dapat memilih bahan pengganti.
+                                                </p>
+                                                {selectedOrder.recommendedBahanIds && selectedOrder.recommendedBahanIds.length > 0 && (
+                                                    <p className="text-xs text-slate-500 font-bold mt-2">
+                                                        Rekomendasi saat ini: {selectedOrder.recommendedBahanIds.map((id: number) => bahanList.find(b => b.id === id)?.nama).filter(Boolean).join(", ")}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <Dialog open={isRecommendModalOpen} onOpenChange={setIsRecommendModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button className="bg-slate-900 text-white rounded-2xl px-6 h-14 font-black uppercase tracking-widest text-xs hover:bg-[#D25026] active:scale-95 transition-all shadow-md shrink-0">
+                                                    Rekomendasikan Alternatif
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-[500px] font-geist border-slate-100 shadow-xl rounded-3xl p-8 bg-white">
+                                                <DialogHeader>
+                                                    <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">Rekomendasi Bahan Alternatif</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="py-6 space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                                    <p className="text-xs font-bold text-slate-500 italic uppercase">Pilih bahan pengganti yang berstatus "Tersedia":</p>
+                                                    {bahanList.filter(b => b.status === "Tersedia").map(b => {
+                                                        const isChecked = tempRecommendedIds.includes(b.id);
+                                                        return (
+                                                            <label key={b.id} className="flex items-center gap-3 p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 cursor-pointer transition-all">
+                                                                <input 
+                                                                    type="checkbox"
+                                                                    checked={isChecked}
+                                                                    onChange={() => {
+                                                                        if (isChecked) {
+                                                                            setTempRecommendedIds(prev => prev.filter(id => id !== b.id));
+                                                                        } else {
+                                                                            setTempRecommendedIds(prev => [...prev, b.id]);
+                                                                        }
+                                                                    }}
+                                                                    className="w-5 h-5 rounded border-slate-300 text-[#D25026] focus:ring-[#D25026]"
+                                                                />
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-black text-slate-900 uppercase">{b.nama}</p>
+                                                                    <p className="text-xs font-bold text-[#D25026]">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(b.harga || 150000)}</p>
+                                                                </div>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                    {bahanList.filter(b => b.status === "Tersedia").length === 0 && (
+                                                        <p className="text-xs font-medium text-slate-400 italic">Tidak ada bahan tersedia saat ini.</p>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-end gap-3 mt-4">
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={() => setIsRecommendModalOpen(false)}
+                                                        className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                                                    >
+                                                        Batal
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleSendRecommendations}
+                                                        className="px-6 py-3 bg-[#D25026] text-white font-bold rounded-xl hover:bg-[#B34320] transition-colors"
+                                                    >
+                                                        Kirim Rekomendasi
+                                                    </Button>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                );
+                            })()}
+
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 {/* Design Reference */}
                                 <div className="space-y-6">
@@ -478,18 +614,35 @@ export function MonitoringPesananDesktop() {
                                                     <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic">Nama</th>
                                                     <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic text-center">No</th>
                                                     <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic text-center">Size</th>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-700 uppercase tracking-widest italic text-center">Lengan</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-50 bg-white">
-                                                {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4 text-sm font-black text-slate-800 uppercase italic">{player.name}</td>
-                                                        <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{player.size}</span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {selectedOrder.playerInfo.map((player: any, idx: number) => {
+                                                    let sizeOnly = player.size || "-";
+                                                    let sleeve = "-";
+                                                    if (sizeOnly.includes("(")) {
+                                                        const parts = sizeOnly.split("(");
+                                                        sizeOnly = parts[0].trim();
+                                                        sleeve = parts[1].replace(")", "").trim();
+                                                    } else if (sizeOnly.includes("-")) {
+                                                        const parts = sizeOnly.split("-");
+                                                        sizeOnly = parts[0].trim();
+                                                        sleeve = parts.slice(1).join("-").trim();
+                                                    }
+                                                    return (
+                                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-6 py-4 text-sm font-black text-slate-800 uppercase italic">{player.name}</td>
+                                                            <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{sizeOnly}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center text-sm font-medium text-slate-600">
+                                                                {sleeve}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
@@ -502,7 +655,7 @@ export function MonitoringPesananDesktop() {
                                 {selectedOrder.status === "MENUNGGU" && (
                                     <>
                                         <Button 
-                                            variant="destructive"
+                                            variant="outline"
                                             onClick={() => handleUpdateStatus(selectedOrder.rawId, "DITOLAK")}
                                             className="px-10 py-7 h-auto bg-red-50 hover:bg-red-600 text-red-600 hover:text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all border border-red-100 shadow-lg shadow-red-500/5 italic cursor-pointer"
                                         >
@@ -532,23 +685,24 @@ export function MonitoringPesananDesktop() {
 
                     {/* Handover Modal */}
                     <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
-                        <DialogContent className="sm:max-w-[500px] font-geist border-slate-100 shadow-xl rounded-3xl p-8">
+                        <DialogContent className="sm:max-w-[580px] font-geist border-slate-100 shadow-xl rounded-3xl p-10">
                             <DialogHeader>
-                                <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">Serahkan ke Tim Desain</DialogTitle>
+                                <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 pr-12">Serahkan ke Tim Desain</DialogTitle>
                             </DialogHeader>
                             <div className="py-6 space-y-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-2 italic">Pilih Desainer</label>
-                                    <select 
-                                        value={selectedDesignerId}
-                                        onChange={(e) => setSelectedDesignerId(Number(e.target.value))}
-                                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 bg-slate-50 text-slate-900 font-medium focus:outline-none focus:border-[#D25026] transition-colors"
-                                    >
-                                        <option value="" disabled>-- Pilih Desainer --</option>
-                                        {designers.map(d => (
-                                            <option key={d.id} value={d.id}>{d.nama} ({d.email})</option>
-                                        ))}
-                                    </select>
+                                    <CustomSelect
+                                        options={designers.map(d => ({
+                                            value: String(d.id),
+                                            label: `${d.nama} (${d.email})`
+                                        }))}
+                                        value={selectedDesignerId ? String(selectedDesignerId) : ""}
+                                        onChange={(val) => setSelectedDesignerId(val ? Number(val) : "")}
+                                        placeholder="-- Pilih Desainer --"
+                                        searchPlaceholder="Cari desainer..."
+                                        emptyMessage="Desainer tidak ditemukan."
+                                    />
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-2">
@@ -640,6 +794,7 @@ export function MonitoringPesananDesktop() {
                                 className="flex items-center justify-between gap-4 bg-white border border-slate-200 px-5 py-3 rounded-2xl transition-all duration-200 min-w-[200px] text-left cursor-pointer shadow-sm text-xs font-black uppercase tracking-widest italic"
                             >
                                 <span className="text-slate-700">
+                                    {sortBy === "menunggu" && "Menunggu Verifikasi"}
                                     {sortBy === "newest" && "Terbaru (Tanggal)"}
                                     {sortBy === "oldest" && "Terlama (Tanggal)"}
                                     {sortBy === "name-asc" && "Customer A-Z"}
@@ -655,6 +810,7 @@ export function MonitoringPesananDesktop() {
                             {showSortDropdown && (
                                 <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-150 rounded-2xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                                     {[
+                                        { val: "menunggu", label: "Menunggu Verifikasi" },
                                         { val: "newest", label: "Terbaru (Tanggal)" },
                                         { val: "oldest", label: "Terlama (Tanggal)" },
                                         { val: "name-asc", label: "Customer A-Z" },

@@ -170,3 +170,125 @@ export const downloadPlayersPDF = (order: any) => {
 };
 
 export const SIZE_REGEX = /\b(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL|5XL|6XL)\b/i;
+
+export const downloadOmsetPDF = (
+    data: any[],
+    periodText: string,
+    currentTotal: number
+) => {
+    const doc = new jsPDF();
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+    };
+
+    const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // --- Header ---
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 210, 32, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("FSCV APPAREL INDONESIA", 15, 18);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Laporan Analisis Omset & Transaksi Penjualan Jersey", 15, 25);
+
+    // --- Report Metadata ---
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("LAPORAN OMSET PENJUALAN", 15, 48);
+    doc.setDrawColor(230, 230, 230);
+    doc.line(15, 51, 195, 51);
+
+    doc.setFontSize(8);
+    doc.setTextColor(140, 140, 140);
+    doc.setFont("helvetica", "normal");
+    doc.text("TANGGAL CETAK", 15, 60);
+    doc.text("CAKUPAN LAPORAN", 65, 60);
+    doc.text("TOTAL OMSET PERIODE", 130, 60);
+
+    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(dateStr, 15, 67);
+    doc.text(periodText, 65, 67);
+    doc.setTextColor(210, 80, 38); // Brand color #D25026
+    doc.text(formatCurrency(currentTotal), 130, 67);
+
+    // --- Table ---
+    const tableData = data.map((item: any, index: number) => [
+        (index + 1).toString(),
+        (item.name || "-").toUpperCase(),
+        formatCurrency(item.pv || 0)
+    ]);
+
+    autoTable(doc, {
+        startY: 77,
+        head: [['NO', 'PERIODE / TANGGAL', 'OMSET PENJUALAN']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: {
+            fillColor: [30, 41, 59], // slate-800
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center',
+            lineWidth: 0.1,
+            lineColor: [51, 65, 85]
+        },
+        bodyStyles: {
+            textColor: [50, 50, 50],
+            fontSize: 9,
+            cellPadding: 5
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 20 },
+            1: { halign: 'left' },
+            2: { halign: 'right', fontStyle: 'bold' }
+        },
+        alternateRowStyles: {
+            fillColor: [248, 250, 252]
+        },
+        margin: { left: 15, right: 15 }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // --- Summary Box ---
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(110, finalY, 85, 28, 2, 2, 'FD');
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120, 120, 120);
+    doc.text("Ringkasan Laporan:", 115, finalY + 8);
+    doc.text("Total Item Periode:", 115, finalY + 15);
+    doc.text("Total Pendapatan:", 115, finalY + 22);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    doc.text(`${data.length} Baris Data`, 190, finalY + 15, { align: 'right' });
+    doc.setTextColor(210, 80, 38);
+    doc.setFontSize(11);
+    doc.text(formatCurrency(currentTotal), 190, finalY + 22, { align: 'right' });
+
+    // --- Footer ---
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+            `Laporan Omset FCSV Apparel | Halaman ${i} dari ${pageCount}`,
+            105,
+            285,
+            { align: "center" }
+        );
+    }
+
+    const filePeriod = periodText.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+    doc.save(`Laporan_Omset_FSCV_${filePeriod}.pdf`);
+};

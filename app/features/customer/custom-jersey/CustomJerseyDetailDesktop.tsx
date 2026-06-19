@@ -13,6 +13,62 @@ export function CustomJerseyDetailDesktop() {
     const [loading, setLoading] = useState(true);
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [selectedSleeve, setSelectedSleeve] = useState("Lengan Pendek");
+    const [selectedSize, setSelectedSize] = useState("");
+    const [playerName, setPlayerName] = useState("");
+    const [playerNumber, setPlayerNumber] = useState("");
+
+    const formatRupiah = (number: number) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+    };
+
+    const getSizeSurcharge = (size: string): number => {
+        if (!size) return 0;
+        const s = size.toUpperCase().trim();
+        // Sizes S through 2XL have no surcharge
+        if (["XXS", "XS", "S", "M", "L", "XL", "2XL", "XXL"].includes(s)) {
+            return 0;
+        }
+        // 3XL = +Rp10.000, 4XL = +Rp20.000, 5XL = +Rp30.000, etc.
+        const numXlMatch = s.match(/^(\d+)XL$/);
+        if (numXlMatch) {
+            const xCount = parseInt(numXlMatch[1], 10);
+            if (xCount >= 3) {
+                return (xCount - 2) * 10000;
+            }
+        }
+        // Handle XXXL, XXXXL formats
+        const xMatches = s.match(/^(X+)L$/);
+        if (xMatches) {
+            const xCount = xMatches[1].length;
+            if (xCount >= 3) {
+                return (xCount - 2) * 10000;
+            }
+        }
+        return 0;
+    };
+
+    // Determines if a size is a "big size" (3XL or larger)
+    const isBigSize = (size: string): boolean => {
+        const s = size.toUpperCase().trim();
+        const numXlMatch = s.match(/^(\d+)XL$/);
+        if (numXlMatch) return parseInt(numXlMatch[1], 10) >= 3;
+        const xMatches = s.match(/^(X+)L$/);
+        if (xMatches) return xMatches[1].length >= 3;
+        return false;
+    };
+
+    const getMaxOrderPcs = (kuantitasKg: number, size: string, sleeve: string): number | string => {
+        if (!size) return "-";
+        const isLongSleeve = sleeve === "Lengan Panjang";
+        const big = isBigSize(size);
+
+        if (isLongSleeve) {
+            return Math.floor(kuantitasKg * (big ? 1 : 2));
+        } else {
+            return Math.floor(kuantitasKg * (big ? 2 : 3));
+        }
+    };
 
     const isPublicView = location.pathname.startsWith("/product/");
     const basePath = isPublicView ? "/product" : "/customer/custom-jersey/detail";
@@ -53,8 +109,12 @@ export function CustomJerseyDetailDesktop() {
     };
 
     const handleCustomize = () => {
+        if (!selectedSize) {
+            alert("Silakan pilih ukuran terlebih dahulu");
+            return;
+        }
         // Redirect directly to checkout with this product
-        navigate(`/customer/custom-jersey/checkout?productId=${currentBahan.id}`);
+        navigate(`/customer/custom-jersey/checkout?productId=${currentBahan.id}&size=${selectedSize}&sleeve=${selectedSleeve}&name=${playerName}&number=${playerNumber}`);
     };
 
     if (loading) {
@@ -191,7 +251,12 @@ export function CustomJerseyDetailDesktop() {
                                         <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Availability</p>
                                         <div className="flex items-center gap-2">
                                             <Package className="w-5 h-5 text-[#D25026]" strokeWidth={2.5} />
-                                            <span className="text-xl font-bold text-slate-700">{currentBahan.stok} <span className="text-xs font-medium text-slate-400 uppercase">In Stock</span></span>
+                                            <span className={cn(
+                                                "text-xl font-bold uppercase tracking-wider",
+                                                currentBahan.status === "Habis" ? "text-red-500" : "text-emerald-600"
+                                            )}>
+                                                {currentBahan.status === "Habis" ? "Tidak Tersedia / Habis" : "Tersedia"}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -214,22 +279,144 @@ export function CustomJerseyDetailDesktop() {
                                     {currentBahan.deskripsi || "Experience the perfect blend of performance and style with our FSCV professional jersey series. Crafted from premium moisture-wicking fabric designed for champions."}
                                 </p>
                             </div>
+
+                            {/* Size & Sleeve Selectors for Estimating Availability */}
+                            <div className="space-y-6 pt-10 border-t border-slate-100">
+                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-3 italic">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+                                        <Ruler className="w-4 h-4" />
+                                    </div>
+                                    Simulasi Ketersediaan Pesanan
+                                </h3>
+                                
+                                <div className="grid grid-cols-2 gap-6 mb-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Nama Pemain (Opsional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Masukkan Nama Pemain"
+                                            value={playerName}
+                                            onChange={(e) => setPlayerName(e.target.value)}
+                                            className="w-full h-[54px] bg-slate-50 border border-slate-100 rounded-2xl px-4 text-xs font-black focus:outline-none focus:border-[#D25026] transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Nomor Punggung (Opsional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Masukkan Nomor"
+                                            value={playerNumber}
+                                            onChange={(e) => setPlayerNumber(e.target.value)}
+                                            className="w-full h-[54px] bg-slate-50 border border-slate-100 rounded-2xl px-4 text-xs font-black focus:outline-none focus:border-[#D25026] transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pilih Tipe Lengan</label>
+                                        <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 gap-2">
+                                            {[
+                                                { value: "Lengan Pendek", label: "Pendek" },
+                                                { value: "Lengan Panjang", label: "Panjang" }
+                                            ].map((sleeve) => (
+                                                <button
+                                                    key={sleeve.value}
+                                                    onClick={() => setSelectedSleeve(sleeve.value)}
+                                                    className={cn(
+                                                        "flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
+                                                        selectedSleeve === sleeve.value
+                                                            ? "bg-[#D25026] text-white shadow-md shadow-[#D25026]/10"
+                                                            : "text-slate-650 hover:bg-slate-100"
+                                                    )}
+                                                >
+                                                    {sleeve.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pilih Ukuran</label>
+                                        <select
+                                            value={selectedSize}
+                                            onChange={(e) => setSelectedSize(e.target.value)}
+                                            className="w-full h-[54px] bg-slate-50 border border-slate-100 rounded-2xl px-4 text-xs font-black focus:outline-none focus:border-[#D25026] transition-colors"
+                                        >
+                                            <option value="" disabled>Pilih Ukuran</option>
+                                            {["S", "M", "L", "XL", "2XL", "3XL", "4XL"].map((size) => (
+                                                <option key={size} value={size}>
+                                                    Ukuran {size}{getSizeSurcharge(size) > 0 ? ` — + ${new Intl.NumberFormat('id-ID').format(getSizeSurcharge(size))}` : " — Harga Normal"}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Stok Bahan Tersedia</span>
+                                            <span className="text-sm font-black text-slate-600">
+                                                {currentBahan.kuantitasKg} kg ~ {(currentBahan.kuantitasKg * (currentBahan.rasioKonversi || 2.5)).toFixed(1)} meter
+                                            </span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Harga Satuan Varian</span>
+                                            <span className="text-xl font-black text-[#D25026]">
+                                                {formatRupiah((currentBahan.harga || 150000) + getSizeSurcharge(selectedSize))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {selectedSize && (
+                                        <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                                            <div>
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Maks. Pesanan ({selectedSleeve}, {selectedSize})</span>
+                                                <span className="text-2xl font-black text-slate-900 italic uppercase">
+                                                    {getMaxOrderPcs(currentBahan.kuantitasKg || 0, selectedSize, selectedSleeve)} pcs
+                                                </span>
+                                            </div>
+                                            {getSizeSurcharge(selectedSize) > 0 && (
+                                                <div className="text-right">
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Biaya Tambahan Ukuran</span>
+                                                    <span className="text-sm font-black text-amber-600">+ {formatRupiah(getSizeSurcharge(selectedSize))}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {!selectedSize && (
+                                        <div className="border-t border-slate-100 pt-3 text-center">
+                                            <span className="text-[10px] font-bold text-slate-400 italic">← Pilih tipe lengan & ukuran untuk melihat estimasi ketersediaan pesanan</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="pt-16 flex gap-4">
-                            <Button 
-                                onClick={handleCustomize}
-                                className="h-20 flex-1 bg-[#D25026] hover:bg-slate-900 text-white rounded-[2rem] font-black text-[14px] shadow-2xl shadow-[#D25026]/20 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.2em] italic"
-                            >
-                                <CreditCard className="w-6 h-6" />
-                                Customize & Order Now
-                            </Button>
-                            <Button 
-                                variant="outline"
-                                className="h-20 w-20 rounded-[2rem] border-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center"
-                            >
-                                <Heart className="w-6 h-6" />
-                            </Button>
+                        <div className="pt-16 flex flex-col gap-4">
+                            {currentBahan.status === "Habis" && (
+                                <div className="p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-2xl flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-[#D25026] shrink-0 mt-0.5" />
+                                    <div className="text-xs font-bold uppercase tracking-tight">
+                                        Pemberitahuan: Bahan ini sedang tidak tersedia. Jika Anda tetap melanjutkan pemesanan, Admin akan menghubungi Anda untuk merekomendasikan bahan alternatif yang tersedia.
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex gap-4">
+                                <Button 
+                                    onClick={handleCustomize}
+                                    className="h-20 flex-1 bg-[#D25026] hover:bg-slate-900 text-white rounded-[2rem] font-black text-[14px] shadow-2xl shadow-[#D25026]/20 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-[0.2em] italic"
+                                >
+                                    <CreditCard className="w-6 h-6" />
+                                    Customize & Order Now
+                                </Button>
+                                <Button 
+                                    variant="outline"
+                                    className="h-20 w-20 rounded-[2rem] border-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center"
+                                >
+                                    <Heart className="w-6 h-6" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>

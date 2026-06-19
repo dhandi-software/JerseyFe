@@ -19,7 +19,7 @@ export function CustomJerseyDesktop({ title }: { title: string }) {
                     title: bahan.nama,
                     category: "Jersey",
                     price: bahan.harga || 150000,
-                    stock: bahan.stok,
+                    status: bahan.status,
                     image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image"
                 }));
                 setJerseyProducts(mapped);

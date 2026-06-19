@@ -7,6 +7,7 @@ import { sortPlayersBySize } from "~/lib/sizeUtils";
 import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
 import { generateInvoicePDF } from '~/lib/pdfHelper';
+import { adminApi } from "~/api/admin";
 
 const STAGES = [
     { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek pembayaran" },
@@ -41,6 +42,21 @@ export function TrackingPesananDesktop() {
     const [showRevisiForm, setShowRevisiForm] = useState(false);
     const [submittingAction, setSubmittingAction] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
+    const [bahanList, setBahanList] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchBahan = async () => {
+            try {
+                const res = await adminApi.getBahanBaju();
+                if (res.status === "success") {
+                    setBahanList(res.data);
+                }
+            } catch (error) {
+                console.error("Error fetching bahan:", error);
+            }
+        };
+        fetchBahan();
+    }, []);
 
     const [isPrinting, setIsPrinting] = useState(false);
 
@@ -177,6 +193,61 @@ export function TrackingPesananDesktop() {
 
                 {order && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
+                        {/* Alternative fabric selection banner */}
+                        {order.recommendedBahanIds && order.recommendedBahanIds.length > 0 && (
+                            <div className="bg-orange-50 border border-orange-200 p-8 rounded-[3rem] shadow-xl space-y-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center shrink-0">
+                                        <AlertCircle className="text-[#D25026] w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black uppercase tracking-wider text-slate-900 leading-none">Bahan Jersey Habis!</h3>
+                                        <p className="text-sm text-slate-600 font-medium leading-relaxed mt-1">
+                                            Bahan pilihan jersey Anda saat ini sedang habis. Silakan pilih salah satu bahan alternatif di bawah ini untuk melanjutkan pesanan Anda:
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                                    {bahanList.filter(b => order.recommendedBahanIds.includes(b.id)).map(b => (
+                                        <div key={b.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between gap-4 group hover:border-[#D25026]/30 transition-all">
+                                            <div className="space-y-3">
+                                                <div className="w-full aspect-video rounded-xl bg-slate-100 overflow-hidden relative">
+                                                    {b.imageUrl ? (
+                                                        <img src={UPLOADS_URL + b.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                            No Image
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-black text-slate-900 uppercase">{b.nama}</h4>
+                                                    <p className="text-xs font-bold text-[#D25026] mt-0.5">
+                                                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(b.harga || 150000)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={async () => {
+                                                    try {
+                                                        await orderService.selectAlternative(order.id, b.id);
+                                                        setToast({ title: "Bahan berhasil diganti ke alternatif!", variant: "success" });
+                                                        executeSearch(order.orderId);
+                                                    } catch (error) {
+                                                        console.error("Gagal memilih bahan alternatif:", error);
+                                                        setToast({ title: "Gagal mengganti bahan", variant: "destructive" });
+                                                    }
+                                                }}
+                                                className="w-full bg-slate-900 text-white rounded-xl py-3 font-black text-[10px] uppercase tracking-widest hover:bg-[#D25026] transition-colors"
+                                            >
+                                                Pilih Bahan Ini
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Status Stepper */}
                         <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/50">
                             <div className="flex justify-between items-start mb-16">
@@ -407,7 +478,7 @@ export function TrackingPesananDesktop() {
                                     <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
                                         <Package className="text-[#D25026]" size={16} /> Detail Pesanan
                                     </h3>
-                                    {order.status !== "MENUNGGU" && order.status !== "DITOLAK" && (
+                                    {order.status !== "DITOLAK" && (
                                         <button 
                                             onClick={handlePrintInvoice}
                                             disabled={isPrinting}

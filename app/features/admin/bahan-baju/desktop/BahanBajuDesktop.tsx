@@ -69,8 +69,8 @@ export function BahanBajuDesktop() {
             valA = a.nama.toLowerCase();
             valB = b.nama.toLowerCase();
         } else if (sortColumn === "stok") {
-            valA = a.stok;
-            valB = b.stok;
+            valA = a.kuantitasKg;
+            valB = b.kuantitasKg;
         } else if (sortColumn === "harga") {
             valA = a.harga || 0;
             valB = b.harga || 0;
@@ -164,12 +164,12 @@ export function BahanBajuDesktop() {
 
                                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden w-full">
                                     <div className="overflow-x-auto w-full">
-                                        <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
+                                        <table className="w-full text-left border-collapse table-fixed min-w-[1250px]">
                                             <thead>
                                                 <tr className="border-b border-slate-100">
-                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[130px]">Gambar</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[110px]">Gambar</th>
                                                     <th 
-                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 cursor-pointer hover:bg-slate-50/50 transition-colors w-[220px]"
+                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 cursor-pointer hover:bg-slate-50/50 transition-colors w-[180px]"
                                                         onClick={() => toggleSort("nama")}
                                                     >
                                                         <div className="flex items-center gap-2">
@@ -178,7 +178,7 @@ export function BahanBajuDesktop() {
                                                         </div>
                                                     </th>
                                                     <th 
-                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 cursor-pointer hover:bg-slate-50/50 transition-colors w-[150px]"
+                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 cursor-pointer hover:bg-slate-50/50 transition-colors w-[120px]"
                                                         onClick={() => toggleSort("harga")}
                                                     >
                                                         <div className="flex items-center gap-2">
@@ -188,16 +188,17 @@ export function BahanBajuDesktop() {
                                                     </th>
                                                     <th className="px-6 py-4 text-[13px] font-semibold text-slate-500">Deskripsi</th>
                                                     <th 
-                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[100px] cursor-pointer hover:bg-slate-50/50 transition-colors text-center"
+                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[130px] cursor-pointer hover:bg-slate-50/50 transition-colors text-center"
                                                         onClick={() => toggleSort("stok")}
                                                     >
                                                         <div className="flex items-center justify-center gap-2">
-                                                            Stok
+                                                            Ketersediaan
                                                             <ChevronsUpDown className="w-3 h-3 opacity-50" />
                                                         </div>
                                                     </th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[210px] text-center">Estimasi Jersey</th>
                                                     <th 
-                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[140px] cursor-pointer hover:bg-slate-50/50 transition-colors"
+                                                        className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[110px] cursor-pointer hover:bg-slate-50/50 transition-colors"
                                                         onClick={() => toggleSort("tanggal")}
                                                     >
                                                         <div className="flex items-center gap-2">
@@ -205,7 +206,7 @@ export function BahanBajuDesktop() {
                                                             <ChevronsUpDown className="w-3 h-3 opacity-50" />
                                                         </div>
                                                     </th>
-                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[220px]">Aksi</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[180px]">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-50">
@@ -247,16 +248,41 @@ export function BahanBajuDesktop() {
                                                                     {item.deskripsi || "-"}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-6 py-4 align-top text-center">
-                                                                <span className={cn(
-                                                                    "inline-flex flex-col items-center justify-center min-w-[60px] py-1.5 px-3 rounded-full text-xs font-semibold mt-1",
-                                                                    item.stok > 50 ? "bg-green-100/50 text-green-700" :
-                                                                    item.stok > 20 ? "bg-yellow-100/50 text-yellow-700" :
-                                                                    "bg-red-100/50 text-red-700"
-                                                                )}>
-                                                                    <span>{item.stok}</span>
-                                                                    <span className="text-[10px] font-medium opacity-80">unit</span>
-                                                                </span>
+                                                            <td className="px-4 py-4 align-top text-center">
+                                                                <div className="flex flex-col items-center gap-1.5 mt-3 justify-center">
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                                                        item.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                    <span className="text-xs font-black text-slate-700">
+                                                                        {item.kuantitasKg} kg
+                                                                    </span>
+                                                                    <span className="text-[10px] font-medium text-slate-400">
+                                                                        ~{(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-4 align-top">
+                                                                <div className="grid grid-cols-2 gap-1 w-full mt-1">
+                                                                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-blue-400 uppercase tracking-wide leading-none mb-0.5">Pendek S-2XL</div>
+                                                                        <div className="text-[11px] font-black text-blue-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 0.8333))} pcs</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-50/60 border border-blue-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-blue-400 uppercase tracking-wide leading-none mb-0.5">Pendek 3XL+</div>
+                                                                        <div className="text-[11px] font-black text-blue-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                    </div>
+                                                                    <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-indigo-400 uppercase tracking-wide leading-none mb-0.5">Panjang S-2XL</div>
+                                                                        <div className="text-[11px] font-black text-indigo-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                    </div>
+                                                                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-indigo-400 uppercase tracking-wide leading-none mb-0.5">Panjang 3XL+</div>
+                                                                        <div className="text-[11px] font-black text-indigo-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 2.5))} pcs</div>
+                                                                    </div>
+                                                                </div>
                                                             </td>
                                                             <td className="px-6 py-4 align-top">
                                                                 <div className="text-[13px] text-slate-500 mt-2">
@@ -328,7 +354,7 @@ export function BahanBajuDesktop() {
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Aksi</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Aktor</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Perubahan</th>
-                                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Stok Akhir</th>
+                                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Ketersediaan Akhir</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Keterangan</th>
                                             </tr>
                                         </thead>
@@ -360,13 +386,13 @@ export function BahanBajuDesktop() {
                                                         <td className="px-6 py-5">
                                                             <div className="text-sm font-bold text-slate-700">{hist.actor || "System"}</div>
                                                         </td>
-                                                        <td className="px-6 py-5 text-center font-mono font-bold text-base">
-                                                            {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah}</span> : 
-                                                             hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah}</span> : 
-                                                             hist.aksi === 'HAPUS' ? <span className="text-red-600">-{hist.jumlah}</span> :
-                                                             <span className="text-slate-400">{hist.jumlah}</span>}
+                                                        <td className="px-6 py-5 text-center font-mono font-bold text-sm">
+                                                            {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah} kg</span> : 
+                                                             hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah} kg</span> : 
+                                                             hist.aksi === 'HAPUS' ? <span className="text-red-600">-{hist.jumlah} kg</span> :
+                                                             <span className="text-slate-400">{hist.jumlah} kg</span>}
                                                         </td>
-                                                        <td className="px-6 py-5 text-center font-black text-slate-900 text-base">{hist.stokAkhir}</td>
+                                                        <td className="px-6 py-5 text-center font-black text-slate-900 text-sm">{hist.stokAkhir} kg</td>
                                                         <td className="px-6 py-5">
                                                             <div className="max-w-[300px] text-sm font-medium text-slate-500 italic leading-relaxed whitespace-pre-wrap break-words">{hist.keterangan || "-"}</div>
                                                         </td>

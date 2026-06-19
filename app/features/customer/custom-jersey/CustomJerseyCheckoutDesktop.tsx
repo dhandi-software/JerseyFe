@@ -50,6 +50,44 @@ const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
 };
 
+const getSizeSurcharge = (size: string): number => {
+    const s = size.toUpperCase().trim();
+    // Sizes S through 2XL have no surcharge
+    if (["XXS", "XS", "S", "M", "L", "XL", "2XL", "XXL"].includes(s)) {
+        return 0;
+    }
+    // 3XL = +Rp10.000, 4XL = +Rp20.000, 5XL = +Rp30.000, etc.
+    const numXlMatch = s.match(/^(\d+)XL$/);
+    if (numXlMatch) {
+        const xCount = parseInt(numXlMatch[1], 10);
+        if (xCount >= 3) {
+            return (xCount - 2) * 10000;
+        }
+    }
+    // Handle XXXL, XXXXL formats
+    const xMatches = s.match(/^(X+)L$/);
+    if (xMatches) {
+        const xCount = xMatches[1].length;
+        if (xCount >= 3) {
+            return (xCount - 2) * 10000;
+        }
+    }
+    return 0;
+};
+
+const getJerseyKgRequirement = (size: string, sleeve: string, rasioKonversi: number): number => {
+    const s = size.toUpperCase().trim();
+    const isLongSleeve = sleeve === "Lengan Panjang";
+    const isBigSize = ["3XL", "4XL", "5XL", "6XL", "XXXL", "XXXXL"].includes(s);
+    const rasio = rasioKonversi || 2.5;
+
+    if (isLongSleeve) {
+        return (isBigSize ? 2.5 : 1.25) / rasio;
+    } else {
+        return (isBigSize ? 1.25 : 0.8333) / rasio;
+    }
+};
+
 const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
         if (!file.type.startsWith('image/')) {
@@ -151,6 +189,19 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
     const [playerCountInput, setPlayerCountInput] = useState("");
     const [showValidation, setShowValidation] = useState(false);
+    const [allBahan, setAllBahan] = useState<any[]>([]);
+
+    useEffect(() => {
+        adminApi.getBahanBaju().then(res => {
+            if (res.status === "success") {
+                setAllBahan(res.data);
+            }
+        });
+    }, []);
+
+    const sizeParam = searchParams.get("size") || "L";
+    const sleeveParam = searchParams.get("sleeve") || "Lengan Pendek";
+
     useEffect(() => {
         if (productIdParam && cart.length === 0) {
             setIsLoadingProduct(true);
@@ -161,8 +212,10 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                         setDirectProduct({
                             id: product.id,
                             title: product.nama,
-                            price: 150000,
-                            stock: product.stok,
+                            price: product.harga || 150000,
+                            status: product.status,
+                            kuantitasKg: product.kuantitasKg || 0,
+                            rasioKonversi: product.rasioKonversi || 2.5,
                             image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
                         });
                     }
@@ -175,9 +228,12 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         id: cart[0].product.id,
         title: cart[0].product.title,
         price: cart[0].product.price,
-        stock: cart[0].product.stock,
+        status: cart[0].product.status,
         image: cart[0].product.image
     } : directProduct;
+
+    const activeBahan = allBahan.find(b => b.id === activeProduct?.id);
+    const availableKg = activeBahan ? (activeBahan.kuantitasKg || 0) : 0;
 
     const [toast, setToast] = useState<{ show: boolean, message: string, variant: "success" | "destructive" | "default" }>({ 
         show: false, 
@@ -211,43 +267,46 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                         setShippingMethod(order.shippingMethod || "PICKUP");
                         setShippingAddress(order.shippingAddress || "");
                         
-                        // Load details
-                        if (order.details && order.details.length > 0) {
-                            const detailsMapped = order.details.map((detail: any, idx: number) => {
-                                const { size, sleeve } = parseSizeAndSleeve(detail.playerSize);
-                                return {
-                                    id: `edit-${detail.id}-${idx}`,
-                                    productId: detail.productId,
-                                    productTitle: detail.productTitle,
-                                    price: 150000,
-                                    image: "",
-                                    name: detail.playerName || "",
-                                    number: detail.playerNumber || "",
-                                    size: size,
-                                    sleeve: sleeve
-                                };
-                            });
-                            setCustomDetails(detailsMapped);
-                        }
-
-                        // Load product details
-                        const firstDetail = order.details?.[0];
-                        if (firstDetail) {
-                            adminApi.getBahanBaju().then(res => {
-                                if (res.status === "success") {
-                                    const product = res.data.find((b: any) => b.id === Number(firstDetail.productId));
+                        // Load details & product details
+                        adminApi.getBahanBaju().then(res => {
+                            if (res.status === "success") {
+                                const products = res.data;
+                                const firstDetail = order.details?.[0];
+                                if (firstDetail) {
+                                    const product = products.find((b: any) => b.id === Number(firstDetail.productId));
                                     if (product) {
                                         setDirectProduct({
                                             id: product.id,
                                             title: product.nama,
-                                            price: 150000,
-                                            stock: product.stok,
+                                            price: product.harga || 150000,
+                                            status: product.status,
+                                            kuantitasKg: product.kuantitasKg || 0,
+                                            rasioKonversi: product.rasioKonversi || 2.5,
                                             image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
                                         });
                                     }
                                 }
-                            });
-                        }
+
+                                if (order.details && order.details.length > 0) {
+                                    const detailsMapped = order.details.map((detail: any, idx: number) => {
+                                        const { size, sleeve } = parseSizeAndSleeve(detail.playerSize);
+                                        const matchingBahan = products.find((b: any) => b.id === Number(detail.productId));
+                                        return {
+                                            id: `edit-${detail.id}-${idx}`,
+                                            productId: detail.productId,
+                                            productTitle: detail.productTitle,
+                                            price: matchingBahan?.harga || 150000,
+                                            image: matchingBahan?.imageUrl ? `${UPLOADS_URL}${matchingBahan.imageUrl}` : "",
+                                            name: detail.playerName || "",
+                                            number: detail.playerNumber || "",
+                                            size: size,
+                                            sleeve: sleeve
+                                        };
+                                    });
+                                    setCustomDetails(detailsMapped);
+                                }
+                            }
+                        });
                     } else {
                         setToast({ show: true, message: "Pesanan ini tidak dapat diedit atau tidak ditemukan.", variant: "destructive" });
                         navigate("/customer");
@@ -273,11 +332,6 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
             return;
         }
 
-        const maxStock = activeProduct.stock || 0;
-        if (count > maxStock) {
-            setToast({ show: true, message: `Gagal! Stok bahan hanya tersedia ${maxStock} pcs.`, variant: "destructive" });
-            return;
-        }
         const productId = activeProduct.id;
         const productTitle = activeProduct.title;
         const price = activeProduct.price;
@@ -318,8 +372,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                         image: item.product.image,
                         name: "",
                         number: "",
-                        size: "L",
-                        sleeve: "Lengan Pendek"
+                        size: sizeParam,
+                        sleeve: sleeveParam
                     }))
                 );
                 setCustomDetails(initialDetails);
@@ -332,8 +386,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                     image: activeProduct.image,
                     name: "",
                     number: "",
-                    size: "L",
-                    sleeve: "Lengan Pendek"
+                    size: sizeParam,
+                    sleeve: sleeveParam
                 }));
                 setCustomDetails(initialDetails);
             }
@@ -343,14 +397,6 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const parsePasteData = () => {
         const lines = pasteText.split('\n').filter(l => l.trim());
         if (!activeProduct) return;
-        const maxStock = activeProduct.stock || 0;
-
-        const totalAfterPaste = lines.length;
-
-        if (totalAfterPaste > maxStock) {
-            setToast({ show: true, message: `Gagal! Total pemain (${totalAfterPaste}) melebihi stok bahan (${maxStock} pcs).`, variant: "destructive" });
-            return;
-        }
 
         const newDetails = lines.map((line, idx) => {
             let tempLine = line.trim();
@@ -578,10 +624,14 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         setCustomDetails(prev => prev.filter(d => d.id !== id));
     };
 
+    const totalRequiredKg = customDetails.reduce((sum, item) => sum + getJerseyKgRequirement(item.size, item.sleeve, activeProduct?.rasioKonversi || 2.5), 0);
+    const isOverLimit = activeProduct && activeProduct.status !== "Habis" && totalRequiredKg > availableKg;
+
     const isStepValid = () => {
         if (step === 1) {
             if (pdfFile) return true;
             if (customDetails.length === 0) return false;
+            if (isOverLimit) return false;
             return customDetails.every(d => d.name.trim() !== "" && d.number.trim() !== "" && d.size !== "");
         }
         if (step === 2) {
@@ -596,6 +646,16 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     };
 
     const handleNextStep = () => {
+        if (step === 1 && isOverLimit) {
+            const supported = Math.floor(availableKg / (totalRequiredKg / customDetails.length));
+            const reduce = Math.max(1, customDetails.length - supported);
+            setToast({ 
+                show: true, 
+                message: `Stok bahan tidak cukup! Silakan kurangi pesanan Anda sebanyak ${reduce} pcs atau ubah ukuran/lengan agar sesuai dengan ketersediaan.`, 
+                variant: "destructive" 
+            });
+            return;
+        }
         if (!isStepValid()) {
             setShowValidation(true);
             let msg = "Lengkapi langkah ini terlebih dahulu";
@@ -645,7 +705,10 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         }
     };
 
-    const totalCalculated = customDetails.reduce((acc, d) => acc + (d.price || 0), 0);
+    const totalCalculated = customDetails.reduce((acc, d) => {
+        const basePrice = activeProduct?.price || d.price || 150000;
+        return acc + basePrice + getSizeSurcharge(d.size);
+    }, 0);
 
     const handleDetailChange = (id: string, field: string, value: string) => {
         setCustomDetails(prev => prev.map(detail => 
@@ -696,7 +759,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                 const payload = {
                     customerId: user?.id || 0,
                     bahanBajuId: activeProduct?.id,
-                    totalAmount: totalCalculated,
+                    totalAmount: totalCalculated + 20000,
                     designNote: designNote,
                     designUrl: designUrl,
                     paymentUrl: paymentUrl,
@@ -773,6 +836,21 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                         <h1 className="text-xl font-black italic uppercase tracking-tighter text-neutral-900">Checkout Process</h1>
                     </div>
                     <div className="flex items-center gap-8">
+                        {activeProduct && (
+                            <div className="hidden lg:flex items-center gap-3 pr-8 border-r border-neutral-100">
+                                 {activeProduct.image && (
+                                     <img 
+                                         src={activeProduct.image} 
+                                         alt={activeProduct.title} 
+                                         className="w-10 h-10 rounded-xl object-cover border border-neutral-200 shadow-sm" 
+                                     />
+                                 )}
+                                 <div className="text-right">
+                                     <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest italic leading-none mb-1">Bahan Baku</p>
+                                     <p className="text-xs font-black italic uppercase tracking-tight text-[#D25026]">{activeProduct.title}</p>
+                                 </div>
+                            </div>
+                        )}
                         <div className="hidden xl:flex items-center gap-3 pr-8 border-r border-neutral-100">
                              <div className="w-10 h-10 bg-neutral-50 rounded-full flex items-center justify-center border border-neutral-100">
                                  <User className="w-5 h-5 text-neutral-400" />
@@ -829,7 +907,21 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                     {/* Order Detail */}
                                     <div className="space-y-6">
                                         <div className="flex justify-between items-center">
-                                            <h2 className="text-xl font-black text-neutral-900 italic uppercase tracking-tighter">Order Detail</h2>
+                                            <div className="flex items-center gap-3">
+                                                <h2 className="text-xl font-black text-neutral-900 italic uppercase tracking-tighter">Order Detail</h2>
+                                                {activeProduct && (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FFF0EB] text-[#D25026] border border-[#FFD9CD] rounded-full text-[10px] font-black uppercase tracking-wider italic">
+                                                        {activeProduct.image && (
+                                                            <img 
+                                                                src={activeProduct.image} 
+                                                                alt={activeProduct.title} 
+                                                                className="w-4 h-4 rounded-full object-cover border border-[#FFD9CD]" 
+                                                            />
+                                                        )}
+                                                        Bahan: {activeProduct.title}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="flex gap-3 items-center flex-wrap">
                                                 <div className="flex items-center gap-2 bg-white rounded-xl border border-neutral-200 p-1">
                                                     <Input 
@@ -925,6 +1017,28 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                             </div>
                                         </div>
 
+                                        {activeProduct?.status === "Habis" && (
+                                            <div className="bg-orange-50 border border-orange-200 p-5 rounded-2xl flex items-start gap-3 mb-6">
+                                                <Info className="w-5 h-5 text-[#D25026] shrink-0 mt-0.5" />
+                                                <div className="text-xs font-bold uppercase tracking-tight text-[#B34320]">
+                                                    Pemberitahuan: Bahan jersey "{activeProduct.title}" sedang tidak tersedia / habis. Anda tetap dapat melanjutkan pemesanan. Admin akan menghubungi Anda setelah checkout untuk merekomendasikan bahan alternatif yang tersedia.
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {isOverLimit && (
+                                            <div className="bg-red-50 border border-red-200 p-5 rounded-2xl flex items-start gap-3 mb-6">
+                                                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                                                <div className="text-xs font-bold uppercase tracking-tight text-red-800">
+                                                    Kebutuhan bahan baku melebihi ketersediaan di gudang! (Dibutuhkan: {totalRequiredKg.toFixed(2)} kg, Tersedia: {availableKg.toFixed(2)} kg).
+                                                    <span className="block mt-1 text-[#B34320] font-extrabold normal-case">
+                                                        Stok bahan "{activeProduct?.title}" saat ini hanya cukup untuk {Math.floor(availableKg / (totalRequiredKg / customDetails.length))} pcs jersey dengan kombinasi lengan & ukuran Anda saat ini.
+                                                        Silakan kurangi pesanan Anda sebanyak {Math.max(1, customDetails.length - Math.floor(availableKg / (totalRequiredKg / customDetails.length)))} pcs atau ubah ukuran/tipe lengan ke yang lebih kecil/pendek.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {pdfFile && (
                                             <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-3">
                                                 <CheckCircle2 className="text-emerald-500 w-5 h-5" />
@@ -986,7 +1100,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                                 </td>
                                                                 <td className="p-5">
                                                                     <div className="flex gap-1 bg-neutral-50 p-1.5 rounded-2xl border border-neutral-100 w-max mx-auto">
-                                                                        {["XXS", "XS", "S", "M", "L", "XL", "XXL"].map(size => (
+                                                                        {["S", "M", "L", "XL", "2XL", "3XL", "4XL"].map(size => (
                                                                             <button
                                                                                 key={size}
                                                                                 onClick={() => handleDetailChange(detail.id, "size", size)}
@@ -1256,13 +1370,9 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                                     <span className="text-neutral-500 font-medium">Order Items</span>
                                                     <span className="font-bold tracking-tighter">{customDetails.length} Units</span>
                                                 </div>
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-neutral-500 font-medium">Taxes and VAT</span>
-                                                    <span className="font-bold tracking-tighter">{formatRupiah(20000)}</span>
-                                                </div>
                                                 <div className="pt-4 border-t border-white/10 flex justify-between items-center">
                                                     <span className="text-lg font-black uppercase tracking-tighter italic">Total Amount</span>
-                                                    <span className="text-3xl font-black tracking-tighter text-[#D25026]">{formatRupiah(totalCalculated + 20000)}</span>
+                                                    <span className="text-3xl font-black tracking-tighter text-[#D25026]">{formatRupiah(totalCalculated)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1373,7 +1483,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                             </div>
                                             <div className="min-w-[120px]">
                                                 <span className="text-[9px] font-black uppercase tracking-widest italic text-neutral-400 block leading-none mb-1">Total Payment</span>
-                                                <p className="text-lg font-black tracking-tighter text-white">{formatRupiah(totalCalculated + 20000)}</p>
+                                                <p className="text-lg font-black tracking-tighter text-white">{formatRupiah(totalCalculated)}</p>
                                             </div>
                                         </div>
                                     )}

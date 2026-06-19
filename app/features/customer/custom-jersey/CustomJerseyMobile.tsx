@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Search, ShoppingBag, CreditCard, Eye } from "lucide-react";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
+import { cn } from "~/lib/utils";
 
 export function CustomJerseyMobile({ title }: { title: string }) {
     const navigate = useNavigate();
@@ -18,7 +19,7 @@ export function CustomJerseyMobile({ title }: { title: string }) {
                     title: bahan.nama,
                     category: "Jersey",
                     price: bahan.harga || 150000,
-                    stock: bahan.stok,
+                    status: bahan.status,
                     image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image"
                 }));
                 setJerseyProducts(mapped);
@@ -72,8 +73,11 @@ export function CustomJerseyMobile({ title }: { title: string }) {
                         >
                             <div className="aspect-square relative overflow-hidden bg-slate-50">
                                 <img src={product.image} className="w-full h-full object-cover" />
-                                <div className="absolute top-4 right-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl text-[10px] font-black text-slate-900 shadow-sm border border-white/50">
-                                    {product.stock} STOK
+                                <div className={cn(
+                                    "absolute top-4 right-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl text-[10px] font-black shadow-sm border border-white/50",
+                                    product.status === "Habis" ? "text-red-500" : "text-emerald-600"
+                                )}>
+                                    {product.status === "Habis" ? "HABIS" : "TERSEDIA"}
                                 </div>
                             </div>
                             <div className="p-6 space-y-6">

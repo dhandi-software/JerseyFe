@@ -452,7 +452,7 @@ export function ProgressPesananDesktop() {
                                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
                                     <Package className="text-[#D25026]" size={16} /> Bukti Pembayaran
                                 </h3>
-                                {selectedOrder.status !== "MENUNGGU" && selectedOrder.status !== "DITOLAK" && (
+                                {selectedOrder.status !== "DITOLAK" && (
                                     <button 
                                         onClick={handlePrintInvoice}
                                         disabled={isPrinting}

@@ -405,7 +405,7 @@ export function ProgressPesananMobile() {
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
                                 <Package className="text-[#D25026]" size={14} /> Info Pembayaran
                             </h3>
-                            {selectedOrder.status !== "MENUNGGU" && selectedOrder.status !== "DITOLAK" && (
+                            {selectedOrder.status !== "DITOLAK" && (
                                 <button 
                                     onClick={handlePrintInvoice}
                                     disabled={isPrinting}

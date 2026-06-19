@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { adminApi } from "~/api/admin";
-import { 
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip 
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
 } from "recharts";
-import { 
-    Calendar, TrendingUp, Coins, BarChart3, ArrowUpRight, ChevronDown, Award
+import {
+    Calendar, TrendingUp, Coins, BarChart3, ArrowUpRight, ChevronDown, Award, FileText
 } from "lucide-react";
+import { downloadOmsetPDF } from "~/lib/sizeUtils";
 import { cn } from "~/lib/utils";
 
 const months = [
@@ -29,10 +30,10 @@ export function OmsetDesktop() {
     const [timeView, setTimeView] = useState<'daily' | 'monthly' | 'yearly' | 'lifetime'>('monthly');
     const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
     const [selectedMonth, setSelectedMonth] = useState<number | undefined>(undefined);
-    
+
     const [showYearDropdown, setShowYearDropdown] = useState(false);
     const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-    
+
     const yearDropdownRef = useRef<HTMLDivElement>(null);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +92,15 @@ export function OmsetDesktop() {
     }, [selectedYear, selectedMonth]);
 
     useEffect(() => {
+        const curYear = new Date().getFullYear();
+        const curMonth = new Date().getMonth() + 1;
+        if (selectedYear === curYear && selectedMonth && selectedMonth > curMonth) {
+            setSelectedMonth(undefined);
+            setTimeView('monthly');
+        }
+    }, [selectedYear, selectedMonth]);
+
+    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
                 setShowYearDropdown(false);
@@ -112,11 +122,25 @@ export function OmsetDesktop() {
         years.push(y);
     }
 
-    const activeData = statsData.salesData[timeView] || [];
+    const currentMonthVal = new Date().getMonth() + 1;
+    const currentDayVal = new Date().getDate();
+    
+    let activeData = statsData.salesData[timeView] || [];
+    const isCurrentYear = !selectedYear || selectedYear === currentYear;
+    const isCurrentMonth = !selectedMonth || selectedMonth === currentMonthVal;
+
+    if (timeView === 'monthly' && isCurrentYear) {
+        activeData = activeData.slice(0, currentMonthVal);
+    } else if (timeView === 'daily' && isCurrentYear && isCurrentMonth) {
+        activeData = activeData.filter((item: any) => {
+            const dayNum = parseInt(item.name);
+            return !isNaN(dayNum) && dayNum <= currentDayVal;
+        });
+    }
+
     const currentTotal = activeData.reduce((sum, item) => sum + (item.pv || 0), 0);
 
-    const currentMonthVal = new Date().getMonth() + 1;
-    const filteredMonths = selectedYear === currentYear 
+    const filteredMonths = selectedYear === currentYear
         ? months.filter(m => m.value <= currentMonthVal)
         : months;
 
@@ -128,9 +152,28 @@ export function OmsetDesktop() {
         }
     }, [timeView, statsData]);
 
+    const handleExportReport = () => {
+        let periodText = "Lifetime (Seluruh Waktu)";
+        if (selectedYear && selectedMonth) {
+            periodText = `Harian - ${months[selectedMonth - 1].label} ${selectedYear}`;
+        } else if (selectedYear) {
+            periodText = `Bulanan - Tahun ${selectedYear}`;
+        } else {
+            if (timeView === 'daily') {
+                periodText = "Harian (Bulan Ini)";
+            } else if (timeView === 'monthly') {
+                periodText = `Bulanan - Tahun ${new Date().getFullYear()}`;
+            } else if (timeView === 'yearly') {
+                periodText = "Tahunan";
+            }
+        }
+
+        downloadOmsetPDF(activeData, periodText, currentTotal);
+    };
+
     return (
         <div className="w-full min-h-screen p-8 bg-[#F5F5F3] font-['Inter'] flex flex-col gap-6">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center mb-2">
                 <div>
@@ -149,7 +192,7 @@ export function OmsetDesktop() {
 
             {/* Metrics Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                
+
                 {/* Total Revenue Card */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between relative overflow-hidden group">
                     <div className="absolute right-0 top-0 w-24 h-24 bg-[#D25026]/5 rounded-bl-[5rem] flex items-center justify-center transition-all duration-300 group-hover:bg-[#D25026]/10">
@@ -215,35 +258,45 @@ export function OmsetDesktop() {
             </div>
 
             {/* Tabs for Timeframes / Filter Indicator */}
-            {!selectedYear && !selectedMonth ? (
-                <div className="flex gap-2 bg-white/60 p-1.5 rounded-2xl border border-slate-200/50 w-fit self-center lg:self-start">
-                    {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
-                        <button
-                            key={view}
-                            onClick={() => setTimeView(view)}
-                            className={cn(
-                                "px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer",
-                                timeView === view 
-                                    ? "bg-[#D25026] text-white shadow-md shadow-[#D25026]/20" 
-                                    : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
-                            )}
-                        >
-                            {view === 'daily' ? 'Harian' : view === 'monthly' ? 'Bulanan' : view === 'yearly' ? 'Tahunan' : 'Lifetime'}
-                        </button>
-                    ))}
-                </div>
-            ) : (
-                <div className="bg-[#D25026]/10 text-[#D25026] px-4 py-2.5 rounded-xl border border-[#D25026]/20 w-fit self-center lg:self-start flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#D25026] animate-pulse" />
-                    <span className="text-xs font-bold uppercase tracking-wider">
-                        Rincian Terfilter: {selectedYear && `Tahun ${selectedYear}`} {selectedMonth && `- ${months[selectedMonth - 1].label}`} ({selectedMonth ? 'Harian' : 'Bulanan'})
-                    </span>
-                </div>
-            )}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center w-full">
+                {!selectedYear && !selectedMonth ? (
+                    <div className="flex gap-2 bg-white/60 p-1.5 rounded-2xl border border-slate-200/50 w-fit self-center lg:self-start">
+                        {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
+                            <button
+                                key={view}
+                                onClick={() => setTimeView(view)}
+                                className={cn(
+                                    "px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer",
+                                    timeView === view
+                                        ? "bg-[#D25026] text-white shadow-md shadow-[#D25026]/20"
+                                        : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
+                                )}
+                            >
+                                {view === 'daily' ? 'Harian' : view === 'monthly' ? 'Bulanan' : view === 'yearly' ? 'Tahunan' : 'Lifetime'}
+                            </button>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="bg-[#D25026]/10 text-[#D25026] px-4 py-2.5 rounded-xl border border-[#D25026]/20 w-fit self-center lg:self-start flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#D25026] animate-pulse" />
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                            Rincian Terfilter: {selectedYear && `Tahun ${selectedYear}`} {selectedMonth && `- ${months[selectedMonth - 1].label}`} ({selectedMonth ? 'Harian' : 'Bulanan'})
+                        </span>
+                    </div>
+                )}
+
+                <button
+                    onClick={handleExportReport}
+                    className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+                >
+                    <FileText className="w-4 h-4 text-[#D25026]" />
+                    Unduh Laporan PDF
+                </button>
+            </div>
 
             {/* Main Content: Chart & Table Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
+
                 {/* Left Side: Chart (Visual representation) */}
                 <div className="lg:col-span-7 bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col min-h-[350px]">
                     <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -258,7 +311,7 @@ export function OmsetDesktop() {
                                 )}
                             </h3>
                         </div>
-                        
+
                         {/* Custom Dropdown Filters near the Graph */}
                         <div className="flex items-center gap-2">
                             {/* Filter Tahun */}
@@ -368,9 +421,9 @@ export function OmsetDesktop() {
                     <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
                         <div className={cn(
                             "h-[250px] relative -ml-4",
-                            timeView === 'daily' ? 'w-[900px] min-w-full' : 
-                            timeView === 'lifetime' ? 'w-[1200px] min-w-full' : 
-                            timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
+                            timeView === 'daily' ? 'w-[900px] min-w-full' :
+                                timeView === 'lifetime' ? 'w-[1200px] min-w-full' :
+                                    timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
                         )}>
                             {loading || !isMounted ? (
                                 <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
@@ -386,36 +439,36 @@ export function OmsetDesktop() {
                                     <AreaChart data={activeData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <XAxis 
-                                            dataKey="name" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{fill: '#94a3b8', fontSize: 10}}
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#94a3b8', fontSize: 10 }}
                                             dy={10}
                                         />
-                                        <YAxis 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{fill: '#94a3b8', fontSize: 10}}
-                                            tickFormatter={(val) => `${val/1000}k`}
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                            tickFormatter={(val) => `${val / 1000}k`}
                                         />
-                                        <Tooltip 
+                                        <Tooltip
                                             contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                             formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Omset']}
                                             labelStyle={{ color: '#64748b', fontWeight: 'bold' }}
                                         />
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                        <Area 
-                                            type="linear" 
-                                            dataKey="pv" 
-                                            stroke="#22c55e" 
-                                            strokeWidth={2} 
-                                            fillOpacity={1} 
-                                            fill="url(#colorPv)" 
+                                        <Area
+                                            type="linear"
+                                            dataKey="pv"
+                                            stroke="#22c55e"
+                                            strokeWidth={2}
+                                            fillOpacity={1}
+                                            fill="url(#colorPv)"
                                             dot={(props: any) => {
                                                 const { cx, cy, payload, index } = props;
                                                 if (index === 0) {
@@ -425,14 +478,14 @@ export function OmsetDesktop() {
                                                 const currentVal = payload.pv || 0;
                                                 const isPointDecrease = currentVal < prevVal;
                                                 return (
-                                                    <circle 
+                                                    <circle
                                                         key={`dot-${index}`}
-                                                        cx={cx} 
-                                                        cy={cy} 
-                                                        r={3} 
-                                                        fill={isPointDecrease ? "#ef4444" : "#22c55e"} 
-                                                        stroke="#fff" 
-                                                        strokeWidth={1} 
+                                                        cx={cx}
+                                                        cy={cy}
+                                                        r={3}
+                                                        fill={isPointDecrease ? "#ef4444" : "#22c55e"}
+                                                        stroke="#fff"
+                                                        strokeWidth={1}
                                                     />
                                                 );
                                             }}
@@ -474,8 +527,8 @@ export function OmsetDesktop() {
                                     const isDecrease = currentVal < prevVal;
 
                                     return (
-                                        <div 
-                                            key={idx} 
+                                        <div
+                                            key={idx}
                                             className="p-4 bg-slate-50 hover:bg-[#FFF0EB]/20 hover:border-[#FFF0EB] border border-slate-100 rounded-2xl flex items-center justify-between transition-all duration-300 group"
                                         >
                                             <div className="flex items-center gap-3">

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { adminApi } from "~/api/admin";
 import { useSidebar } from "~/components/ui/sidebar";
-import { 
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip 
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
 } from "recharts";
-import { 
-    Calendar, TrendingUp, Coins, BarChart3, ChevronDown, Award, Menu
+import {
+    Calendar, TrendingUp, Coins, BarChart3, ChevronDown, Award, Menu, FileText
 } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { downloadOmsetPDF } from "~/lib/sizeUtils";
 
 const months = [
     { value: 1, label: "Januari" },
@@ -32,10 +33,10 @@ export function OmsetMobile() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
     const [selectedMonth, setSelectedMonth] = useState<number | undefined>(undefined);
-    
+
     const [showYearDropdown, setShowYearDropdown] = useState(false);
     const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-    
+
     const yearDropdownRef = useRef<HTMLDivElement>(null);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +95,15 @@ export function OmsetMobile() {
     }, [selectedYear, selectedMonth]);
 
     useEffect(() => {
+        const curYear = new Date().getFullYear();
+        const curMonth = new Date().getMonth() + 1;
+        if (selectedYear === curYear && selectedMonth && selectedMonth > curMonth) {
+            setSelectedMonth(undefined);
+            setTimeView('monthly');
+        }
+    }, [selectedYear, selectedMonth]);
+
+    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
                 setShowYearDropdown(false);
@@ -115,13 +125,46 @@ export function OmsetMobile() {
         years.push(y);
     }
 
-    const activeData = statsData.salesData[timeView] || [];
+    const currentMonthVal = new Date().getMonth() + 1;
+    const currentDayVal = new Date().getDate();
+    
+    let activeData = statsData.salesData[timeView] || [];
+    const isCurrentYear = !selectedYear || selectedYear === currentYear;
+    const isCurrentMonth = !selectedMonth || selectedMonth === currentMonthVal;
+
+    if (timeView === 'monthly' && isCurrentYear) {
+        activeData = activeData.slice(0, currentMonthVal);
+    } else if (timeView === 'daily' && isCurrentYear && isCurrentMonth) {
+        activeData = activeData.filter((item: any) => {
+            const dayNum = parseInt(item.name);
+            return !isNaN(dayNum) && dayNum <= currentDayVal;
+        });
+    }
+
     const currentTotal = activeData.reduce((sum, item) => sum + (item.pv || 0), 0);
 
-    const currentMonthVal = new Date().getMonth() + 1;
-    const filteredMonths = selectedYear === currentYear 
+    const filteredMonths = selectedYear === currentYear
         ? months.filter(m => m.value <= currentMonthVal)
         : months;
+
+    const handleExportReport = () => {
+        let periodText = "Lifetime (Seluruh Waktu)";
+        if (selectedYear && selectedMonth) {
+            periodText = `Harian - ${months[selectedMonth - 1].label} ${selectedYear}`;
+        } else if (selectedYear) {
+            periodText = `Bulanan - Tahun ${selectedYear}`;
+        } else {
+            if (timeView === 'daily') {
+                periodText = "Harian (Bulan Ini)";
+            } else if (timeView === 'monthly') {
+                periodText = `Bulanan - Tahun ${new Date().getFullYear()}`;
+            } else if (timeView === 'yearly') {
+                periodText = "Tahunan";
+            }
+        }
+
+        downloadOmsetPDF(activeData, periodText, currentTotal);
+    };
 
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
@@ -133,16 +176,26 @@ export function OmsetMobile() {
 
     return (
         <div className="w-full min-h-screen bg-[#F5F5F3] font-['Inter'] flex flex-col gap-4 p-4 pb-20">
-            
+
             {/* Mobile Header */}
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setOpenMobile(true)}
+                        className="p-2 -ml-2 rounded-xl hover:bg-slate-200/50 transition-colors"
+                    >
+                        <Menu className="w-6 h-6 text-slate-900" />
+                    </button>
+                    <div className="text-slate-900 text-2xl font-black">Omset Transaksi</div>
+                </div>
+
                 <button
-                    onClick={() => setOpenMobile(true)}
-                    className="p-2 -ml-2 rounded-xl hover:bg-slate-200/50 transition-colors"
+                    onClick={handleExportReport}
+                    className="flex items-center justify-center p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+                    title="Unduh Laporan PDF"
                 >
-                    <Menu className="w-6 h-6 text-slate-900" />
+                    <FileText className="w-5 h-5 text-[#D25026]" />
                 </button>
-                <div className="text-slate-900 text-2xl font-black">Omset Transaksi</div>
             </div>
 
             {/* Total Revenue Card */}
@@ -160,7 +213,7 @@ export function OmsetMobile() {
                 <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm">
                     <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Pilih Filter</span>
                     <div className="relative">
-                        <button 
+                        <button
                             onClick={() => setShowDropdown(!showDropdown)}
                             className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
                         >
@@ -221,7 +274,7 @@ export function OmsetMobile() {
                             </span>
                         )}
                     </div>
-                    
+
                     {/* Filters near graph for Mobile */}
                     <div className="flex items-center gap-1.5 shrink-0">
                         {/* Filter Tahun */}
@@ -323,13 +376,13 @@ export function OmsetMobile() {
                         </div>
                     </div>
                 </div>
-                
+
                 <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
                     <div className={cn(
                         "h-[180px] relative -ml-6 -mb-2",
-                        timeView === 'daily' ? 'w-[650px] min-w-full' : 
-                        timeView === 'lifetime' ? 'w-[950px] min-w-full' : 
-                        timeView === 'monthly' ? 'w-[500px] min-w-full' : 'w-full'
+                        timeView === 'daily' ? 'w-[650px] min-w-full' :
+                            timeView === 'lifetime' ? 'w-[950px] min-w-full' :
+                                timeView === 'monthly' ? 'w-[500px] min-w-full' : 'w-full'
                     )}>
                         {loading || !isMounted ? (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
@@ -345,31 +398,31 @@ export function OmsetMobile() {
                                 <AreaChart data={activeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <XAxis 
-                                        dataKey="name" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fill: '#94a3b8', fontSize: 10}}
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8', fontSize: 10 }}
                                         dy={10}
                                     />
                                     <YAxis hide={true} />
-                                    <Tooltip 
+                                    <Tooltip
                                         contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                         formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Omset']}
                                         labelStyle={{ color: '#64748b', fontWeight: 'bold' }}
                                     />
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <Area 
-                                        type="linear" 
-                                        dataKey="pv" 
-                                        stroke="#22c55e" 
-                                        strokeWidth={2} 
-                                        fillOpacity={1} 
-                                        fill="url(#colorPv)" 
+                                    <Area
+                                        type="linear"
+                                        dataKey="pv"
+                                        stroke="#22c55e"
+                                        strokeWidth={2}
+                                        fillOpacity={1}
+                                        fill="url(#colorPv)"
                                         dot={(props: any) => {
                                             const { cx, cy, payload, index } = props;
                                             if (index === 0) {
@@ -379,14 +432,14 @@ export function OmsetMobile() {
                                             const currentVal = payload.pv || 0;
                                             const isPointDecrease = currentVal < prevVal;
                                             return (
-                                                <circle 
+                                                <circle
                                                     key={`dot-${index}`}
-                                                    cx={cx} 
-                                                    cy={cy} 
-                                                    r={3} 
-                                                    fill={isPointDecrease ? "#ef4444" : "#22c55e"} 
-                                                    stroke="#fff" 
-                                                    strokeWidth={1} 
+                                                    cx={cx}
+                                                    cy={cy}
+                                                    r={3}
+                                                    fill={isPointDecrease ? "#ef4444" : "#22c55e"}
+                                                    stroke="#fff"
+                                                    strokeWidth={1}
                                                 />
                                             );
                                         }}
@@ -418,8 +471,8 @@ export function OmsetMobile() {
                                 const isDecrease = currentVal < prevVal;
 
                                 return (
-                                    <div 
-                                        key={idx} 
+                                    <div
+                                        key={idx}
                                         className="p-3 bg-slate-50 hover:bg-[#FFF0EB]/10 border border-slate-100 rounded-xl flex items-center justify-between transition-colors"
                                     >
                                         <div className="flex items-center gap-2">

@@ -48,6 +48,44 @@ const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
 };
 
+const getSizeSurcharge = (size: string): number => {
+    const s = size.toUpperCase().trim();
+    // Sizes S through 2XL have no surcharge
+    if (["XXS", "XS", "S", "M", "L", "XL", "2XL", "XXL"].includes(s)) {
+        return 0;
+    }
+    // 3XL = +Rp10.000, 4XL = +Rp20.000, 5XL = +Rp30.000, etc.
+    const numXlMatch = s.match(/^(\d+)XL$/);
+    if (numXlMatch) {
+        const xCount = parseInt(numXlMatch[1], 10);
+        if (xCount >= 3) {
+            return (xCount - 2) * 10000;
+        }
+    }
+    // Handle XXXL, XXXXL formats
+    const xMatches = s.match(/^(X+)L$/);
+    if (xMatches) {
+        const xCount = xMatches[1].length;
+        if (xCount >= 3) {
+            return (xCount - 2) * 10000;
+        }
+    }
+    return 0;
+};
+
+const getJerseyKgRequirement = (size: string, sleeve: string, rasioKonversi: number): number => {
+    const s = size.toUpperCase().trim();
+    const isLongSleeve = sleeve === "Lengan Panjang";
+    const isBigSize = ["3XL", "4XL", "5XL", "6XL", "XXXL", "XXXXL"].includes(s);
+    const rasio = rasioKonversi || 2.5;
+
+    if (isLongSleeve) {
+        return (isBigSize ? 2.5 : 1.25) / rasio;
+    } else {
+        return (isBigSize ? 1.25 : 0.8333) / rasio;
+    }
+};
+
 const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
         if (!file.type.startsWith('image/')) {
@@ -147,6 +185,19 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
     const [playerCountInput, setPlayerCountInput] = useState("");
     const [showValidation, setShowValidation] = useState(false);
+    const [allBahan, setAllBahan] = useState<any[]>([]);
+
+    useEffect(() => {
+        adminApi.getBahanBaju().then(res => {
+            if (res.status === "success") {
+                setAllBahan(res.data);
+            }
+        });
+    }, []);
+
+    const sizeParam = searchParams.get("size") || "L";
+    const sleeveParam = searchParams.get("sleeve") || "Lengan Pendek";
+
     useEffect(() => {
         if (productIdParam && cart.length === 0) {
             setIsLoadingProduct(true);
@@ -157,8 +208,10 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                         setDirectProduct({
                             id: product.id,
                             title: product.nama,
-                            price: 150000,
-                            stock: product.stok,
+                            price: product.harga || 150000,
+                            status: product.status,
+                            kuantitasKg: product.kuantitasKg || 0,
+                            rasioKonversi: product.rasioKonversi || 2.5,
                             image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
                         });
                     }
@@ -171,9 +224,12 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
         id: cart[0].product.id,
         title: cart[0].product.title,
         price: cart[0].product.price,
-        stock: cart[0].product.stock,
+        status: cart[0].product.status,
         image: cart[0].product.image
     } : directProduct;
+
+    const activeBahan = allBahan.find(b => b.id === activeProduct?.id);
+    const availableKg = activeBahan ? (activeBahan.kuantitasKg || 0) : 0;
 
     const [toast, setToast] = useState<{ show: boolean, message: string, variant: "success" | "destructive" | "default" }>({ 
         show: false, 
@@ -207,43 +263,46 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                         setShippingMethod(order.shippingMethod || "PICKUP");
                         setShippingAddress(order.shippingAddress || "");
                         
-                        // Load details
-                        if (order.details && order.details.length > 0) {
-                            const detailsMapped = order.details.map((detail: any, idx: number) => {
-                                const { size, sleeve } = parseSizeAndSleeve(detail.playerSize);
-                                return {
-                                    id: `edit-${detail.id}-${idx}`,
-                                    productId: detail.productId,
-                                    productTitle: detail.productTitle,
-                                    price: 150000,
-                                    image: "",
-                                    name: detail.playerName || "",
-                                    number: detail.playerNumber || "",
-                                    size: size,
-                                    sleeve: sleeve
-                                };
-                            });
-                            setCustomDetails(detailsMapped);
-                        }
-
-                        // Load product details
-                        const firstDetail = order.details?.[0];
-                        if (firstDetail) {
-                            adminApi.getBahanBaju().then(res => {
-                                if (res.status === "success") {
-                                    const product = res.data.find((b: any) => b.id === Number(firstDetail.productId));
+                        // Load details & product details
+                        adminApi.getBahanBaju().then(res => {
+                            if (res.status === "success") {
+                                const products = res.data;
+                                const firstDetail = order.details?.[0];
+                                if (firstDetail) {
+                                    const product = products.find((b: any) => b.id === Number(firstDetail.productId));
                                     if (product) {
                                         setDirectProduct({
                                             id: product.id,
                                             title: product.nama,
-                                            price: 150000,
-                                            stock: product.stok,
+                                            price: product.harga || 150000,
+                                            status: product.status,
+                                            kuantitasKg: product.kuantitasKg || 0,
+                                            rasioKonversi: product.rasioKonversi || 2.5,
                                             image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
                                         });
                                     }
                                 }
-                            });
-                        }
+
+                                if (order.details && order.details.length > 0) {
+                                    const detailsMapped = order.details.map((detail: any, idx: number) => {
+                                        const { size, sleeve } = parseSizeAndSleeve(detail.playerSize);
+                                        const matchingBahan = products.find((b: any) => b.id === Number(detail.productId));
+                                        return {
+                                            id: `edit-${detail.id}-${idx}`,
+                                            productId: detail.productId,
+                                            productTitle: detail.productTitle,
+                                            price: matchingBahan?.harga || 150000,
+                                            image: matchingBahan?.imageUrl ? `${UPLOADS_URL}${matchingBahan.imageUrl}` : "",
+                                            name: detail.playerName || "",
+                                            number: detail.playerNumber || "",
+                                            size: size,
+                                            sleeve: sleeve
+                                        };
+                                    });
+                                    setCustomDetails(detailsMapped);
+                                }
+                            }
+                        });
                     } else {
                         setToast({ show: true, message: "Pesanan ini tidak dapat diedit atau tidak ditemukan.", variant: "destructive" });
                         navigate("/customer");
@@ -269,11 +328,6 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
             return;
         }
 
-        const maxStock = activeProduct.stock || 0;
-        if (count > maxStock) {
-            setToast({ show: true, message: `Gagal! Stok bahan hanya tersedia ${maxStock} pcs.`, variant: "destructive" });
-            return;
-        }
         const productId = activeProduct.id;
         const productTitle = activeProduct.title;
         const price = activeProduct.price;
@@ -287,8 +341,8 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
             image,
             name: "",
             number: "",
-            size: "L",
-            sleeve: "Lengan Pendek"
+            size: sizeParam,
+            sleeve: sleeveParam
         }));
         setCustomDetails(newDetails);
         setPlayerCountInput("");
@@ -314,8 +368,8 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                         image: item.product.image,
                         name: "",
                         number: "",
-                        size: "L",
-                        sleeve: "Lengan Pendek"
+                        size: sizeParam,
+                        sleeve: sleeveParam
                     }))
                 );
                 setCustomDetails(initialDetails);
@@ -328,8 +382,8 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                     image: activeProduct.image,
                     name: "",
                     number: "",
-                    size: "L",
-                    sleeve: "Lengan Pendek"
+                    size: sizeParam,
+                    sleeve: sleeveParam
                 }));
                 setCustomDetails(initialDetails);
             }
@@ -339,12 +393,6 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const parsePasteData = () => {
         const lines = pasteText.split('\n').filter(l => l.trim());
         if (!activeProduct) return;
-        const maxStock = activeProduct.stock || 0;
-
-        if (lines.length > maxStock) {
-            setToast({ show: true, message: `Gagal! Jumlah pemain (${lines.length}) melebihi stok bahan (${maxStock} pcs).`, variant: "destructive" });
-            return;
-        }
 
         const newDetails = lines.map((line, idx) => {
             let tempLine = line.trim();
@@ -571,10 +619,14 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
         setCustomDetails(prev => prev.filter(d => d.id !== id));
     };
 
+    const totalRequiredKg = customDetails.reduce((sum, item) => sum + getJerseyKgRequirement(item.size, item.sleeve, activeProduct?.rasioKonversi || 2.5), 0);
+    const isOverLimit = activeProduct && activeProduct.status !== "Habis" && totalRequiredKg > availableKg;
+
     const isStepValid = () => {
         if (step === 1) {
             if (pdfFile) return true;
             if (customDetails.length === 0) return false;
+            if (isOverLimit) return false;
             return customDetails.every(d => d.name.trim() !== "" && d.number.trim() !== "" && d.size !== "");
         }
         if (step === 2) {
@@ -589,6 +641,16 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     };
 
     const handleNextStep = () => {
+        if (step === 1 && isOverLimit) {
+            const supported = Math.floor(availableKg / (totalRequiredKg / customDetails.length));
+            const reduce = Math.max(1, customDetails.length - supported);
+            setToast({ 
+                show: true, 
+                message: `Stok bahan tidak cukup! Silakan kurangi pesanan Anda sebanyak ${reduce} pcs atau ubah ukuran/lengan agar sesuai dengan ketersediaan.`, 
+                variant: "destructive" 
+            });
+            return;
+        }
         if (!isStepValid()) {
             setShowValidation(true);
             let msg = "Lengkapi langkah ini dulu";
@@ -626,8 +688,8 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                 image: product.image,
                 name: "",
                 number: "",
-                size: "L",
-                sleeve: "Lengan Pendek"
+                size: sizeParam,
+                sleeve: sleeveParam
             }]);
         } else {
             const lastIdx = [...customDetails].reverse().findIndex(d => d.productId === productId);
@@ -638,7 +700,10 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
         }
     };
 
-    const totalCalculated = customDetails.reduce((acc, d) => acc + (d.price || 0), 0);
+    const totalCalculated = customDetails.reduce((acc, d) => {
+        const basePrice = activeProduct?.price || d.price || 150000;
+        return acc + basePrice + getSizeSurcharge(d.size);
+    }, 0);
 
     const handleDetailChange = (id: string, field: string, value: string) => {
         setCustomDetails(prev => prev.map(detail => 
@@ -672,14 +737,13 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                 const res = await chatService.uploadFile(compressed);
                 paymentUrl = res.url;
             }
-
             setUploadProgress(90);
             
             try {
                 const payload = {
                     customerId: user?.id || 0,
                     bahanBajuId: activeProduct?.id,
-                    totalAmount: totalCalculated,
+                    totalAmount: totalCalculated + 20000,
                     designNote: designNote,
                     designUrl: designUrl,
                     paymentUrl: paymentUrl,
@@ -769,11 +833,61 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                 </div>
             </div>
 
+            {activeProduct && (
+                <div className="bg-[#FFF0EB] px-5 py-2.5 border-b border-[#FFD9CD] flex items-center justify-between text-[10px] font-black uppercase tracking-wider italic text-[#D25026] shrink-0 gap-3">
+                    <div className="flex items-center gap-2">
+                        {activeProduct.image && (
+                            <img 
+                                src={activeProduct.image} 
+                                alt={activeProduct.title} 
+                                className="w-6 h-6 rounded-md object-cover border border-[#FFD9CD]" 
+                            />
+                        )}
+                        <span>Bahan Baku:</span>
+                    </div>
+                    <span>{activeProduct.title}</span>
+                </div>
+            )}
+
             <div className="flex-1 overflow-y-auto px-5 py-8 space-y-8">
                 {step === 1 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {activeProduct?.status === "Habis" && (
+                            <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-start gap-2.5 mb-4">
+                                <Info className="w-4.5 h-4.5 text-[#D25026] shrink-0 mt-0.5" />
+                                <div className="text-[10px] font-bold uppercase tracking-tight text-[#B34320] leading-relaxed">
+                                    Pemberitahuan: Bahan jersey "{activeProduct.title}" sedang tidak tersedia / habis. Anda tetap dapat melanjutkan pemesanan, dan Admin akan menghubungi Anda setelah checkout untuk merekomendasikan bahan alternatif yang tersedia.
+                                </div>
+                            </div>
+                        )}
+                        {isOverLimit && (
+                            <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-2.5 mb-4">
+                                <AlertCircle className="w-4.5 h-4.5 text-red-600 shrink-0 mt-0.5" />
+                                <div className="text-[10px] font-bold uppercase tracking-tight text-red-800 leading-relaxed">
+                                    Kebutuhan bahan baku melebihi ketersediaan di gudang! (Dibutuhkan: {totalRequiredKg.toFixed(2)} kg, Tersedia: {availableKg.toFixed(2)} kg).
+                                    <span className="block mt-1 text-[#B34320] font-extrabold normal-case">
+                                        Stok bahan "{activeProduct?.title}" saat ini hanya cukup untuk {Math.floor(availableKg / (totalRequiredKg / customDetails.length))} pcs jersey dengan kombinasi Anda.
+                                        Silakan kurangi pesanan Anda sebanyak {Math.max(1, customDetails.length - Math.floor(availableKg / (totalRequiredKg / customDetails.length)))} pcs atau ubah ukuran/tipe lengan ke yang lebih kecil/pendek.
+                                    </span>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center">
-                            <h2 className="text-lg font-black italic uppercase tracking-tighter">Player Info</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-lg font-black italic uppercase tracking-tighter">Player Info</h2>
+                                {activeProduct && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#FFF0EB] text-[#D25026] border border-[#FFD9CD] rounded-full text-[9px] font-black uppercase tracking-wider italic">
+                                        {activeProduct.image && (
+                                            <img 
+                                                src={activeProduct.image} 
+                                                alt={activeProduct.title} 
+                                                className="w-3.5 h-3.5 rounded-full object-cover border border-[#FFD9CD]" 
+                                            />
+                                        )}
+                                        Bahan: {activeProduct.title}
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex gap-2 flex-wrap justify-end">
                                 <div className="flex items-center gap-1.5 bg-white rounded-xl border border-neutral-200 p-1">
                                     <Input 
@@ -915,7 +1029,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                                         </td>
                                                         <td className="p-3">
                                                             <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl h-9 w-max mx-auto border border-neutral-200">
-                                                                {["XXS", "XS", "S", "M", "L", "XL", "XXL"].map(size => (
+                                                                {["S", "M", "L", "XL", "2XL", "3XL", "4XL"].map(size => (
                                                                     <button
                                                                         key={size}
                                                                         onClick={() => handleDetailChange(detail.id, "size", size)}
@@ -1131,14 +1245,10 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                     <span className="text-[10px] font-black uppercase italic text-white/40">Subtotal</span>
                                     <span className="text-xs font-black text-white italic">{formatRupiah(totalCalculated)}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black uppercase italic text-white/40">Service Fee</span>
-                                    <span className="text-xs font-black text-white italic">{formatRupiah(20000)}</span>
-                                </div>
                                 <div className="h-px bg-white/10 my-2"></div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-black uppercase italic text-white">Grand Total</span>
-                                    <span className="text-lg font-black text-blue-400 italic tracking-tighter">{formatRupiah(totalCalculated + 20000)}</span>
+                                    <span className="text-lg font-black text-blue-400 italic tracking-tighter">{formatRupiah(totalCalculated)}</span>
                                 </div>
                             </div>
                         </div>
@@ -1215,8 +1325,12 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
             {/* Mobile Footer Sticky */}
             <div className="bg-white border-t border-neutral-100 p-5 sticky bottom-0 z-50">
                 <div className="flex justify-between items-center mb-4">
-                    <span className="text-[10px] font-black uppercase italic text-neutral-400">Grand Total</span>
-                    <span className="text-xl font-black italic tracking-tighter text-[#D25026]">{formatRupiah(totalCalculated + 20000)}</span>
+                    <span className="text-[10px] font-black uppercase italic text-neutral-400">
+                        {step === 3 ? "Grand Total" : "Subtotal"}
+                    </span>
+                    <span className="text-xl font-black italic tracking-tighter text-[#D25026]">
+                        {formatRupiah(totalCalculated)}
+                    </span>
                 </div>
                 
                 <div className="flex gap-3">

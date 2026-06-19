@@ -71,5 +71,15 @@ export const orderService = {
     async cancelMockup(id: number) {
         const response = await client.patch(`/orders/${id}/cancel-mockup`);
         return mapOrder(response.data);
+    },
+
+    async recommendAlternatives(id: number, recommendedBahanIds: number[]) {
+        const response = await client.patch(`/orders/${id}/recommend-alternatives`, { recommendedBahanIds });
+        return mapOrder(response.data);
+    },
+
+    async selectAlternative(id: number, selectedBahanId: number) {
+        const response = await client.patch(`/orders/${id}/select-alternative`, { selectedBahanId });
+        return mapOrder(response.data);
     }
 };

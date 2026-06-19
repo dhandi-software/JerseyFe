@@ -492,18 +492,35 @@ export function DashboardDesainDesktop() {
                                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Nama</th>
                                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Nomor</th>
                                                     <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Ukuran</th>
+                                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Lengan</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-50 text-sm bg-white">
-                                                {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                                                        <td className="px-6 py-4 font-black text-slate-800 uppercase italic">{player.name}</td>
-                                                        <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{player.size}</span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {selectedOrder.playerInfo.map((player: any, idx: number) => {
+                                                    let sizeOnly = player.size || "-";
+                                                    let sleeve = "-";
+                                                    if (sizeOnly.includes("(")) {
+                                                        const parts = sizeOnly.split("(");
+                                                        sizeOnly = parts[0].trim();
+                                                        sleeve = parts[1].replace(")", "").trim();
+                                                    } else if (sizeOnly.includes("-")) {
+                                                        const parts = sizeOnly.split("-");
+                                                        sizeOnly = parts[0].trim();
+                                                        sleeve = parts.slice(1).join("-").trim();
+                                                    }
+                                                    return (
+                                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="px-6 py-4 font-black text-slate-800 uppercase italic">{player.name}</td>
+                                                            <td className="px-6 py-4 text-center font-black text-[#D25026] text-lg">{player.number}</td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span className="bg-slate-100 px-3 py-1 rounded-lg text-xs font-black italic">{sizeOnly}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center text-xs font-medium text-slate-600">
+                                                                {sleeve}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
