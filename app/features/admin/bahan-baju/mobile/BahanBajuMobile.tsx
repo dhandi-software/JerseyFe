@@ -10,7 +10,7 @@ import { cn } from "~/lib/utils";
 
 export function BahanBajuMobile() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"manajemen" | "riwayat">("manajemen");
+    const [activeTab, setActiveTab] = useState<"penyubliman" | "katalog" | "riwayat">("penyubliman");
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [historyList, setHistoryList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -78,20 +78,27 @@ export function BahanBajuMobile() {
                     </div>
                 </div>
                 
-                {/* Tabbing Mobile */}
-                <div className="flex bg-slate-50 p-1 rounded-xl mt-6 border border-slate-100">
+                <div className="flex bg-slate-50 p-1 rounded-xl mt-6 border border-slate-100 overflow-x-auto hide-scrollbar">
                     <Button 
                         variant="ghost"
-                        onClick={() => setActiveTab("manajemen")}
-                        className={`flex-1 h-10 rounded-lg text-xs font-bold transition-all ${activeTab === "manajemen" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
+                        onClick={() => setActiveTab("penyubliman")}
+                        className={`flex-none px-4 h-10 rounded-lg text-[10px] font-bold transition-all ${activeTab === "penyubliman" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
                     >
                         <Package className="w-3.5 h-3.5 mr-1.5" />
-                        Manajemen
+                        Penyubliman
+                    </Button>
+                    <Button 
+                        variant="ghost"
+                        onClick={() => setActiveTab("katalog")}
+                        className={`flex-none px-4 h-10 rounded-lg text-[10px] font-bold transition-all ${activeTab === "katalog" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
+                    >
+                        <Package className="w-3.5 h-3.5 mr-1.5" />
+                        Katalog
                     </Button>
                     <Button 
                         variant="ghost"
                         onClick={() => setActiveTab("riwayat")}
-                        className={`flex-1 h-10 rounded-lg text-xs font-bold transition-all ${activeTab === "riwayat" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
+                        className={`flex-none px-4 h-10 rounded-lg text-[10px] font-bold transition-all ${activeTab === "riwayat" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"}`}
                     >
                         <History className="w-3.5 h-3.5 mr-1.5" />
                         Riwayat
@@ -107,7 +114,92 @@ export function BahanBajuMobile() {
                     </div>
                 ) : (
                     <>
-                        {activeTab === "manajemen" && (
+                        {activeTab === "penyubliman" && (
+                            <div className="space-y-4 w-full">
+                                <Button 
+                                    onClick={() => navigate("/admin/bahan-baju/create")}
+                                    className="w-full h-14 rounded-2xl bg-[#0F172A] hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-slate-900/10 active:scale-95 transition-all"
+                                >
+                                    <Plus className="w-4 h-4 mr-2" /> Tambah Bahan Baru
+                                </Button>
+
+                                {/* Card List for Data */}
+                                <div className="space-y-3 w-full">
+                                    {bahanList.length > 0 ? (
+                                        bahanList.map((item) => (
+                                            <div key={`penyubliman-${item.id}`} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <h3 className="text-sm font-bold text-slate-900 truncate">{item.nama}</h3>
+                                                            <div className="flex flex-col gap-1.5 shrink-0">
+                                                                <div className="flex flex-col gap-1 shrink-0 items-end">
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                                                        item.status === "Tersedia" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"
+                                                                    )}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-bold text-slate-700 mt-1">
+                                                                        {item.kuantitasKg} kg
+                                                                    </span>
+                                                                    <span className="text-[9px] font-medium text-slate-400 italic">
+                                                                        ~ {(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m
+                                                                    </span>
+                                                                </div>
+                                                                <div className="bg-orange-50 px-2 py-1 rounded border border-orange-100 flex flex-col items-center min-w-[40px] mt-1">
+                                                                    <span className="text-[8px] font-black text-orange-600 uppercase tracking-widest italic text-center leading-tight">Harga Beli</span>
+                                                                    <span className="text-[10px] font-black text-orange-600 whitespace-nowrap">
+                                                                        <span className="text-[8px] opacity-60 mr-0.5 italic">Rp</span>
+                                                                        {new Intl.NumberFormat('id-ID').format(item.hargaBeli || 0)}
+                                                                    </span>
+                                                                </div>
+                                                                {item.buktiNotaUrl && (
+                                                                    <a href={UPLOADS_URL + item.buktiNotaUrl} target="_blank" rel="noopener noreferrer" className="bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center justify-center min-w-[40px] mt-1 text-[8px] font-black text-blue-600 uppercase tracking-widest italic leading-tight text-center hover:bg-blue-100 transition-colors">
+                                                                        Lihat Nota
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[11px] text-slate-500 mt-1 leading-relaxed font-medium line-clamp-2 italic">{item.deskripsi || "Tidak ada deskripsi"}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2 pt-3 border-t border-slate-50 mt-1">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.id}`)}
+                                                        className="flex-1 h-10 rounded-xl border-slate-100 text-slate-600 bg-slate-50 hover:bg-slate-100 text-[10px] font-bold uppercase tracking-widest"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 mr-1.5" /> Detail
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.id}`)}
+                                                        className="flex-1 h-10 rounded-xl border-orange-100 text-orange-600 bg-orange-50/50 hover:bg-orange-100 text-[10px] font-bold uppercase tracking-widest"
+                                                    >
+                                                        <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        onClick={() => handleDeleteClick(item.id, item.nama)}
+                                                        className="flex-1 h-10 rounded-xl border-red-100 text-red-600 bg-red-50/50 hover:bg-red-100 text-[10px] font-bold uppercase tracking-widest"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Hapus
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="bg-white p-8 rounded-2xl border border-slate-100 text-center flex flex-col items-center shadow-sm">
+                                            <Package className="w-12 h-12 text-slate-200 mb-3" />
+                                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest italic">Belum ada bahan</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === "katalog" && (
                             <div className="space-y-4 w-full">
                                 <Button 
                                     onClick={() => navigate("/admin/bahan-baju/create")}

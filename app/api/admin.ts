@@ -102,8 +102,17 @@ export const adminApi = {
      * Get dashboard stats
      * GET /admin/dashboard-stats
      */
-     getDashboardStats: async (params?: { year?: number; month?: number }): Promise<ApiResponse<any>> => {
+    getDashboardStats: async (params?: { year?: number; month?: number }): Promise<ApiResponse<any>> => {
         const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats", { params });
+        return response.data;
+    },
+
+    /**
+     * Get omset report (Financial & Asset)
+     * GET /admin/omset-report
+     */
+    getOmsetReport: async (params?: { startDate?: string; endDate?: string }): Promise<ApiResponse<any>> => {
+        const response = await client.get<ApiResponse<any>>("/admin/omset-report", { params });
         return response.data;
     },
 

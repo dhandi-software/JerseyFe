@@ -83,7 +83,6 @@ export const CreateAccountMobile = () => {
                options={[
                   { label: "Kustomer", value: "customer" },
                   { label: "Desainer (Internal)", value: "desain" },
-                  { label: "Administrator", value: "admin" },
                   { label: "Staf Gudang (Internal)", value: "gudang" },
                ]}
                placeholder="Pilih Peran Pengguna"

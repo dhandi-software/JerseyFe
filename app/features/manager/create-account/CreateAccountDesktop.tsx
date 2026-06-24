@@ -81,7 +81,6 @@ export const CreateAccountDesktop = () => {
                   { label: "Kustomer", value: "customer" },
                   { label: "Desainer (Internal)", value: "desain" },
                   { label: "Staf Gudang (Internal)", value: "gudang" },
-                  { label: "Administrator", value: "admin" },
               ].sort((a, b) => a.label.localeCompare(b.label))}
               placeholder="Pilih Peran Pengguna"
               className="w-full px-5 py-3 h-auto"

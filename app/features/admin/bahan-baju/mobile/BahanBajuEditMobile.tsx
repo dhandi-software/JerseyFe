@@ -20,6 +20,7 @@ export function BahanBajuEditMobile() {
     const [rasioKonversi, setRasioKonversi] = useState<string>("");
     const [status, setStatus] = useState("Tersedia");
     const [harga, setHarga] = useState<number | "">("");
+    const [hargaBeli, setHargaBeli] = useState<number | "">("");
     const [keteranganUbah, setKeteranganUbah] = useState("");
 
     const parsedKuantitas = parseFloat(String(kuantitasKg).replace(',', '.')) || 0;
@@ -29,6 +30,10 @@ export function BahanBajuEditMobile() {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [deleteImage, setDeleteImage] = useState(false);
+
+    const [buktiNotaFile, setBuktiNotaFile] = useState<File | null>(null);
+    const [buktiNotaPreview, setBuktiNotaPreview] = useState<string | null>(null);
+    const [deleteBuktiNota, setDeleteBuktiNota] = useState(false);
 
     useEffect(() => {
         const fetchBahan = async () => {
@@ -43,8 +48,12 @@ export function BahanBajuEditMobile() {
                         setRasioKonversi(bahan.rasioKonversi ? String(bahan.rasioKonversi).replace('.', ',') : "");
                         setStatus(bahan.status || "Tersedia");
                         setHarga(bahan.harga || 0);
+                        setHargaBeli(bahan.hargaBeli || 0);
                         if (bahan.imageUrl) {
                             setImagePreview(UPLOADS_URL + bahan.imageUrl);
+                        }
+                        if (bahan.buktiNotaUrl) {
+                            setBuktiNotaPreview(UPLOADS_URL + bahan.buktiNotaUrl);
                         }
                     } else {
                         setToast({ title: "Bahan tidak ditemukan", variant: "destructive" });
@@ -79,6 +88,25 @@ export function BahanBajuEditMobile() {
         setDeleteImage(true);
     };
 
+    const handleBuktiNotaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBuktiNotaFile(file);
+            setDeleteBuktiNota(false);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setBuktiNotaPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveBuktiNota = () => {
+        setBuktiNotaFile(null);
+        setBuktiNotaPreview(null);
+        setDeleteBuktiNota(true);
+    };
+
     const formatThousands = (value: number | string) => {
         if (!value) return "";
         const num = typeof value === "string" ? value.replace(/[^0-9]/g, "") : value.toString();
@@ -96,12 +124,19 @@ export function BahanBajuEditMobile() {
             formData.append("rasioKonversi", String(parsedRasio));
             formData.append("status", status);
             formData.append("harga", String(harga));
+            formData.append("hargaBeli", String(hargaBeli));
             formData.append("keterangan_ubah", keteranganUbah);
             if (deleteImage) {
                 formData.append("deleteImage", "true");
             }
             if (imageFile) {
                 formData.append("image", imageFile);
+            }
+            if (deleteBuktiNota) {
+                formData.append("deleteBuktiNota", "true");
+            }
+            if (buktiNotaFile) {
+                formData.append("buktiNota", buktiNotaFile);
             }
 
             await adminApi.updateBahanBaju(Number(id), formData);
@@ -220,6 +255,7 @@ export function BahanBajuEditMobile() {
                                     />
                                 </div>
                             </div>
+
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Ketersediaan Saat Ini (kg)</label>
                                 <input 
@@ -330,6 +366,116 @@ export function BahanBajuEditMobile() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Modals & Bukti Nota Section */}
+                            <div className="space-y-4 bg-orange-50/50 p-4 rounded-xl border border-orange-100/50 shadow-sm mt-2">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-600 italic flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                    Harga Modal & Bukti Nota
+                               </h3>
+                               
+                               <div className="space-y-2">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1 flex items-center justify-between">
+                                       <span>Upload Bukti Nota</span>
+                                       {buktiNotaPreview && !deleteBuktiNota && (
+                                           <button type="button" onClick={handleRemoveBuktiNota} className="text-[9px] text-red-500 hover:text-red-600 font-bold normal-case tracking-normal">Hapus Lama</button>
+                                       )}
+                                   </label>
+                                   <div className="relative group w-full aspect-square rounded-xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center overflow-hidden cursor-pointer">
+                                       {buktiNotaPreview && !deleteBuktiNota && !buktiNotaFile ? (
+                                           <>
+                                               {buktiNotaPreview.endsWith('.pdf') ? (
+                                                   <div className="flex flex-col items-center justify-center p-4 text-center space-y-2">
+                                                       <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
+                                                           <span className="font-black text-sm">PDF</span>
+                                                       </div>
+                                                       <span className="block text-[9px] font-bold text-slate-600 truncate w-full px-2">Nota Lama Tersimpan</span>
+                                                   </div>
+                                               ) : (
+                                                   <img src={buktiNotaPreview} alt="Preview Nota" className="w-full h-full object-cover" />
+                                               )}
+                                               <div className="absolute inset-0 bg-slate-900/40 flex flex-col items-center justify-center backdrop-blur-[2px] gap-2">
+                                                   <a href={buktiNotaPreview} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest text-[9px] shadow-lg">Lihat Nota</a>
+                                               </div>
+                                           </>
+                                       ) : buktiNotaPreview && buktiNotaFile ? (
+                                           <>
+                                               <img src={buktiNotaPreview} alt="Preview Nota Baru" className="w-full h-full object-cover" />
+                                               <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center backdrop-blur-[2px]">
+                                                   <Button 
+                                                       type="button"
+                                                       variant="destructive"
+                                                       size="sm"
+                                                       onClick={(e) => { e.stopPropagation(); handleRemoveBuktiNota(); }}
+                                                       className="rounded-lg font-bold uppercase tracking-widest text-[9px] px-4 h-8 shadow-lg"
+                                                   >
+                                                       Batal Ganti
+                                                   </Button>
+                                               </div>
+                                           </>
+                                       ) : buktiNotaFile && buktiNotaFile.type === 'application/pdf' ? (
+                                           <>
+                                               <div className="flex flex-col items-center justify-center p-4 text-center space-y-2">
+                                                   <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500">
+                                                       <span className="font-black text-sm">PDF</span>
+                                                   </div>
+                                                   <span className="block text-[9px] font-bold text-slate-600 truncate w-full px-2">{buktiNotaFile.name}</span>
+                                               </div>
+                                               <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center backdrop-blur-[2px]">
+                                                   <Button 
+                                                       type="button"
+                                                       variant="destructive"
+                                                       size="sm"
+                                                       onClick={(e) => { e.stopPropagation(); handleRemoveBuktiNota(); }}
+                                                       className="rounded-lg font-bold uppercase tracking-widest text-[9px] px-4 h-8 shadow-lg"
+                                                   >
+                                                       Batal Ganti
+                                                   </Button>
+                                               </div>
+                                           </>
+                                       ) : (
+                                           <div className="flex flex-col items-center justify-center p-4 text-center space-y-2">
+                                               <div className="w-10 h-10 rounded-xl bg-slate-50 shadow flex items-center justify-center text-slate-350">
+                                                   <ImagePlus className="w-4 h-4" />
+                                               </div>
+                                               <div className="space-y-0.5">
+                                                   <span className="block text-[9px] font-black text-slate-900 uppercase">Upload Nota</span>
+                                                   <span className="block text-[7.5px] font-bold text-slate-400 uppercase tracking-widest">JPG/PNG/PDF Max 5MB</span>
+                                               </div>
+                                           </div>
+                                       )}
+                                       {(!buktiNotaPreview || deleteBuktiNota || buktiNotaFile) && (
+                                           <input 
+                                               type="file" 
+                                               accept=".jpg,.jpeg,.png,.pdf"
+                                               onChange={handleBuktiNotaChange}
+                                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                           />
+                                       )}
+                                   </div>
+                               </div>
+                               
+                               <div className="space-y-2">
+                                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Harga Beli Per KG (Rp)</label>
+                                   <div className="relative">
+                                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-extrabold italic">Rp</span>
+                                       <input 
+                                           required
+                                           type="text" 
+                                           value={formatThousands(hargaBeli)}
+                                           onChange={(e) => {
+                                               const val = e.target.value.replace(/[^0-9]/g, "");
+                                               setHargaBeli(val === "" ? "" : Number(val));
+                                           }}
+                                           placeholder="100.000"
+                                           className="w-full h-12 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-sm font-black text-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 transition-all shadow-sm"
+                                       />
+                                   </div>
+                               </div>
+                            </div>
+                            
+
+
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic ml-1">Deskripsi</label>
                                 <textarea 

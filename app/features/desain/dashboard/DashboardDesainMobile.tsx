@@ -928,12 +928,9 @@ export function DashboardDesainMobile() {
                             </button>
                         )}
                         {selectedOrder.status === "FINISHING" && (
-                            <button 
-                                onClick={() => handleUpdateStatus(selectedOrder.rawId, "SELESAI")}
-                                className="flex-1 h-12 bg-emerald-400 text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-emerald-500/20"
-                            >
-                                Selesaikan Pesanan
-                            </button>
+                            <div className="w-full py-3.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-[9px] font-black uppercase tracking-widest italic text-center">
+                                Pesanan diserahkan ke tim gudang untuk packing & finishing
+                            </div>
                         )}
                     </div>
                 </div>

@@ -1,7 +1,10 @@
 import { useLocation, useNavigate } from "react-router";
 import {
   LogOut,
-  Package,
+  BarChart3,
+  UserPlus,
+  LayoutDashboard,
+  Users
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -15,44 +18,58 @@ import { cn } from "~/lib/utils";
 
 type MenuKey =
   | "dashboard"
-  | "packing"
+  | "omset"
+  | "users"
+  | "create-account"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
-  if (
-    pathname === "/gudang" ||
-    pathname.startsWith("/gudang/dashboard") ||
-    pathname.startsWith("/gudang/bahan-baju")
-  )
+  if (pathname === "/manager" || pathname === "/manager/" || pathname.startsWith("/manager/dashboard"))
     return "dashboard";
-  if (pathname.startsWith("/gudang/packing")) return "packing";
+  if (pathname.startsWith("/manager/omset")) return "omset";
+  if (pathname.startsWith("/manager/users")) return "users";
+  if (pathname.startsWith("/manager/create-account")) return "create-account";
   return undefined;
 };
 
 const menuItems = [
   {
     key: "dashboard" as MenuKey,
-    title: "Management Bahan",
-    icon: Package,
-    url: "/gudang",
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    url: "/manager/dashboard",
   },
   {
-    key: "packing" as MenuKey,
-    title: "Packing Pesanan",
-    icon: Package,
-    url: "/gudang/packing",
+    key: "users" as MenuKey,
+    title: "Manajemen Pengguna",
+    icon: Users,
+    url: "/manager/users",
+  },
+  {
+    key: "omset" as MenuKey,
+    title: "Omset Transaksi",
+    icon: BarChart3,
+    url: "/manager/omset",
+  },
+  {
+    key: "create-account" as MenuKey,
+    title: "Buat Akun",
+    icon: UserPlus,
+    url: "/manager/create-account",
   },
 ];
 
-export function AppSidebar() {
+export function ManagerSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
-  const active = pathToKey(location.pathname) ?? "dashboard";
+  const active = pathToKey(location.pathname) ?? "omset";
+
+  const memoizedMenuItems = React.useMemo(() => menuItems, []);
 
   const handleNavigate = React.useCallback((key: MenuKey) => {
-    const item = menuItems.find((item) => item.key === key);
+    const item = memoizedMenuItems.find((item) => item.key === key);
     if (item) {
       if (isMobile) setOpenMobile(false);
       navigate(item.url);
@@ -62,7 +79,7 @@ export function AppSidebar() {
     if (key === "logout") {
         logout();
     }
-  }, [isMobile, navigate, logout, setOpenMobile]);
+  }, [isMobile, navigate, logout, setOpenMobile, memoizedMenuItems]);
 
   return (
     <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
@@ -82,7 +99,7 @@ export function AppSidebar() {
           {/* Menu Section */}
           <div className="flex flex-col gap-4">
             <h2 className="px-3 text-[1rem] font-bold text-[#A1A1A1] tracking-wider uppercase">
-              Warehouse Menu
+              Manager Menu
             </h2>
             <div className="flex flex-col gap-1">
               {menuItems.map((item) => {
@@ -122,15 +139,11 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* User Info */}
+        {/* Logout Section */}
         <div className="mt-auto flex flex-col gap-2">
-           <div className="px-4 py-3 bg-slate-100 rounded-xl border border-slate-200">
-               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Login Sebagai:</p>
-               <p className="text-sm font-black text-slate-900">{user?.name || "Staf Gudang"}</p>
-           </div>
           <button
             onClick={() => handleNavigate("logout")}
-            className="w-full flex items-center gap-4 px-4 py-3 bg-white border border-[#E5E5E5] rounded-xl hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-4 px-4 py-3 bg-white border border-[#E5E5E5] rounded-sm hover:bg-gray-50 transition-colors"
           >
             <LogOut className="w-5 h-5 text-black" />
             <span className="font-medium text-[1rem] text-black">Log Out</span>
@@ -141,24 +154,23 @@ export function AppSidebar() {
   );
 }
 
-export default function WarehouseLayout() {
-  const data = useRouteLoaderData<ContextType>("root");
-  const isMobile = data ? (data as ContextType).isMobile : false;
-  
+export default function ManagerLayout() {
+  const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
-      <RoleGuard allowedRoles={["gudang", "admin"]}>
+      <RoleGuard allowedRoles={["manager"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen bg-slate-50 font-geist">
-            <AppSidebar />
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+            <ManagerSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto"
+              "flex-1 w-full h-full overflow-y-auto",
+              "pb-12"
             )}>
-              {/* Mobile Header */}
+              {/* Mobile Header with Hamburger Menu */}
               {isMobile && (
                 <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
                   <SidebarTrigger className="p-2 -ml-2" />
-                  <span className="ml-2 font-bold text-[#D25026] text-lg tracking-tight uppercase italic">Portal Gudang</span>
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Manager Panel</span>
                 </div>
               )}
               <Outlet context={{ isMobile }} />

@@ -23,6 +23,8 @@ export function BahanBajuCreateDesktop() {
     const [rasioKonversi, setRasioKonversi] = useState<string>("2,5");
     const [status, setStatus] = useState("Tersedia");
     const [harga, setHarga] = useState<number | "">("");
+    const [hargaBeli, setHargaBeli] = useState<number | "">("");
+    const [buktiNota, setBuktiNota] = useState<File | null>(null);
 
     const parsedKuantitas = parseFloat(String(kuantitasKg).replace(',', '.')) || 0;
     const parsedRasio = parseFloat(String(rasioKonversi).replace(',', '.')) || 2.5;
@@ -41,6 +43,32 @@ export function BahanBajuCreateDesktop() {
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const [buktiNotaPreview, setBuktiNotaPreview] = useState<string | null>(null);
+    const [buktiNotaType, setBuktiNotaType] = useState<string | null>(null);
+
+    const handleBuktiNotaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBuktiNota(file);
+            setBuktiNotaType(file.type);
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setBuktiNotaPreview(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setBuktiNotaPreview(null);
+            }
+        }
+    };
+
+    const handleRemoveBuktiNota = () => {
+        setBuktiNota(null);
+        setBuktiNotaPreview(null);
+        setBuktiNotaType(null);
     };
 
     const handleRemoveImage = () => {
@@ -65,9 +93,13 @@ export function BahanBajuCreateDesktop() {
             formData.append("rasioKonversi", String(parsedRasio));
             formData.append("status", status);
             formData.append("harga", String(harga));
+            formData.append("hargaBeli", String(hargaBeli));
             formData.append("actor", user?.name || (isGudang ? "Staf Gudang" : "Admin"));
             if (image) {
                 formData.append("image", image);
+            }
+            if (buktiNota) {
+                formData.append("buktiNota", buktiNota);
             }
 
             await adminApi.createBahanBaju(formData);
@@ -156,6 +188,64 @@ export function BahanBajuCreateDesktop() {
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
                                 </div>
+
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1 flex items-center gap-2 mt-6">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                    Upload Bukti Nota
+                                </label>
+                                <div className="relative group w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:bg-white hover:border-orange-400 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300 flex flex-col items-center justify-center overflow-hidden cursor-pointer">
+                                    {buktiNotaPreview ? (
+                                        <>
+                                            <img src={buktiNotaPreview} alt="Preview Nota" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
+                                                <Button 
+                                                    type="button"
+                                                    variant="destructive"
+                                                    onClick={(e) => { e.stopPropagation(); handleRemoveBuktiNota(); }}
+                                                    className="rounded-xl font-bold uppercase tracking-widest text-[10px] px-6 h-10 shadow-lg"
+                                                >
+                                                    Ganti Nota
+                                                </Button>
+                                            </div>
+                                        </>
+                                    ) : buktiNota && buktiNotaType === 'application/pdf' ? (
+                                        <>
+                                            <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+                                                <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500">
+                                                    <span className="font-black text-lg">PDF</span>
+                                                </div>
+                                                <span className="block text-[10px] font-bold text-slate-600 truncate w-full px-4">{buktiNota.name}</span>
+                                            </div>
+                                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
+                                                <Button 
+                                                    type="button"
+                                                    variant="destructive"
+                                                    onClick={(e) => { e.stopPropagation(); handleRemoveBuktiNota(); }}
+                                                    className="rounded-xl font-bold uppercase tracking-widest text-[10px] px-6 h-10 shadow-lg"
+                                                >
+                                                    Ganti Nota
+                                                </Button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+                                            <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center text-slate-350 group-hover:text-orange-500 group-hover:scale-105 transition-all duration-300">
+                                                <ImagePlus className="w-6 h-6" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="block text-xs font-black text-slate-900 uppercase">Upload Nota</span>
+                                                <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">JPG, PNG, PDF<br/>Max 5MB</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <input 
+                                        required
+                                        type="file" 
+                                        accept=".jpg,.jpeg,.png,.pdf"
+                                        onChange={handleBuktiNotaChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                </div>
                             </div>
 
                             {/* Text Inputs Area */}
@@ -190,6 +280,7 @@ export function BahanBajuCreateDesktop() {
                                         </div>
                                     </div>
                                 </div>
+
 
                                 <div className="grid grid-cols-3 gap-6">
                                     <div className="space-y-2">
@@ -233,15 +324,39 @@ export function BahanBajuCreateDesktop() {
                                     </div>
                                 </div>
                                 
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-orange-600 uppercase tracking-widest italic ml-1 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                            Harga Beli Per KG (Modal)
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black italic">Rp</span>
+                                            <input 
+                                                required
+                                                type="text" 
+                                                value={formatThousands(hargaBeli)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/[^0-9]/g, "");
+                                                    setHargaBeli(val === "" ? "" : Number(val));
+                                                }}
+                                                placeholder="100.000"
+                                                className="w-full h-11 pl-10 pr-4 bg-orange-50 border border-orange-200 rounded-xl text-sm font-semibold text-orange-900 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-400 transition-all placeholder:text-orange-300 shadow-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1">Karakteristik & Deskripsi Bahan</label>
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest italic ml-1">Karakteristik Bahan</label>
                                     <textarea 
                                         value={deskripsi}
                                         onChange={(e) => setDeskripsi(e.target.value)}
-                                        placeholder="Jelaskan tekstur, ketebalan, dan kenyamanan bahan untuk informasi pelanggan..."
-                                        className="w-full min-h-[160px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-650 resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-300 leading-relaxed shadow-sm"
+                                        className="w-full min-h-[120px] p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-650 resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:border-blue-400 focus:bg-white transition-all leading-relaxed shadow-sm"
                                     />
                                 </div>
+
+
                             </div>
                         </div>
 

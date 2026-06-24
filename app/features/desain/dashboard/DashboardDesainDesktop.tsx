@@ -911,12 +911,9 @@ export function DashboardDesainDesktop() {
                                 </button>
                             )}
                             {selectedOrder.status === "FINISHING" && (
-                                <button 
-                                    onClick={() => handleUpdateStatus(selectedOrder.rawId, "SELESAI")}
-                                    className="px-12 py-5 bg-emerald-100 text-emerald-800 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-emerald-200 transition-all border border-emerald-200 italic"
-                                >
-                                    Selesaikan Pesanan
-                                </button>
+                                <div className="px-8 py-5 bg-emerald-50 text-emerald-800 border border-emerald-250 rounded-[1.5rem] text-xs font-black uppercase tracking-widest italic flex items-center justify-center">
+                                    Pesanan diserahkan ke tim gudang untuk packing & finishing
+                                </div>
                             )}
                         </div>
                     </div>

@@ -82,6 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 case 'admin':
                     navigate("/admin");
                     break;
+                case 'manager':
+                    navigate("/manager");
+                    break;
                 default:
                     console.warn("Unknown role, redirecting to home:", role);
                     navigate("/");

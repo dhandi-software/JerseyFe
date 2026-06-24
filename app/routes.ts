@@ -58,11 +58,24 @@ export default [
         ]),
     ]),
 
+    // Manager
+    layout("routes/manager/layout.tsx", [
+        ...prefix("manager", [
+            index("routes/manager/index.tsx"), // Default to dashboard
+            route("dashboard", "routes/manager/dashboard.tsx"),
+            route("users", "routes/manager/users.tsx"),
+            route("edit-account/:id", "routes/manager/edit-account.$id.tsx"),
+            route("omset", "routes/manager/omset.tsx"),
+            route("create-account", "routes/manager/create-account.tsx"),
+        ]),
+    ]),
+    
     // Gudang
     layout("routes/gudang/layout.tsx", [
         ...prefix("gudang", [
             index("routes/gudang/dashboard.tsx"),
             route("bahan-baju/create", "routes/gudang/bahan-baju-create.tsx"),
+            route("packing", "routes/gudang/packing.tsx"),
         ]),
     ]),
    

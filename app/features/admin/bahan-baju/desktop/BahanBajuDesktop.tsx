@@ -10,7 +10,7 @@ import { cn } from "~/lib/utils";
 
 export function BahanBajuDesktop() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"manajemen" | "riwayat">("manajemen");
+    const [activeTab, setActiveTab] = useState<"penyubliman" | "katalog" | "riwayat">("penyubliman");
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [historyList, setHistoryList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -117,14 +117,26 @@ export function BahanBajuDesktop() {
                 {/* Tabbing */}
                 <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
                     <button 
-                        onClick={() => setActiveTab("manajemen")}
+                        onClick={() => setActiveTab("penyubliman")}
                         className={cn(
                             "pb-4 px-2 text-sm font-semibold transition-all relative",
-                            activeTab === "manajemen" ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                            activeTab === "penyubliman" ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
                         )}
                     >
-                        Manajemen Bahan
-                        {activeTab === "manajemen" && (
+                        Tahap Penyubliman
+                        {activeTab === "penyubliman" && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                        )}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab("katalog")}
+                        className={cn(
+                            "pb-4 px-2 text-sm font-semibold transition-all relative",
+                            activeTab === "katalog" ? "text-blue-600" : "text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        Informasi Penjualan (Katalog)
+                        {activeTab === "katalog" && (
                             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                         )}
                     </button>
@@ -149,10 +161,141 @@ export function BahanBajuDesktop() {
                     </div>
                 ) : (
                     <div className="w-full">
-                        {activeTab === "manajemen" && (
+                        {activeTab === "penyubliman" && (
                             <div className="w-full">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-slate-800">Daftar Bahan</h2>
+                                    <h2 className="text-2xl font-bold text-slate-800">Tahap Penyubliman (Operasional Produksi)</h2>
+                                    <Button 
+                                        onClick={() => navigate("/admin/bahan-baju/create")}
+                                        className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm transition-all"
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Tambah Bahan
+                                    </Button>
+                                </div>
+
+                                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden w-full">
+                                    <div className="overflow-x-auto w-full">
+                                        <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
+                                            <thead>
+                                                <tr className="border-b border-slate-100">
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[180px]">Nama Bahan</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 text-center w-[130px]">Ketersediaan</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 text-center w-[210px]">Estimasi Produksi</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[150px]">Harga Beli</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[150px]">Bukti Nota</th>
+                                                    <th className="px-6 py-4 text-[13px] font-semibold text-slate-500 w-[180px]">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50">
+                                                {sortedBahanList.length > 0 ? (
+                                                    sortedBahanList.map((item) => (
+                                                        <tr key={`penyubliman-${item.id}`} className="hover:bg-slate-50/50 transition-colors group">
+                                                            <td className="px-6 py-4 align-top">
+                                                                <div className="font-bold text-slate-800 text-sm mt-3">{item.nama}</div>
+                                                            </td>
+                                                            <td className="px-4 py-4 align-top text-center">
+                                                                <div className="flex flex-col items-center gap-1.5 mt-3 justify-center">
+                                                                    <span className={cn(
+                                                                        "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
+                                                                        item.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                                                                    )}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                    <span className="text-xs font-black text-slate-700">
+                                                                        {item.kuantitasKg} kg
+                                                                    </span>
+                                                                    <span className="text-[10px] font-medium text-slate-400">
+                                                                        ~{(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-4 align-top">
+                                                                <div className="grid grid-cols-2 gap-1 w-full mt-1">
+                                                                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-blue-400 uppercase tracking-wide leading-none mb-0.5">Pendek S-2XL</div>
+                                                                        <div className="text-[11px] font-black text-blue-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 0.8333))} pcs</div>
+                                                                    </div>
+                                                                    <div className="bg-blue-50/60 border border-blue-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-blue-400 uppercase tracking-wide leading-none mb-0.5">Pendek 3XL+</div>
+                                                                        <div className="text-[11px] font-black text-blue-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                    </div>
+                                                                    <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-indigo-400 uppercase tracking-wide leading-none mb-0.5">Panjang S-2XL</div>
+                                                                        <div className="text-[11px] font-black text-indigo-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                    </div>
+                                                                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-lg px-2 py-1.5 text-center">
+                                                                        <div className="text-[8px] font-bold text-indigo-400 uppercase tracking-wide leading-none mb-0.5">Panjang 3XL+</div>
+                                                                        <div className="text-[11px] font-black text-indigo-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 2.5))} pcs</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 align-top">
+                                                                <div className="font-black text-orange-600 text-[13px] mt-3">
+                                                                    <span className="text-[10px] opacity-60 mr-1 italic">Rp</span>
+                                                                    {new Intl.NumberFormat('id-ID').format(item.hargaBeli || 0)}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 align-top">
+                                                                <div className="mt-3">
+                                                                    {item.buktiNotaUrl ? (
+                                                                        <a href={UPLOADS_URL + item.buktiNotaUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-500 hover:text-blue-600 underline">Lihat Nota</a>
+                                                                    ) : (
+                                                                        <span className="text-xs text-slate-400 italic">Tidak ada nota</span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 align-top">
+                                                                <div className="flex items-center gap-3 mt-1">
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.id}`)}
+                                                                        className="h-11 w-11 rounded-2xl bg-blue-50/50 hover:bg-blue-100 text-blue-600 border border-blue-100/50 transition-all shadow-sm flex items-center justify-center group"
+                                                                        title="Lihat Detail"
+                                                                    >
+                                                                        <Eye className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                                    </Button>
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.id}`)}
+                                                                        className="h-11 w-11 rounded-2xl bg-orange-50/50 hover:bg-orange-100 text-orange-600 border border-orange-100/50 transition-all shadow-sm flex items-center justify-center group"
+                                                                        title="Edit Bahan"
+                                                                    >
+                                                                        <Edit className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                                    </Button>
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        onClick={() => handleDeleteClick(item.id, item.nama)}
+                                                                        className="h-11 w-11 rounded-2xl bg-red-50/50 hover:bg-red-100 text-red-600 border border-red-100/50 transition-all shadow-sm flex items-center justify-center group"
+                                                                        title="Hapus Bahan"
+                                                                    >
+                                                                        <Trash2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                                    </Button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-6 py-20 text-center">
+                                                            <div className="flex flex-col items-center justify-center text-slate-400 space-y-3">
+                                                                <Package className="w-10 h-10 text-slate-200" />
+                                                                <p className="text-sm font-semibold">Belum ada data bahan baku</p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === "katalog" && (
+                            <div className="w-full">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-slate-800">Informasi Penjualan (Katalog)</h2>
                                     <Button 
                                         onClick={() => navigate("/admin/bahan-baju/create")}
                                         className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm transition-all"

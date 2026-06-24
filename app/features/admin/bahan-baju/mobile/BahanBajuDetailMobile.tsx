@@ -157,9 +157,13 @@ export function BahanBajuDetailMobile() {
                         <div className="flex flex-wrap gap-2 pt-2">
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl font-bold text-[10px] border border-blue-100 shadow-sm">
                                 <span className="opacity-50 font-black">Rp</span>
-                                {new Intl.NumberFormat('id-ID').format(currentBahan.harga || 0)}
+                                {new Intl.NumberFormat('id-ID').format(currentBahan.harga || 0)} (Jual)
                             </div>
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-xl font-bold text-[10px] border border-orange-100 shadow-sm">
+                                <span className="opacity-50 font-black">Rp</span>
+                                {new Intl.NumberFormat('id-ID').format(currentBahan.hargaBeli || 0)} (Beli)
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-xl font-bold text-[10px] border border-teal-100 shadow-sm">
                                 <Package className="w-4 h-4" strokeWidth={2.5} />
                                 Ketersediaan: {currentBahan.kuantitasKg} kg (~ {(currentBahan.kuantitasKg * (currentBahan.rasioKonversi || 2.5)).toFixed(1)} meter)
                             </div>
@@ -189,6 +193,27 @@ export function BahanBajuDetailMobile() {
                         <p className="text-sm text-slate-500 leading-relaxed font-medium italic border-l-4 border-slate-50 pl-4 py-1">
                             {currentBahan.deskripsi || "Tidak ada deskripsi."}
                         </p>
+                    </div>
+
+                    <div className="space-y-4 pt-6 border-t border-slate-50">
+                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+                                <ImageIcon className="w-4 h-4" strokeWidth={2} />
+                            </div>
+                            Dokumen Pendukung
+                        </h3>
+                        {currentBahan.buktiNotaUrl ? (
+                            <a 
+                                href={UPLOADS_URL + currentBahan.buktiNotaUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center w-full py-3 rounded-xl bg-white text-blue-600 border-2 border-blue-100 font-bold hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm gap-2 text-xs"
+                            >
+                                Lihat Bukti Nota
+                            </a>
+                        ) : (
+                            <p className="text-xs text-slate-400 font-medium italic">Tidak ada nota yang diunggah.</p>
+                        )}
                     </div>
                 </div>
             </div>

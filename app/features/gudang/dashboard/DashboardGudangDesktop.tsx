@@ -16,7 +16,7 @@ import { useAuth } from "~/hooks/useAuth";
 export function DashboardGudangDesktop() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"manajemen" | "riwayat">("manajemen");
+    const [activeTab, setActiveTab] = useState<"penyubliman" | "katalog" | "riwayat">("penyubliman");
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [historyList, setHistoryList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -378,15 +378,28 @@ export function DashboardGudangDesktop() {
             {/* Tabs Navigation */}
             <div className="flex items-center gap-8 border-b border-slate-200 mb-8">
                 <button 
-                    onClick={() => setActiveTab("manajemen")}
+                    onClick={() => setActiveTab("penyubliman")}
                     className={cn(
                         "pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2",
-                        activeTab === "manajemen" ? "text-[#D25026]" : "text-slate-500 hover:text-slate-700"
+                        activeTab === "penyubliman" ? "text-[#D25026]" : "text-slate-500 hover:text-slate-700"
                     )}
                 >
                     <Package className="w-4 h-4" />
-                    Manajemen Stok
-                    {activeTab === "manajemen" && (
+                    Tahap Penyubliman
+                    {activeTab === "penyubliman" && (
+                        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#D25026] rounded-t-full" />
+                    )}
+                </button>
+                <button 
+                    onClick={() => setActiveTab("katalog")}
+                    className={cn(
+                        "pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2",
+                        activeTab === "katalog" ? "text-[#D25026]" : "text-slate-500 hover:text-slate-700"
+                    )}
+                >
+                    <Package className="w-4 h-4" />
+                    Katalog Penjualan
+                    {activeTab === "katalog" && (
                         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#D25026] rounded-t-full" />
                     )}
                 </button>
@@ -412,8 +425,220 @@ export function DashboardGudangDesktop() {
                 </div>
             ) : (
                 <div className="w-full">
-                    {/* MANAJEMEN TAB */}
-                    {activeTab === "manajemen" && (
+                    {/* TAHAP PENYUBLIMAN TAB */}
+                    {activeTab === "penyubliman" && (
+                        <div className="w-full space-y-6">
+                            {/* Filters Bar */}
+                            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                                <div className="flex gap-2 w-full md:w-auto">
+                                    <div className="relative w-full md:w-80">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input 
+                                            type="text"
+                                            placeholder="Cari nama bahan baku..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:border-[#D25026] focus:ring-1 focus:ring-[#D25026] transition-colors w-full"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full md:w-auto justify-center">
+                                    {(["all", "low", "empty"] as const).map((filter) => {
+                                        const labels = { all: "Semua", low: "Stok Tipis", empty: "Habis" };
+                                        const counts = {
+                                            all: bahanList.length,
+                                            low: lowStockCount,
+                                            empty: outOfStockCount
+                                        };
+                                        const isActive = stockFilter === filter;
+                                        return (
+                                            <button
+                                                key={filter}
+                                                onClick={() => setStockFilter(filter)}
+                                                className={cn(
+                                                    "px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all",
+                                                    isActive ? "bg-white text-[#D25026] shadow-sm" : "text-slate-400 hover:text-slate-700"
+                                                )}
+                                            >
+                                                {labels[filter]} ({counts[filter]})
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Materials Catalog Table */}
+                            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden w-full">
+                                <div className="overflow-x-auto w-full">
+                                    <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
+                                        <thead>
+                                            <tr className="bg-slate-50/50 border-b border-slate-100">
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[140px]">Gambar</th>
+                                                <th 
+                                                    className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic cursor-pointer hover:bg-slate-50/50 transition-colors w-[260px]"
+                                                    onClick={() => toggleSort("nama")}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        Nama Bahan
+                                                        <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
+                                                    </div>
+                                                </th>
+                                                <th 
+                                                    className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[160px] cursor-pointer hover:bg-slate-50/50 transition-colors text-center"
+                                                    onClick={() => toggleSort("kuantitasKg")}
+                                                >
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        Ketersediaan
+                                                        <ChevronsUpDown className="w-3.5 h-3.5 opacity-60" />
+                                                    </div>
+                                                </th>
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[220px] text-center">Estimasi Hasil Produksi</th>
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[160px]">Harga Beli</th>
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[160px] text-center">Bukti Nota</th>
+                                                <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-[320px]">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {sortedBahan.length > 0 ? (
+                                                sortedBahan.map((item) => (
+                                                    <tr key={`penyubliman-${item.id}`} className="hover:bg-slate-50/30 transition-colors group">
+                                                        <td className="px-8 py-5 align-top">
+                                                            {item.imageUrl ? (
+                                                                <div 
+                                                                    onClick={() => setPreviewImage(UPLOADS_URL + item.imageUrl)}
+                                                                    className="w-20 h-20 rounded-2xl overflow-hidden border border-slate-200 group-hover:scale-105 transition-all duration-300 cursor-zoom-in shadow-sm"
+                                                                >
+                                                                    <img 
+                                                                        src={UPLOADS_URL + item.imageUrl} 
+                                                                        alt={item.nama} 
+                                                                        className="w-full h-full object-cover" 
+                                                                        onError={(e) => {
+                                                                            (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Error';
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                                                                    <ImageIcon className="w-6 h-6 opacity-40" />
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top">
+                                                            <div className="font-bold text-slate-800 text-sm mt-2">{item.nama}</div>
+                                                            <span className="text-[10px] font-mono text-slate-400 block mt-1">ID Ref: #{item.id}</span>
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top text-center">
+                                                            <div className="flex flex-col items-center justify-center gap-1 mt-2">
+                                                                <span className={cn(
+                                                                    "inline-flex py-0.5 px-2 rounded-lg text-[10px] font-black border uppercase tracking-wider",
+                                                                    item.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                                                                )}>
+                                                                    {item.status}
+                                                                </span>
+                                                                <span className="text-xs font-black text-slate-700">
+                                                                    {item.kuantitasKg} kg
+                                                                </span>
+                                                                <span className="text-[10px] font-medium text-slate-400">
+                                                                    ~{(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top">
+                                                            <div className="grid grid-cols-2 gap-1 w-full mt-2">
+                                                                <div className="bg-blue-50 border border-blue-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-blue-500 uppercase tracking-wide leading-none mb-0.5">Lengan Pendek S-2XL</div>
+                                                                    <div className="text-[10.5px] font-black text-blue-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 0.8333))} pcs</div>
+                                                                </div>
+                                                                <div className="bg-blue-50/60 border border-blue-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-blue-500 uppercase tracking-wide leading-none mb-0.5">Lengan Pendek 3XL+</div>
+                                                                    <div className="text-[10.5px] font-black text-blue-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                </div>
+                                                                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-indigo-500 uppercase tracking-wide leading-none mb-0.5">Lengan Panjang S-2XL</div>
+                                                                    <div className="text-[10.5px] font-black text-indigo-700">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 1.25))} pcs</div>
+                                                                </div>
+                                                                <div className="bg-indigo-50/60 border border-indigo-100 rounded-lg p-1 text-center">
+                                                                    <div className="text-[7.5px] font-bold text-indigo-500 uppercase tracking-wide leading-none mb-0.5">Lengan Panjang 3XL+</div>
+                                                                    <div className="text-[10.5px] font-black text-indigo-600">{Math.floor(item.kuantitasKg * ((item.rasioKonversi || 2.5) / 2.5))} pcs</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top">
+                                                            <div className="font-extrabold text-orange-600 text-sm mt-2">
+                                                                Rp {new Intl.NumberFormat('id-ID').format(item.hargaBeli || 0)}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top text-center">
+                                                            {item.buktiNotaUrl ? (
+                                                                <a 
+                                                                    href={UPLOADS_URL + item.buktiNotaUrl} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center justify-center px-3 py-1.5 mt-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                                >
+                                                                    Lihat Nota
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-xs text-slate-400 italic block mt-3">-</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-8 py-5 align-top">
+                                                            <div className="flex items-center gap-2 mt-2">
+                                                                <button 
+                                                                    onClick={() => setSelectedDetailItem(item)}
+                                                                    className="h-10 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-sm flex items-center justify-center"
+                                                                    title="Lihat detail bahan"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5 mr-1" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider">Detail</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleOpenAdjust(item)}
+                                                                    className="h-10 px-2.5 rounded-xl bg-[#FFF0EB] hover:bg-[#FFE0D5] text-[#D25026] border border-[#FFD9CD] transition-all flex items-center justify-center"
+                                                                    title="Sesuaikan stok bahan"
+                                                                >
+                                                                    <Save className="w-3.5 h-3.5 mr-1" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider">Stok</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleOpenEdit(item)}
+                                                                    className="h-10 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-all flex items-center justify-center"
+                                                                    title="Edit bahan"
+                                                                >
+                                                                    <Edit className="w-3.5 h-3.5 mr-1" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider">Edit</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleOpenDelete(item)}
+                                                                    className="h-10 px-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-650 border border-red-200 transition-all flex items-center justify-center"
+                                                                    title="Hapus bahan"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider">Hapus</span>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={7} className="px-8 py-20 text-center">
+                                                        <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+                                                            <Package className="w-12 h-12 text-slate-200" />
+                                                            <p className="text-sm font-bold italic uppercase tracking-wider">Tidak ada bahan baku yang cocok</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* KATALOG PENJUALAN TAB */}
+                    {activeTab === "katalog" && (
                         <div className="w-full space-y-6">
                             {/* Filters Bar */}
                             <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
@@ -852,50 +1077,93 @@ export function DashboardGudangDesktop() {
                             </button>
                         </div>
 
-                        {selectedDetailItem.imageUrl ? (
-                            <div className="w-full h-48 rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                                <img src={UPLOADS_URL + selectedDetailItem.imageUrl} alt={selectedDetailItem.nama} className="w-full h-full object-cover" />
-                            </div>
-                        ) : (
-                            <div className="w-full h-32 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1.5">
-                                <ImageIcon className="w-10 h-10 opacity-30" />
-                                <span className="text-[10px] font-black uppercase tracking-widest italic">Tidak ada foto terlampir</span>
-                            </div>
-                        )}
-
-                        <div className="space-y-4">
-                            <div>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nama Bahan Baku</span>
-                                <h4 className="text-xl font-extrabold text-slate-900">{selectedDetailItem.nama}</h4>
+                        <div className="grid grid-cols-12 gap-8">
+                            {/* Left Column: Image */}
+                            <div className="col-span-5">
+                                {selectedDetailItem.imageUrl ? (
+                                    <div className="w-full aspect-[4/5] rounded-3xl overflow-hidden border border-slate-200 shadow-md">
+                                        <img src={UPLOADS_URL + selectedDetailItem.imageUrl} alt={selectedDetailItem.nama} className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-full aspect-[4/5] rounded-3xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-1.5 shadow-sm">
+                                        <ImageIcon className="w-10 h-10 opacity-30" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest italic">Tidak ada foto</span>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Ketersediaan</span>
-                                    <span className="text-sm font-extrabold text-slate-800 mt-1 inline-block">
-                                        {selectedDetailItem.kuantitasKg} kg <span className="text-xs font-normal text-slate-400">~ {(selectedDetailItem.kuantitasKg * (selectedDetailItem.rasioKonversi || 2.5)).toFixed(1)} m</span>
-                                    </span>
+                            {/* Right Column: Details */}
+                            <div className="col-span-7 space-y-5">
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Nama Bahan Baku</span>
+                                    <h4 className="text-2xl font-extrabold text-slate-900 leading-tight">{selectedDetailItem.nama}</h4>
                                 </div>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Harga Jual / unit</span>
-                                    <span className="text-sm font-extrabold text-[#D25026] mt-1 inline-block">
-                                        Rp {new Intl.NumberFormat('id-ID').format(selectedDetailItem.harga || 0)}
-                                    </span>
-                                </div>
-                                <div className="col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Estimasi Hasil Jersey (Dinamis: {selectedDetailItem.rasioKonversi || 2.5} m)</span>
-                                    <div className="text-xs text-slate-550 font-semibold space-y-1 mt-2">
-                                        <p>Lengan Pendek S-2XL: <span className="text-blue-600 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 0.8333))} pcs</span></p>
-                                        <p>Lengan Pendek 3XL+: <span className="text-blue-500 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 1.25))} pcs</span></p>
-                                        <p>Lengan Panjang S-2XL: <span className="text-indigo-600 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 1.25))} pcs</span></p>
-                                        <p>Lengan Panjang 3XL+: <span className="text-indigo-500 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 2.5))} pcs</span></p>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Ketersediaan</span>
+                                        <span className="text-sm font-extrabold text-slate-800 mt-1 inline-block">
+                                            {selectedDetailItem.kuantitasKg} kg <span className="text-xs font-normal text-slate-400">~ {(selectedDetailItem.kuantitasKg * (selectedDetailItem.rasioKonversi || 2.5)).toFixed(1)} m</span>
+                                        </span>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Harga Jual / unit</span>
+                                        <span className="text-sm font-extrabold text-[#D25026] mt-1 inline-block">
+                                            Rp {new Intl.NumberFormat('id-ID').format(selectedDetailItem.harga || 0)}
+                                        </span>
+                                    </div>
+                                    
+                                    {activeTab === "penyubliman" && (
+                                        <>
+                                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                                <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest block flex justify-between items-center">
+                                                    Bukti Nota 
+                                                    {selectedDetailItem.buktiNotaUrl && (
+                                                        <a 
+                                                            href={UPLOADS_URL + selectedDetailItem.buktiNotaUrl} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="text-[8px] font-bold bg-white text-blue-600 border border-blue-200 px-2 py-0.5 rounded hover:bg-blue-600 hover:text-white transition-colors"
+                                                        >
+                                                            Lihat
+                                                        </a>
+                                                    )}
+                                                </span>
+                                                {selectedDetailItem.buktiNotaUrl ? (
+                                                    <div className="mt-2 w-full h-16 bg-white rounded-lg border border-blue-100 overflow-hidden flex items-center justify-center relative group">
+                                                        {selectedDetailItem.buktiNotaUrl.endsWith('.pdf') ? (
+                                                            <div className="text-blue-500 font-black text-xs">PDF</div>
+                                                        ) : (
+                                                            <img src={UPLOADS_URL + selectedDetailItem.buktiNotaUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Bukti Nota" />
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs font-bold text-slate-400 italic block mt-2">-</span>
+                                                )}
+                                            </div>
+                                            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                                                <span className="text-[9px] font-black text-orange-400 uppercase tracking-widest block">Harga Modal (Beli)</span>
+                                                <span className="text-sm font-extrabold text-orange-600 mt-1 inline-block">
+                                                    Rp {new Intl.NumberFormat('id-ID').format(selectedDetailItem.hargaBeli || 0)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Estimasi Hasil Jersey ({selectedDetailItem.rasioKonversi || 2.5} m)</span>
+                                        <div className="text-xs text-slate-550 font-semibold space-y-1 mt-2">
+                                            <p className="flex justify-between"><span>Lgn Pendek S-2XL:</span> <span className="text-blue-600 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 0.8333))} pcs</span></p>
+                                            <p className="flex justify-between"><span>Lgn Pendek 3XL+:</span> <span className="text-blue-500 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 1.25))} pcs</span></p>
+                                            <p className="flex justify-between"><span>Lgn Panjang S-2XL:</span> <span className="text-indigo-600 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 1.25))} pcs</span></p>
+                                            <p className="flex justify-between"><span>Lgn Panjang 3XL+:</span> <span className="text-indigo-500 font-bold">~{Math.floor(selectedDetailItem.kuantitasKg * ((selectedDetailItem.rasioKonversi || 2.5) / 2.5))} pcs</span></p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Deskripsi Detail</span>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-1">
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic block">Deskripsi Detail</span>
+                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-1">
                                     <p className="text-xs text-slate-650 leading-relaxed italic whitespace-pre-wrap">{selectedDetailItem.deskripsi || "Tidak ada keterangan deskripsi."}</p>
                                 </div>
                             </div>
@@ -905,6 +1173,7 @@ export function DashboardGudangDesktop() {
                                 <span>{new Date(selectedDetailItem.createdAt).toLocaleDateString('id-ID', { dateStyle: 'long' })}</span>
                             </div>
                         </div>
+                    </div>
 
                         <div className="flex justify-end pt-3">
                             <button

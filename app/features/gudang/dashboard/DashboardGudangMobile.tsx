@@ -2,11 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { adminApi } from "~/api/admin";
+import { orderService } from "~/services/orderService";
+import { sortPlayersBySize } from "~/lib/sizeUtils";
 import { useSidebar } from "~/components/ui/sidebar";
 import { 
   Plus, History, Package, Loader2, Image as ImageIcon, 
   X, Save, ImagePlus, Eye, Search, AlertTriangle, Menu,
-  ArrowUpRight, ArrowDownRight, RefreshCw, Edit, Trash2
+  ArrowUpRight, ArrowDownRight, RefreshCw, Edit, Trash2,
+  Truck, ChevronDown, FileText, User, Check
 } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
 import { UPLOADS_URL } from "~/api/client";
@@ -17,11 +20,19 @@ export function DashboardGudangMobile() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { setOpenMobile } = useSidebar();
-    const [activeTab, setActiveTab] = useState<"manajemen" | "riwayat">("manajemen");
+    const [activeTab, setActiveTab] = useState<"penyubliman" | "katalog" | "pesanan" | "riwayat">("penyubliman");
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [historyList, setHistoryList] = useState<any[]>([]);
+    const [ordersList, setOrdersList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
+
+    // Pesanan Finishing states
+    const [finishingSearch, setFinishingSearch] = useState("");
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+    const [packingLoading, setPackingLoading] = useState(false);
+    const [confirmPackingModal, setConfirmPackingModal] = useState<{ isOpen: boolean; order: any | null }>({ isOpen: false, order: null });
+    const [previewMockup, setPreviewMockup] = useState<string | null>(null);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
     // Filter states
@@ -76,11 +87,60 @@ export function DashboardGudangMobile() {
 
             const resHistory = await adminApi.getBahanBajuHistory();
             if (resHistory.status === "success") setHistoryList(resHistory.data);
+
+            // Fetch orders for "Pesanan Finishing" tab
+            const ordersData = await orderService.getOrders();
+            const formattedOrders = ordersData.map((o: any) => ({
+                id: o.orderId,
+                rawId: o.id,
+                customer: o.customerName,
+                designer: o.designerName || "Belum Ada",
+                product: o.details.length > 0 ? o.details[0].productTitle : "Custom Jersey",
+                qty: o.details.length,
+                status: o.status,
+                queueNumber: o.queueNumber,
+                mockupUrl: o.mockupUrl,
+                layoutUrl: o.layoutUrl,
+                designStatus: o.designStatus,
+                layoutStatus: o.layoutStatus,
+                dateTime: new Date(o.createdAt).toLocaleString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
+                    name: d.playerName || "-",
+                    number: d.playerNumber || "-",
+                    size: d.playerSize || "-"
+                }))),
+                designNote: o.designNote,
+                totalAmount: o.totalAmount
+            }));
+            setOrdersList(formattedOrders);
         } catch (error) {
             console.error("Error fetching data:", error);
             setToast({ title: "Gagal memuat data", variant: "destructive" });
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle finishing packing
+    const handleFinishPacking = async (order: any) => {
+        setPackingLoading(true);
+        try {
+            await orderService.updateOrderStatus(order.rawId, "SELESAI");
+            setToast({ title: `Pesanan ${order.id} selesai packing!`, variant: "success" });
+            setConfirmPackingModal({ isOpen: false, order: null });
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            setToast({ title: "Gagal menyelesaikan packing", variant: "destructive" });
+        } finally {
+            setPackingLoading(false);
         }
     };
 
@@ -306,30 +366,59 @@ export function DashboardGudangMobile() {
             </button>
 
             {/* Tabbing */}
-            <div className="flex bg-white/60 p-1 rounded-2xl border border-slate-250/20 w-full">
+            <div className="flex bg-white/60 p-1 rounded-2xl border border-slate-250/20 w-full overflow-x-auto custom-scrollbar">
                 <button
-                    onClick={() => setActiveTab("manajemen")}
+                    onClick={() => setActiveTab("penyubliman")}
                     className={cn(
-                        "flex-1 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-center justify-center flex items-center gap-2",
-                        activeTab === "manajemen" 
+                        "flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all text-center justify-center flex items-center gap-1.5 shrink-0",
+                        activeTab === "penyubliman" 
                             ? "bg-white text-[#D25026] shadow-sm" 
                             : "text-slate-500 hover:text-slate-800"
                     )}
                 >
                     <Package className="w-3.5 h-3.5" />
-                    Bahan Baku
+                    Penyubliman
+                </button>
+                <button
+                    onClick={() => setActiveTab("katalog")}
+                    className={cn(
+                        "flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all text-center justify-center flex items-center gap-1.5 shrink-0",
+                        activeTab === "katalog" 
+                            ? "bg-white text-[#D25026] shadow-sm" 
+                            : "text-slate-500 hover:text-slate-800"
+                    )}
+                >
+                    <Package className="w-3.5 h-3.5" />
+                    Katalog
+                </button>
+                <button
+                    onClick={() => setActiveTab("pesanan")}
+                    className={cn(
+                        "flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all text-center justify-center flex items-center gap-1.5 relative shrink-0",
+                        activeTab === "pesanan" 
+                            ? "bg-white text-[#D25026] shadow-sm" 
+                            : "text-slate-500 hover:text-slate-800"
+                    )}
+                >
+                    <Truck className="w-3.5 h-3.5" />
+                    Finishing
+                    {ordersList.filter(o => o.status === "FINISHING").length > 0 && (
+                        <span className="ml-0.5 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black rounded-full border border-blue-200">
+                            {ordersList.filter(o => o.status === "FINISHING").length}
+                        </span>
+                    )}
                 </button>
                 <button
                     onClick={() => setActiveTab("riwayat")}
                     className={cn(
-                        "flex-1 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-center justify-center flex items-center gap-2",
+                        "flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all text-center justify-center flex items-center gap-1.5 shrink-0",
                         activeTab === "riwayat" 
                             ? "bg-white text-[#D25026] shadow-sm" 
                             : "text-slate-500 hover:text-slate-800"
                     )}
                 >
                     <History className="w-3.5 h-3.5" />
-                    Log Stok
+                    Log
                 </button>
             </div>
 
@@ -340,8 +429,8 @@ export function DashboardGudangMobile() {
                 </div>
             ) : (
                 <div className="w-full">
-                    {/* MANAJEMEN TAB MOBILE */}
-                    {activeTab === "manajemen" && (
+                    {/* TAHAP PENYUBLIMAN TAB MOBILE */}
+                    {activeTab === "penyubliman" && (
                         <div className="space-y-4">
                             {/* Search and Filters */}
                             <div className="bg-white p-4 rounded-2xl border border-transparent shadow-sm space-y-3">
@@ -397,8 +486,142 @@ export function DashboardGudangMobile() {
                                                     <h4 className="font-bold text-slate-800 text-sm truncate">{item.nama}</h4>
                                                     <span className="text-[9px] font-mono text-slate-400 block mt-0.5">ID: #{item.id}</span>
                                                     <div className="flex flex-col gap-1 mt-1">
+                                                        <span className="text-xs font-black text-orange-600">
+                                                            Rp {new Intl.NumberFormat('id-ID').format(item.hargaBeli || 0)} <span className="text-[9px] text-slate-400 font-normal ml-0.5">/ modal</span>
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase border",
+                                                                item.status === "Tersedia" ? "bg-green-50 text-green-700 border-green-100" : "bg-red-50 text-red-700 border-red-100"
+                                                            )}>
+                                                                {item.status}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-slate-700 block">
+                                                                {item.kuantitasKg} kg (~ {(item.kuantitasKg * (item.rasioKonversi || 2.5)).toFixed(1)} m)
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Bukti Nota */}
+                                            {item.buktiNotaUrl && (
+                                                <a 
+                                                    href={UPLOADS_URL + item.buktiNotaUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="w-full h-8 mt-1 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black uppercase tracking-wider flex items-center justify-center hover:bg-blue-100 transition-colors"
+                                                >
+                                                    Lihat Nota Pembelian
+                                                </a>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            <div className="flex flex-col gap-2 pt-2.5 border-t border-slate-100">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedDetailItem(item)}
+                                                        className="h-9 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-650 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        Detail
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleOpenAdjust(item)}
+                                                        className="h-9 rounded-xl bg-[#FFF0EB] hover:bg-[#FFE0D5] text-[#D25026] text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 border border-[#FFD9CD]"
+                                                    >
+                                                        <Save className="w-3.5 h-3.5" />
+                                                        Stok
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        onClick={() => handleOpenEdit(item)}
+                                                        className="h-9 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 border border-amber-250"
+                                                    >
+                                                        <Edit className="w-3.5 h-3.5" />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleOpenDelete(item)}
+                                                        className="h-9 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 border border-red-200"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        Hapus
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="bg-white p-10 rounded-2xl text-center shadow-sm text-slate-400 flex flex-col items-center justify-center gap-2">
+                                        <Package className="w-10 h-10 opacity-30" />
+                                        <p className="text-xs font-bold uppercase tracking-wider italic">Bahan tidak ditemukan</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* KATALOG TAB MOBILE */}
+                    {activeTab === "katalog" && (
+                        <div className="space-y-4">
+                            {/* Search and Filters */}
+                            <div className="bg-white p-4 rounded-2xl border border-transparent shadow-sm space-y-3">
+                                <div className="relative w-full">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input 
+                                        type="text"
+                                        placeholder="Cari nama bahan baku..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="bg-slate-55/60 border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-none focus:border-[#D25026] transition-colors w-full"
+                                    />
+                                </div>
+                                <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 justify-between">
+                                    {(["all", "low", "empty"] as const).map((filter) => {
+                                        const labels = { all: "Semua", low: "Tipis", empty: "Habis" };
+                                        const isActive = stockFilter === filter;
+                                        return (
+                                            <button
+                                                key={filter}
+                                                onClick={() => setStockFilter(filter)}
+                                                className={cn(
+                                                    "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                                                    isActive ? "bg-white text-[#D25026] shadow-sm" : "text-slate-400"
+                                                )}
+                                            >
+                                                {labels[filter]}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Card Lists */}
+                            <div className="space-y-3">
+                                {filteredBahan.length > 0 ? (
+                                    filteredBahan.map((item) => (
+                                        <div key={`katalog-${item.id}`} className="bg-white p-4 rounded-2xl shadow-sm border border-transparent flex flex-col gap-3 group">
+                                            <div className="flex gap-3">
+                                                {item.imageUrl ? (
+                                                    <div 
+                                                        onClick={() => setPreviewImage(UPLOADS_URL + item.imageUrl)}
+                                                        className="w-16 h-16 rounded-xl overflow-hidden border cursor-zoom-in shrink-0"
+                                                    >
+                                                        <img src={UPLOADS_URL + item.imageUrl} alt={item.nama} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-16 h-16 rounded-xl bg-slate-100 border flex items-center justify-center text-slate-400 shrink-0">
+                                                        <ImageIcon className="w-5 h-5 opacity-40" />
+                                                    </div>
+                                                )}
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="font-bold text-slate-800 text-sm truncate">{item.nama}</h4>
+                                                    <span className="text-[9px] font-mono text-slate-400 block mt-0.5">ID: #{item.id}</span>
+                                                    <div className="flex flex-col gap-1 mt-1">
                                                         <span className="text-xs font-black text-[#D25026]">
-                                                            Rp {new Intl.NumberFormat('id-ID').format(item.harga || 0)}
+                                                            Rp {new Intl.NumberFormat('id-ID').format(item.harga || 0)} <span className="text-[9px] text-slate-400 font-normal ml-0.5">/ harga jual</span>
                                                         </span>
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             <span className={cn(
@@ -534,6 +757,178 @@ export function DashboardGudangMobile() {
                             </div>
                         </div>
                     )}
+
+                    {/* PESANAN FINISHING TAB MOBILE */}
+                    {activeTab === "pesanan" && (() => {
+                        const finishingOrders = ordersList.filter(o => o.status === "FINISHING");
+                        const filteredFinishing = finishingOrders.filter(o =>
+                            o.id.toLowerCase().includes(finishingSearch.toLowerCase()) ||
+                            o.customer.toLowerCase().includes(finishingSearch.toLowerCase())
+                        );
+                        return (
+                            <div className="space-y-4">
+                                {/* Search */}
+                                <div className="bg-white p-4 rounded-2xl border border-transparent shadow-sm space-y-3">
+                                    <div className="relative w-full">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari ID pesanan atau nama..."
+                                            value={finishingSearch}
+                                            onChange={(e) => setFinishingSearch(e.target.value)}
+                                            className="bg-slate-55/60 border border-slate-200/80 rounded-xl pl-9 pr-4 py-2 text-xs font-medium focus:outline-none focus:border-[#D25026] transition-colors w-full"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-xl">
+                                        <Truck className="w-3.5 h-3.5 text-blue-600" />
+                                        <span className="text-[10px] font-black text-blue-700 uppercase tracking-wider">{finishingOrders.length} Pesanan Finishing</span>
+                                    </div>
+                                </div>
+
+                                {/* Order Cards */}
+                                {filteredFinishing.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {filteredFinishing.map((order) => {
+                                            const isExpanded = expandedOrderId === order.id;
+                                            return (
+                                                <div key={order.rawId} className="bg-white rounded-2xl shadow-sm border border-transparent overflow-hidden">
+                                                    {/* Order Header */}
+                                                    <div className="p-4 space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="text-[10px] font-mono font-bold text-[#D25026] bg-[#FFF0EB] border border-[#FFD9CD] px-2 py-0.5 rounded-lg">{order.id}</span>
+                                                                {order.queueNumber && (
+                                                                    <span className="text-[8px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md uppercase tracking-wider">#{order.queueNumber}</span>
+                                                                )}
+                                                            </div>
+                                                            <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">FINISHING</span>
+                                                        </div>
+                                                        <h4 className="text-sm font-extrabold text-slate-900 truncate">
+                                                            <User className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
+                                                            {order.customer}
+                                                        </h4>
+                                                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium flex-wrap">
+                                                            <span>{order.product}</span>
+                                                            <span className="text-slate-300">•</span>
+                                                            <span>{order.qty} jersey</span>
+                                                            <span className="text-slate-300">•</span>
+                                                            <span>Designer: <strong className="text-slate-700">{order.designer}</strong></span>
+                                                        </div>
+                                                        <p className="text-[9px] text-slate-400 italic">{order.dateTime}</p>
+
+                                                        {/* Actions */}
+                                                        <div className="flex gap-2 pt-1">
+                                                            <button
+                                                                onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                                                                className="flex-1 h-9 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"
+                                                            >
+                                                                <Eye className="w-3.5 h-3.5" />
+                                                                {isExpanded ? "Tutup" : "Detail"}
+                                                                <ChevronDown className={cn("w-3 h-3 transition-transform", isExpanded && "rotate-180")} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setConfirmPackingModal({ isOpen: true, order })}
+                                                                className="flex-1 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20"
+                                                            >
+                                                                <Check className="w-3.5 h-3.5" />
+                                                                Selesai Packing
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Expanded Detail */}
+                                                    {isExpanded && (
+                                                        <div className="border-t border-slate-100 p-4 bg-slate-50/50 space-y-4">
+                                                            {/* Mockup & Layout Previews */}
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {/* Mockup */}
+                                                                <div className="bg-white rounded-xl border border-slate-100 p-3 space-y-1.5">
+                                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Mockup Desain</span>
+                                                                    {order.mockupUrl ? (
+                                                                        order.mockupUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                            <a href={UPLOADS_URL + order.mockupUrl} target="_blank" rel="noopener noreferrer"
+                                                                                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-red-700 hover:bg-red-100 transition-colors">
+                                                                                <FileText className="w-4 h-4" />
+                                                                                <span className="text-[10px] font-bold">PDF</span>
+                                                                            </a>
+                                                                        ) : (
+                                                                            <div className="cursor-zoom-in" onClick={() => setPreviewMockup(UPLOADS_URL + order.mockupUrl)}>
+                                                                                <img src={UPLOADS_URL + order.mockupUrl} alt="Mockup" className="w-full h-24 object-contain rounded-lg border border-slate-200 bg-white" />
+                                                                            </div>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="flex items-center justify-center h-20 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-slate-400">
+                                                                            <ImageIcon className="w-4 h-4 opacity-40" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {/* Layout */}
+                                                                <div className="bg-white rounded-xl border border-slate-100 p-3 space-y-1.5">
+                                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Layout Cetak</span>
+                                                                    {order.layoutUrl ? (
+                                                                        order.layoutUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                            <a href={UPLOADS_URL + order.layoutUrl} target="_blank" rel="noopener noreferrer"
+                                                                                className="flex items-center gap-1.5 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-red-700 hover:bg-red-100 transition-colors">
+                                                                                <FileText className="w-4 h-4" />
+                                                                                <span className="text-[10px] font-bold">PDF</span>
+                                                                            </a>
+                                                                        ) : (
+                                                                            <div className="cursor-zoom-in" onClick={() => setPreviewMockup(UPLOADS_URL + order.layoutUrl)}>
+                                                                                <img src={UPLOADS_URL + order.layoutUrl} alt="Layout" className="w-full h-24 object-contain rounded-lg border border-slate-200 bg-white" />
+                                                                            </div>
+                                                                        )
+                                                                    ) : (
+                                                                        <div className="flex items-center justify-center h-20 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-slate-400">
+                                                                            <ImageIcon className="w-4 h-4 opacity-40" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Player Sizing */}
+                                                            <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                                                                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/50">
+                                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Data Pemain ({order.playerInfo.length})</span>
+                                                                </div>
+                                                                <div className="divide-y divide-slate-50">
+                                                                    {order.playerInfo.map((p: any, idx: number) => (
+                                                                        <div key={idx} className="px-3 py-2 flex items-center justify-between">
+                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                <span className="text-[10px] font-bold text-slate-400 w-5 text-center shrink-0">{idx + 1}</span>
+                                                                                <span className="text-[11px] font-bold text-slate-800 truncate">{(p.name || "-").toUpperCase()}</span>
+                                                                                <span className="text-[10px] font-bold text-slate-400 shrink-0">#{p.number || "-"}</span>
+                                                                            </div>
+                                                                            <span className="px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md text-[9px] font-black text-blue-700 uppercase shrink-0">{p.size || "-"}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Design Note */}
+                                                            {order.designNote && (
+                                                                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                                                                    <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest block mb-0.5">Catatan Desain</span>
+                                                                    <p className="text-[10px] text-amber-800 font-medium leading-relaxed italic">{order.designNote}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white p-10 rounded-2xl text-center shadow-sm text-slate-400 flex flex-col items-center justify-center gap-2">
+                                        <Truck className="w-10 h-10 opacity-30" />
+                                        <p className="text-xs font-bold uppercase tracking-wider italic">
+                                            {finishingSearch ? "Pesanan tidak ditemukan" : "Belum ada pesanan finishing"}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 font-medium">Pesanan yang selesai print akan muncul di sini.</p>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -698,6 +1093,31 @@ export function DashboardGudangMobile() {
                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic block">Harga Jual / unit</span>
                                     <span className="font-extrabold text-slate-800 text-xs mt-0.5 inline-block">Rp {selectedDetailItem.harga?.toLocaleString('id-ID')}</span>
                                 </div>
+                                
+                                {activeTab === "penyubliman" && (
+                                    <>
+                                        <div className="bg-orange-50 p-2.5 rounded-xl border border-orange-100">
+                                            <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest italic block">Harga Modal (Beli)</span>
+                                            <span className="font-extrabold text-orange-600 text-[11px] mt-0.5 inline-block">Rp {(selectedDetailItem.hargaBeli || 0).toLocaleString('id-ID')}</span>
+                                        </div>
+                                        <div className="bg-blue-50 p-2.5 rounded-xl border border-blue-100 flex flex-col justify-center">
+                                            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest italic block">Bukti Nota</span>
+                                            {selectedDetailItem.buktiNotaUrl ? (
+                                                <a 
+                                                    href={UPLOADS_URL + selectedDetailItem.buktiNotaUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="mt-1 inline-flex items-center justify-center px-2 py-1 rounded bg-white text-blue-600 border border-blue-200 text-[9px] font-bold hover:bg-blue-50 transition-colors"
+                                                >
+                                                    Lihat Nota
+                                                </a>
+                                            ) : (
+                                                <span className="text-[9px] font-bold text-slate-400 italic block mt-1">-</span>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
                                 <div className="col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-250">
                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic block">Estimasi Hasil Jersey</span>
                                     <div className="text-[9px] text-slate-550 font-semibold space-y-0.5 mt-1 italic">
@@ -960,6 +1380,68 @@ export function DashboardGudangMobile() {
                                 {deleteLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Hapus"}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* CONFIRM PACKING MODAL MOBILE */}
+            {confirmPackingModal.isOpen && confirmPackingModal.order && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl w-[90vw] max-w-[380px] p-6 border border-slate-100 shadow-2xl space-y-4 transform animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-black uppercase tracking-tight text-slate-900">Konfirmasi Packing</h3>
+                            <button onClick={() => setConfirmPackingModal({ isOpen: false, order: null })} className="text-slate-400 hover:text-slate-600 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono font-bold text-[#D25026] bg-[#FFF0EB] border border-[#FFD9CD] px-2 py-0.5 rounded-lg">{confirmPackingModal.order.id}</span>
+                                <span className="text-xs font-bold text-slate-800">{confirmPackingModal.order.customer}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-500">{confirmPackingModal.order.qty} jersey — {confirmPackingModal.order.product}</p>
+                        </div>
+
+                        <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-[10px] text-emerald-800 leading-relaxed font-medium">
+                            Status pesanan akan diubah menjadi <strong>SELESAI</strong>. Pelanggan akan mendapat notifikasi bahwa pesanan siap dikirim/diambil.
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1 text-xs">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmPackingModal({ isOpen: false, order: null })}
+                                className="h-10 px-4 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl font-bold transition-all"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={() => handleFinishPacking(confirmPackingModal.order)}
+                                disabled={packingLoading}
+                                className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black uppercase tracking-widest transition-all shadow-md flex items-center gap-1.5"
+                            >
+                                {packingLoading ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Check className="w-3.5 h-3.5" />
+                                        Selesai
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* IMAGE PREVIEW MODAL MOBILE */}
+            {previewMockup && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setPreviewMockup(null)}>
+                    <div className="relative max-w-[95vw] max-h-[90vh]">
+                        <button onClick={() => setPreviewMockup(null)} className="absolute -top-2 -right-2 z-10 bg-white rounded-full p-1 shadow-lg">
+                            <X className="w-4 h-4 text-slate-700" />
+                        </button>
+                        <img src={previewMockup} alt="Preview" className="max-w-full max-h-[85vh] rounded-xl shadow-2xl" />
                     </div>
                 </div>
             )}

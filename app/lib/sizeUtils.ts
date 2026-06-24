@@ -92,7 +92,7 @@ export const downloadPlayersPDF = (order: any) => {
         (index + 1).toString(),
         (p.name || p.playerName || "-").toUpperCase(),
         p.number || p.playerNumber || "-",
-        p.size || p.playerSize || "-"
+        p.playerSize || p.size || "-"
     ]);
 
     autoTable(doc, {
@@ -174,7 +174,9 @@ export const SIZE_REGEX = /\b(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL|5XL|6XL)\b/i;
 export const downloadOmsetPDF = (
     data: any[],
     periodText: string,
-    currentTotal: number
+    currentTotal: number,
+    totalPengeluaran: number = 0,
+    netProfit: number = 0
 ) => {
     const doc = new jsPDF();
     const formatCurrency = (amount: number) => {
@@ -259,21 +261,42 @@ export const downloadOmsetPDF = (
     // --- Summary Box ---
     doc.setFillColor(248, 250, 252);
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(110, finalY, 85, 28, 2, 2, 'FD');
+    // Expand the box to accommodate more rows
+    doc.roundedRect(100, finalY, 95, 42, 2, 2, 'FD');
 
     doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(120, 120, 120);
-    doc.text("Ringkasan Laporan:", 115, finalY + 8);
-    doc.text("Total Item Periode:", 115, finalY + 15);
-    doc.text("Total Pendapatan:", 115, finalY + 22);
+    doc.text("RINGKASAN FINANSIAL", 105, finalY + 8);
 
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text("Total Item Periode:", 105, finalY + 15);
+    doc.text("Total Pemasukan (Omset):", 105, finalY + 22);
+    doc.text("Total Pengeluaran (Bahan):", 105, finalY + 29);
+    
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 30, 30);
     doc.text(`${data.length} Baris Data`, 190, finalY + 15, { align: 'right' });
-    doc.setTextColor(210, 80, 38);
+    doc.setTextColor(17, 157, 164); // #119DA4
+    doc.text(`+ ${formatCurrency(currentTotal)}`, 190, finalY + 22, { align: 'right' });
+    doc.setTextColor(232, 92, 47); // #E85C2F
+    doc.text(`- ${formatCurrency(totalPengeluaran)}`, 190, finalY + 29, { align: 'right' });
+
+    // Divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.line(105, finalY + 33, 190, finalY + 33);
+
+    const isProfit = netProfit >= 0;
+    doc.setFontSize(10);
+    if (isProfit) {
+        doc.setTextColor(5, 150, 105); // Emerald
+    } else {
+        doc.setTextColor(220, 38, 38); // Red
+    }
+    doc.text(isProfit ? "KEUNTUNGAN BERSIH:" : "KERUGIAN BERSIH:", 105, finalY + 39);
     doc.setFontSize(11);
-    doc.text(formatCurrency(currentTotal), 190, finalY + 22, { align: 'right' });
+    doc.text(`${isProfit ? '+' : '-'} ${formatCurrency(Math.abs(netProfit))}`, 190, finalY + 39, { align: 'right' });
 
     // --- Footer ---
     const pageCount = (doc as any).internal.getNumberOfPages();

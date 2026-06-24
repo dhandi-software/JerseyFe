@@ -167,10 +167,14 @@ export function BahanBajuDetailDesktop() {
                         <h1 className="text-6xl font-black text-slate-900 tracking-tighter leading-none">{currentBahan.nama}</h1>
                         <div className="flex flex-wrap items-center gap-4 pt-2">
                             <div className="flex items-center gap-2.5 px-5 py-2.5 bg-blue-50 text-blue-700 rounded-2xl font-black text-xs border border-blue-100 shadow-sm">
-                                <span className="text-[10px] opacity-50 uppercase tracking-widest mr-1">Harga:</span>
+                                <span className="text-[10px] opacity-50 uppercase tracking-widest mr-1">Harga Jual:</span>
                                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(currentBahan.harga || 0)}
                             </div>
                             <div className="flex items-center gap-2.5 px-5 py-2.5 bg-orange-50 text-orange-700 rounded-2xl font-black text-xs border border-orange-100 shadow-sm">
+                                <span className="text-[10px] opacity-50 uppercase tracking-widest mr-1">Modal Beli:</span>
+                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(currentBahan.hargaBeli || 0)}
+                            </div>
+                            <div className="flex items-center gap-2.5 px-5 py-2.5 bg-teal-50 text-teal-700 rounded-2xl font-black text-xs border border-teal-100 shadow-sm">
                                 <Package className="w-5 h-5" strokeWidth={2.5} />
                                 Ketersediaan ({currentBahan.kuantitasKg} kg / {(currentBahan.kuantitasKg * (currentBahan.rasioKonversi || 2.5)).toFixed(1)} meter)
                             </div>
@@ -203,6 +207,27 @@ export function BahanBajuDetailDesktop() {
                         <p className="text-lg text-slate-500 leading-relaxed font-medium italic border-l-4 border-slate-100 pl-8">
                             {currentBahan.deskripsi || "Tidak ada deskripsi tambahan untuk bahan ini. Silahkan hubungi admin untuk spesifikasi teknis lebih lanjut."}
                         </p>
+                    </div>
+
+                    <div className="space-y-6 pt-12 border-t border-slate-100">
+                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+                                <ImageIcon className="w-5 h-5" />
+                            </div>
+                            Dokumen Pendukung
+                        </h3>
+                        {currentBahan.buktiNotaUrl ? (
+                            <a 
+                                href={UPLOADS_URL + currentBahan.buktiNotaUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center px-6 py-4 rounded-2xl bg-white text-blue-600 border-2 border-blue-100 font-bold hover:bg-blue-50 hover:border-blue-200 transition-colors shadow-sm gap-2"
+                            >
+                                Lihat Bukti Nota Pembelian
+                            </a>
+                        ) : (
+                            <p className="text-sm text-slate-400 font-medium italic">Tidak ada bukti nota yang diunggah.</p>
+                        )}
                     </div>
 
                     <div className="pt-12 flex gap-4">
