@@ -123,7 +123,7 @@ export function InfoSection() {
                             </div>
                         ) : (
                             <div className="w-full py-16 text-center text-neutral-400 font-medium italic">
-                                Belum ada bahan baju tersedia
+                                Belum ada bahan baju tersediaaa
                             </div>
                         )}
                     </div>
