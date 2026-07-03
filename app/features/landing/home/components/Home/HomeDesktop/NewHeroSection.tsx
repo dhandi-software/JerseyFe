@@ -31,48 +31,34 @@ export function NewHeroSection() {
         }
     };
 
-    // Static fallback items in case API is empty or loading
-    const defaultSlides = [
-        {
-            id: 1,
-            nama: "Color of Summer Outfit",
-            deskripsi: "100+ Collections for your outfit inspirations in this summer",
-            imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200&auto=format&fit=crop"
-        },
-        {
-            id: 2,
-            nama: "Outdoor Active",
-            deskripsi: "High performance materials made for maximum active comfort.",
-            imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=600&auto=format&fit=crop"
-        },
-        {
-            id: 3,
-            nama: "Casual Comfort",
-            deskripsi: "Sleek look for your casual everyday style.",
-            imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=800&auto=format&fit=crop"
-        },
-        {
-            id: 4,
-            nama: "Say it with Shirt",
-            deskripsi: "Our favorite combination for casual outfit combinations.",
-            imageUrl: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=600&auto=format&fit=crop"
-        },
-        {
-            id: 5,
-            nama: "Funky never get old",
-            deskripsi: "Unleash your bold designs and vibrant colors.",
-            imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop"
-        }
-    ];
+    const activeList = materials.map(item => ({
+        id: item.id,
+        nama: item.nama,
+        deskripsi: item.deskripsi || "Premium FSCV Jersey series designed for champions.",
+        imageUrl: item.imageUrl ? `${UPLOADS_URL}${item.imageUrl}` : "https://via.placeholder.com/1200?text=Premium+Jersey"
+    }));
 
-    const activeList = materials.length > 0 
-        ? materials.map(item => ({
-            id: item.id,
-            nama: item.nama,
-            deskripsi: item.deskripsi || "Premium FSCV Jersey series designed for champions.",
-            imageUrl: item.imageUrl ? `${UPLOADS_URL}${item.imageUrl}` : "https://via.placeholder.com/1200?text=Premium+Jersey"
-          }))
-        : defaultSlides;
+    if (loading) {
+        return (
+            <section className="w-full flex justify-center py-4 px-[1rem] sm:px-[1.85rem] font-['Inter']">
+                <div className="w-full max-w-[90rem] flex flex-col gap-4">
+                    <div className="w-full h-[35rem] bg-neutral-100 rounded-[2.5rem] animate-pulse" />
+                </div>
+            </section>
+        );
+    }
+
+    if (activeList.length === 0) {
+        return (
+            <section className="w-full flex justify-center py-4 px-[1rem] sm:px-[1.85rem] font-['Inter']">
+                <div className="w-full max-w-[90rem] flex flex-col gap-4">
+                    <div className="w-full h-[35rem] bg-neutral-50 rounded-[2.5rem] flex items-center justify-center border border-neutral-200">
+                        <div className="text-neutral-400 italic font-medium">Belum ada bahan baju tersedia</div>
+                    </div>
+                </div>
+            </section>
+        );
+    }
 
     const currentItem = activeList[currentIndex];
     

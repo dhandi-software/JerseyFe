@@ -33,7 +33,7 @@ export function LoginDesktop() {
     };
 
     return (
-        <main className="relative h-screen w-full flex items-center justify-center overflow-hidden font-geist py-8 
+        <main className="relative min-h-screen w-full flex items-center justify-center overflow-x-hidden font-geist py-8 lg:py-12 
             bg-[#0F172A] 
             before:content-[''] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_30%,_rgba(79,70,229,0.3)_0%,_transparent_50%),radial-gradient(circle_at_80%_70%,_rgba(6,182,212,0.2)_0%,_transparent_50%),radial-gradient(circle_at_50%_50%,_rgba(124,58,237,0.1)_0%,_transparent_70%)]
             selection:bg-indigo-500 selection:text-white"
@@ -46,7 +46,7 @@ export function LoginDesktop() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative z-10 w-full max-w-[500px] max-h-[92vh] flex flex-col bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_48px_80px_-16px_rgba(0,0,0,0.4)] overflow-hidden border border-white/20 p-8 lg:p-12"
+                className="relative z-10 w-full max-w-[500px] flex flex-col bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_48px_80px_-16px_rgba(0,0,0,0.4)] border border-white/20 p-8 lg:p-12 my-auto"
             >
                 {/* Branding Header */}
                 <header className="mb-8 flex flex-col items-center shrink-0">
