@@ -8,6 +8,7 @@ import {
 
 export default [
     route("login", "routes/login/login.tsx"),
+    route("register", "routes/register/register.tsx"),
 
     layout("routes/landing/landing-layout.tsx", [
         route("/", "routes/landing/Home.tsx"),

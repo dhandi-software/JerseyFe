@@ -17,8 +17,7 @@ import {
     localeCookie,
 } from "~/middleware/i18next";
 import { useTranslation } from "react-i18next";
-import { MediaProvider as WriterMediaProvider } from "~/context/MediaContext";
-import { MediaProvider as EditorMediaProvider } from "./features/Editor/media/MediaContext";
+
 import { AuthProvider } from "~/context/AuthContext";
 // Tambahkan import PasswordProvider
 import { PasswordProvider } from "~/context/PasswordContext";

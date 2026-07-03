@@ -1,36 +1,22 @@
-import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
-import { Label } from "~/components/ui/label";
 import { Link } from "react-router";
-import { useAuth } from "~/hooks/useAuth";
-import { Eye, EyeOff, ShieldCheck, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, Mail, Lock, User } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "~/lib/utils";
+import { useRegister } from "./UseRegister";
+import { Toast } from "~/components/ui/toast";
 
-export function LoginDesktop() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [rememberMe, setRememberMe] = useState(false);
-    const [errors, setErrors] = useState({ email: false, password: false });
-    const [loginError, setLoginError] = useState<string | null>(null);
-    const [showPassword, setShowPassword] = useState(false);
-    const { login, isLoading } = useAuth();
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const newErrors = { email: !email, password: !password };
-        setErrors(newErrors);
-        setLoginError(null);
-
-        if (!newErrors.email && !newErrors.password) {
-            try {
-                await login({ email, password });
-            } catch (error: any) {
-                setLoginError(error.response?.data?.message || "Invalid credentials. Please try again.");
-            }
-        }
-    };
+export function RegisterDesktop() {
+    const {
+        formData,
+        showPassword,
+        isLoading,
+        toastProps,
+        setToastProps,
+        handleInputChange,
+        togglePasswordVisibility,
+        handleSubmit,
+    } = useRegister();
 
     return (
         <main className="relative h-screen w-full flex items-center justify-center overflow-hidden font-geist py-8 
@@ -57,22 +43,31 @@ export function LoginDesktop() {
                         FSCV PORTAL
                     </h1>
                     <p className="text-slate-500 text-[9px] font-black mt-1 uppercase tracking-[0.3em] opacity-60">
-                        Secure Environment Authorization
+                        Secure Environment Registration
                     </p>
                 </header>
 
-                {loginError && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-[13px] font-bold"
-                    >
-                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
-                        {loginError}
-                    </motion.div>
-                )}
-
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Full Name</label>
+                        <div className="relative group">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                <User className="w-4 h-4" />
+                            </div>
+                            <input 
+                                type="text"
+                                name="name"
+                                placeholder="John Doe"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                className={cn(
+                                    "w-full h-14 pl-12 pr-4 bg-slate-50 border rounded-2xl text-[14px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
+                                    "border-slate-100 focus:border-indigo-500"
+                                )}
+                            />
+                        </div>
+                    </div>
+
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identity Key (Email)</label>
                         <div className="relative group">
@@ -81,12 +76,13 @@ export function LoginDesktop() {
                             </div>
                             <input 
                                 type="email"
-                                placeholder="username@portal.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                name="email"
+                                placeholder="kustomer@portal.com"
+                                value={formData.email}
+                                onChange={handleInputChange}
                                 className={cn(
                                     "w-full h-14 pl-12 pr-4 bg-slate-50 border rounded-2xl text-[14px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
-                                    errors.email ? "border-red-200" : "border-slate-100 focus:border-indigo-500"
+                                    "border-slate-100 focus:border-indigo-500"
                                 )}
                             />
                         </div>
@@ -100,37 +96,23 @@ export function LoginDesktop() {
                             </div>
                             <input 
                                 type={showPassword ? "text" : "password"}
+                                name="password"
                                 placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                value={formData.password}
+                                onChange={handleInputChange}
                                 className={cn(
                                     "w-full h-14 pl-12 pr-12 bg-slate-50 border rounded-2xl text-[14px] font-bold transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/5",
-                                    errors.password ? "border-red-200" : "border-slate-100 focus:border-indigo-500"
+                                    "border-slate-100 focus:border-indigo-500"
                                 )}
                             />
                             <button 
                                 type="button"
-                                onClick={() => setShowPassword(!showPassword)}
+                                onClick={togglePasswordVisibility}
                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                         </div>
-                        <div className="flex justify-end pt-1 px-1">
-                            <Link to="/forgot-password" className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
-                                Forgot password?
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 px-1">
-                        <Checkbox 
-                            id="remember-ds" 
-                            checked={rememberMe} 
-                            onCheckedChange={(v) => setRememberMe(v === true)}
-                            className="rounded-lg w-5 h-5 border-slate-200 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
-                        />
-                        <Label htmlFor="remember-ds" className="text-xs font-bold text-slate-500 cursor-pointer">Stay Authorized</Label>
                     </div>
 
                     <Button 
@@ -141,16 +123,16 @@ export function LoginDesktop() {
                         {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                <span>Authenticating...</span>
+                                <span>Registering...</span>
                             </div>
                         ) : (
-                            "LOGIN"
+                            "REGISTER"
                         )}
                     </Button>
 
-                    <div className="text-center pt-4 px-1">
-                        <Link to="/register" className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
-                            Belum punya akun? Daftar di sini
+                    <div className="text-center pt-2">
+                        <Link to="/login" className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
+                            Sudah punya akun? Masuk di sini
                         </Link>
                     </div>
                 </form>
@@ -161,6 +143,14 @@ export function LoginDesktop() {
                     </p>
                 </footer>
             </motion.div>
+
+            {toastProps && (
+                <Toast
+                    title={toastProps.title}
+                    variant={toastProps.variant}
+                    onClose={() => setToastProps(null)}
+                />
+            )}
         </main>
     );
 }
