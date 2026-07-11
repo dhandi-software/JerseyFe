@@ -8,7 +8,8 @@ import {
   FileText,
   BarChart3,
   ShoppingBag,
-  Package
+  Package,
+  RotateCcw
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -31,6 +32,8 @@ type MenuKey =
   | "bahan-baju"
   | "chat"
   | "omset"
+  | "retur-barang"
+  | "buat-pesanan"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -39,6 +42,8 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/bahan-baju")) return "bahan-baju";
   if (pathname.startsWith("/admin/chat")) return "chat";
   if (pathname.startsWith("/admin/omset")) return "omset";
+  if (pathname.startsWith("/admin/retur-barang")) return "retur-barang";
+  if (pathname.startsWith("/admin/buat-pesanan")) return "buat-pesanan";
   if (pathname === "/admin" || pathname.endsWith("/admin") || pathname === "/admin/")
     return "dashboard";
   return undefined;
@@ -50,6 +55,12 @@ const menuItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     url: "/admin",
+  },
+  {
+    key: "buat-pesanan" as MenuKey,
+    title: "Buat Pesanan",
+    icon: ShoppingBag,
+    url: "/admin/buat-pesanan",
   },
   {
     key: "users" as MenuKey,
@@ -74,6 +85,12 @@ const menuItems = [
     title: "Bahan Baju",
     icon: Package,
     url: "/admin/bahan-baju",
+  },
+  {
+    key: "retur-barang" as MenuKey,
+    title: "Retur Barang",
+    icon: RotateCcw,
+    url: "/admin/retur-barang",
   },
   {
     key: "chat" as MenuKey,

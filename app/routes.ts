@@ -48,6 +48,8 @@ export default [
             route("chat", "routes/admin/chat.tsx"),
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
+            route("retur-barang", "routes/admin/retur-barang.tsx"),
+            route("buat-pesanan", "routes/admin/buat-pesanan.tsx"),
         ]),
     ]),
 
@@ -77,6 +79,7 @@ export default [
             index("routes/gudang/dashboard.tsx"),
             route("bahan-baju/create", "routes/gudang/bahan-baju-create.tsx"),
             route("packing", "routes/gudang/packing.tsx"),
+            route("retur-barang", "routes/gudang/retur-barang.tsx"),
         ]),
     ]),
    

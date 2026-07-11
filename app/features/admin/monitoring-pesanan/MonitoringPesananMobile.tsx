@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy, Truck, Download, Search, ChevronDown, AlertCircle } from "lucide-react";
+import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy, Truck, Download, Search, ChevronDown, AlertCircle, Printer, Upload } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
+import { chatService } from "~/services/chatService";
 import { UPLOADS_URL } from "~/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { adminApi } from "~/api/admin";
 import { Toast } from "~/components/ui/toast";
 import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
+import { generateInvoicePDF } from "~/lib/pdfHelper";
 import { Button } from "~/components/ui/button";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Input } from "~/components/ui/input";
@@ -38,6 +40,50 @@ export function MonitoringPesananMobile() {
             setTempRecommendedIds(selectedOrder.recommendedBahanIds || []);
         }
     }, [selectedOrder]);
+
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const handlePrintInvoice = async () => {
+        if (!selectedOrder) return;
+        setIsPrinting(true);
+        try {
+            await generateInvoicePDF(selectedOrder);
+        } catch (error) {
+            console.error("Failed to generate PDF", error);
+            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    const [isUploadingProof, setIsUploadingProof] = useState(false);
+    const proofInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedOrder) return;
+        
+        setIsUploadingProof(true);
+        try {
+            const res = await chatService.uploadFile(file);
+            const newPaymentUrl = res.url;
+            
+            // We use the new dedicated API endpoint for paymentUrl update
+            await orderService.updatePaymentUrl(selectedOrder.rawId, newPaymentUrl);
+            
+            setToast({ title: "Bukti pembayaran berhasil diunggah!", variant: "success" });
+            // Update local state
+            setSelectedOrder({ ...selectedOrder, paymentProofUrl: newPaymentUrl });
+            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, paymentProofUrl: newPaymentUrl } : o));
+            
+        } catch (error) {
+            console.error("Gagal mengunggah bukti pembayaran", error);
+            setToast({ title: "Gagal mengunggah bukti pembayaran", variant: "destructive" });
+        } finally {
+            setIsUploadingProof(false);
+            if (proofInputRef.current) proofInputRef.current.value = "";
+        }
+    };
 
     // Search, Sort, and Pagination states
     const [searchQuery, setSearchQuery] = useState("");
@@ -88,6 +134,7 @@ export function MonitoringPesananMobile() {
                     designNote: o.designNote,
                     designUrl: o.designUrl,
                     paymentProofUrl: o.paymentUrl,
+                    isAdminOrder: !!o.isAdminOrder,
                     totalAmount: o.totalAmount,
                     shippingMethod: o.shippingMethod,
                     shippingAddress: o.shippingAddress,
@@ -97,6 +144,7 @@ export function MonitoringPesananMobile() {
                     layoutUrl: o.layoutUrl,
                     layoutStatus: o.layoutStatus,
                     layoutFeedback: o.layoutFeedback,
+                    details: o.details,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
                         day: 'numeric', 
@@ -307,8 +355,26 @@ export function MonitoringPesananMobile() {
                             </div>
                          </div>
                     </div>
-                    <h1 className="text-xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Detail Pesanan</h1>
-                    <p className="text-[10px] font-bold text-[#D25026] uppercase italic mt-1">{selectedOrder.customer}</p>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Detail Pesanan</h1>
+                        <button 
+                            onClick={handlePrintInvoice}
+                            disabled={isPrinting}
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50"
+                        >
+                            {isPrinting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Printer size={12} />}
+                            Cetak
+                        </button>
+                    </div>
+                    <div className="flex flex-col gap-1 mt-2">
+                        <p className="text-[10px] font-bold text-[#D25026] uppercase italic">{selectedOrder.customer}</p>
+                        {selectedOrder.isAdminOrder && (
+                            <span className="bg-[#D25026]/10 text-[#D25026] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 w-max mt-2">
+                                <User size={10} />
+                                Dibuat oleh: Admin
+                            </span>
+                        )}
+                    </div>
                     {selectedOrder.status !== "MENUNGGU" && selectedOrder.status !== "DITOLAK" && (
                         <p className="text-[10px] font-bold text-slate-600 mt-1">Dikerjakan oleh: <span className="text-purple-600">{selectedOrder.designer}</span></p>
                     )}
@@ -444,13 +510,13 @@ export function MonitoringPesananMobile() {
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
                             <CreditCard className="text-[#D25026]" size={14} /> Bukti Pembayaran
                         </h3>
-                        {selectedOrder.paymentProofUrl ? (
+                        {selectedOrder.paymentProofUrl && selectedOrder.paymentProofUrl !== "MENUNGGU_PEMBAYARAN_ADMIN" ? (
                             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
+                                <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex flex-col items-center justify-center p-3 shadow-sm group">
                                     {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
-                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
-                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                            <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
+                                        <div className="w-full h-32 bg-emerald-50 flex flex-col items-center justify-center rounded-lg">
+                                            <FileText className="w-10 h-10 text-emerald-500 mb-2" />
+                                            <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 underline">
                                                 Buka Bukti (PDF)
                                             </a>
                                         </div>
@@ -460,11 +526,46 @@ export function MonitoringPesananMobile() {
                                             className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-lg" 
                                         />
                                     )}
+                                    {selectedOrder.status === "MENUNGGU" && (
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-active:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                            <label className={`w-full bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition-transform cursor-pointer ${isUploadingProof ? 'opacity-50' : 'hover:scale-105'}`}>
+                                                {isUploadingProof ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                                                Ubah Bukti Pembayaran
+                                                <input 
+                                                    type="file" 
+                                                    onChange={handleUploadProof} 
+                                                    accept="image/*,.pdf" 
+                                                    className="hidden" 
+                                                    disabled={isUploadingProof}
+                                                />
+                                            </label>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
-                            <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
-                                <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada bukti bayar</p>
+                            <div className="w-full min-h-[6rem] bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-100 p-4">
+                                {selectedOrder.paymentProofUrl === "MENUNGGU_PEMBAYARAN_ADMIN" ? (
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mb-2">
+                                            <Clock className="w-5 h-5 text-amber-600" />
+                                        </div>
+                                        <p className="text-[8px] font-bold text-slate-600 italic uppercase tracking-widest mb-3">Menunggu Unggahan Admin</p>
+                                        <label className={`w-full bg-[#D25026] text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingProof ? 'opacity-50' : 'hover:bg-[#B34320]'}`}>
+                                            {isUploadingProof ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={14} />}
+                                            Unggah Bukti Transfer
+                                            <input 
+                                                type="file" 
+                                                onChange={handleUploadProof} 
+                                                accept="image/*,.pdf" 
+                                                className="hidden" 
+                                                disabled={isUploadingProof}
+                                            />
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada bukti bayar</p>
+                                )}
                             </div>
                         )}
                     </div>

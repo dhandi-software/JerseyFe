@@ -126,7 +126,7 @@ export function AppSidebar() {
         <div className="mt-auto flex flex-col gap-2">
            <div className="px-4 py-3 bg-slate-100 rounded-xl border border-slate-200">
                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Login Sebagai:</p>
-               <p className="text-sm font-black text-slate-900">{user?.name || "Staf Gudang"}</p>
+               <p className="text-sm font-black text-slate-900">{(user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang"}</p>
            </div>
           <button
             onClick={() => handleNavigate("logout")}

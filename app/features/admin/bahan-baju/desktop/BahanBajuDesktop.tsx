@@ -496,6 +496,7 @@ export function BahanBajuDesktop() {
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Bahan</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Aksi</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Aktor</th>
+                                                <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Nama Pengguna</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Perubahan</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic text-center">Ketersediaan Akhir</th>
                                                 <th className="px-6 py-5 text-xs font-black text-slate-400 uppercase tracking-widest italic">Keterangan</th>
@@ -519,6 +520,7 @@ export function BahanBajuDesktop() {
                                                                 "inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest border",
                                                                 hist.aksi === 'TAMBAH' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
                                                                 hist.aksi === 'KURANG' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
+                                                                hist.aksi === 'RUSAK' ? 'bg-red-50 text-red-600 border-red-100' : 
                                                                 hist.aksi === 'BUAT' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                                                                 hist.aksi === 'HAPUS' ? 'bg-red-50 text-red-600 border-red-100' :
                                                                 'bg-slate-100 text-slate-600 border-slate-200'
@@ -529,10 +531,12 @@ export function BahanBajuDesktop() {
                                                         <td className="px-6 py-5">
                                                             <div className="text-sm font-bold text-slate-700">{hist.actor || "System"}</div>
                                                         </td>
+                                                        <td className="px-6 py-5">
+                                                            <div className="text-sm font-bold text-slate-700">{hist.customerName || hist.actor || "Tim Internal"}</div>
+                                                        </td>
                                                         <td className="px-6 py-5 text-center font-mono font-bold text-sm">
                                                             {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah} kg</span> : 
-                                                             hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah} kg</span> : 
-                                                             hist.aksi === 'HAPUS' ? <span className="text-red-600">-{hist.jumlah} kg</span> :
+                                                             (hist.aksi === 'KURANG' || hist.aksi === 'RUSAK' || hist.aksi === 'HAPUS') ? <span className="text-red-600">-{hist.jumlah} kg</span> : 
                                                              <span className="text-slate-400">{hist.jumlah} kg</span>}
                                                         </td>
                                                         <td className="px-6 py-5 text-center font-black text-slate-900 text-sm">{hist.stokAkhir} kg</td>
@@ -543,7 +547,7 @@ export function BahanBajuDesktop() {
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan={7} className="px-6 py-20 text-center">
+                                                    <td colSpan={8} className="px-6 py-20 text-center">
                                                         <div className="flex flex-col items-center justify-center text-slate-400 space-y-4">
                                                             <History className="w-16 h-16 text-slate-200" />
                                                             <p className="text-sm font-bold italic uppercase tracking-widest">Belum ada riwayat aktivitas</p>

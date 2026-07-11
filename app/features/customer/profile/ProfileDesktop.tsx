@@ -49,7 +49,7 @@ export function ProfileDesktop() {
         </div>
 
         <div className="text-center md:text-left flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">{user?.name || "Customer Name"}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{(user as any)?.customer?.nama || (user as any)?.username || "Customer Name"}</h1>
           <p className="text-[#D25026] font-medium mt-1 flex items-center justify-center md:justify-start gap-2">
             <Shield size={16} /> Akun Customer
           </p>
@@ -73,7 +73,7 @@ export function ProfileDesktop() {
                     <label className="text-sm font-semibold text-gray-700">Nama Lengkap</label>
                     <input 
                         type="text" 
-                        defaultValue={user?.name || ""}
+                        defaultValue={(user as any)?.customer?.nama || (user as any)?.username || ""}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#D25026]/20 focus:border-[#D25026] outline-none transition-all"
                         placeholder="Masukkan nama lengkap"
                     />

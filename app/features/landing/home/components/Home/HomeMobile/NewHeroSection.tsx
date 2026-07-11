@@ -47,19 +47,7 @@ export function NewHeroSection() {
         );
     }
 
-    if (activeList.length === 0) {
-        return (
-            <section className="w-full flex justify-center py-4 px-[1rem] sm:px-[1.85rem] font-['Inter']">
-                <div className="w-full max-w-[90rem] flex flex-col gap-4">
-                    <div className="w-full h-[25rem] bg-neutral-50 rounded-[2.5rem] flex items-center justify-center border border-neutral-200">
-                        <div className="text-neutral-400 italic font-medium">Belum ada bahan baju tersedia</div>
-                    </div>
-                </div>
-            </section>
-        );
-    }
-
-    const currentItem = activeList[currentIndex];
+    const currentItem = activeList.length > 0 ? activeList[currentIndex] : null;
     
     // Helper to truncate text description dynamically
     const truncateText = (text: string, maxLen: number = 130) => {
@@ -69,30 +57,37 @@ export function NewHeroSection() {
     
     // Auxiliary slide items for surrounding slots
     const getSlotItem = (offset: number) => {
+        if (activeList.length === 0) return null;
         const idx = (currentIndex + offset) % activeList.length;
         return activeList[idx];
     };
 
-    const slot1 = getSlotItem(1); // Top right cover 1
-    const slot2 = getSlotItem(2); // Top right cover 2
-    const slot3 = getSlotItem(3); // Lower row right 1
-    const slot4 = getSlotItem(4); // Lower row right 2
+    const slot1 = getSlotItem(1);
+    const slot2 = getSlotItem(2);
+    const slot3 = getSlotItem(3);
+    const slot4 = getSlotItem(4);
 
     return (
         <section className="w-full flex justify-center py-4 px-[1rem] sm:px-[1.85rem] font-['Inter']">
             <div className="w-full max-w-[90rem] flex flex-col gap-4">
-                {/* Upper Row */}
+                {activeList.length === 0 ? (
+                    <div className="w-full h-[25rem] bg-neutral-50 rounded-[2.5rem] flex items-center justify-center border border-neutral-200">
+                        <div className="text-neutral-400 italic font-medium">Belum ada bahan baju tersedia</div>
+                    </div>
+                ) : (
+                    <>
+                        {/* Upper Row - Split into multiple elements for mobile */}
                 <div className="w-full flex items-stretch gap-4 flex-col lg:flex-row">
                     {/* Main Banner */}
                     <div 
-                        onClick={() => navigate(`/product/${currentItem.id}`)}
+                        onClick={() => navigate(`/product/${currentItem?.id}`)}
                         className="flex-[2] relative overflow-hidden bg-[#E5E7EB] rounded-[2rem] h-[25rem] md:h-[35rem] group cursor-pointer"
                     >
                         <img 
-                            key={currentItem.id} // force remount animation on slide change
+                            key={currentItem?.id} // force remount animation on slide change
                             className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
-                            src={currentItem.imageUrl} 
-                            alt={currentItem.nama} 
+                            src={currentItem?.imageUrl} 
+                            alt={currentItem?.nama} 
                         />
                         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent transition-opacity group-hover:from-black" />
                         
@@ -117,10 +112,10 @@ export function NewHeroSection() {
                         <div className="absolute left-[1rem] top-[2rem] flex flex-col items-start gap-6 max-w-[85%] z-20">
                             <div className="flex flex-col gap-3">
                                 <h1 className="text-white text-[2.2rem] font-bold leading-[1.1] drop-shadow-2xl italic uppercase tracking-tighter line-clamp-2">
-                                    {currentItem.nama}
+                                    {currentItem?.nama}
                                 </h1>
                                 <p className="text-white/90 text-[0.95rem] font-medium leading-relaxed drop-shadow-lg">
-                                    {truncateText(currentItem.deskripsi, 130)}
+                                    {truncateText(currentItem?.deskripsi || "", 130)}
                                 </p>
                             </div>
                             <button className="px-6 py-3 bg-neutral-950 hover:bg-[#D25026] text-white hover:text-white group/btn transition-all rounded-full flex justify-center items-center shadow-xl font-black italic uppercase tracking-widest text-[9px]">
@@ -145,34 +140,34 @@ export function NewHeroSection() {
                     {/* Right Side Stacked Covers */}
                     <div className="flex-1 flex flex-col gap-4">
                         <div 
-                            onClick={() => navigate(`/product/${slot1.id}`)}
+                            onClick={() => navigate(`/product/${slot1?.id}`)}
                             className="relative overflow-hidden bg-[#F3F4F6] rounded-[2rem] h-[12rem] group cursor-pointer"
                         >
                             <img 
                                 className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
-                                src={slot1.imageUrl} 
-                                alt={slot1.nama} 
+                                src={slot1?.imageUrl} 
+                                alt={slot1?.nama} 
                             />
                             <div className="absolute inset-x-0 top-0 h-full bg-gradient-to-b from-black/80 via-black/20 to-transparent transition-opacity group-hover:from-black" />
                             <div className="absolute left-[1.25rem] top-[1.25rem]">
                                 <div className="text-white text-[1.25rem] font-black italic uppercase leading-[1.1] tracking-tighter drop-shadow-lg line-clamp-2">
-                                    {slot1.nama}
+                                    {slot1?.nama}
                                 </div>
                             </div>
                         </div>
                         <div 
-                            onClick={() => navigate(`/product/${slot2.id}`)}
+                            onClick={() => navigate(`/product/${slot2?.id}`)}
                             className="relative overflow-hidden bg-[#F3F4F6] rounded-[2rem] h-[12rem] group cursor-pointer"
                         >
                             <img 
                                 className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
-                                src={slot2.imageUrl} 
-                                alt={slot2.nama} 
+                                src={slot2?.imageUrl} 
+                                alt={slot2?.nama} 
                             />
                             <div className="absolute inset-x-0 top-0 h-full bg-gradient-to-b from-black/80 via-black/20 to-transparent transition-opacity group-hover:from-black" />
                             <div className="absolute left-[1.25rem] top-[1.25rem]">
                                 <div className="text-white text-[1.25rem] font-black italic uppercase leading-[1.1] tracking-tighter drop-shadow-lg line-clamp-2">
-                                    {slot2.nama}
+                                    {slot2?.nama}
                                 </div>
                             </div>
                         </div>
@@ -199,34 +194,34 @@ export function NewHeroSection() {
                     {/* Right Images */}
                     <div className="flex-[2] flex gap-4 flex-col sm:flex-row">
                         <div 
-                            onClick={() => navigate(`/product/${slot3.id}`)}
+                            onClick={() => navigate(`/product/${slot3?.id}`)}
                             className="flex-1 relative overflow-hidden bg-[#F3F4F6] rounded-[2rem] h-[18rem] group cursor-pointer"
                         >
                             <img 
                                 className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
-                                src={slot3.imageUrl} 
-                                alt={slot3.nama} 
+                                src={slot3?.imageUrl} 
+                                alt={slot3?.nama} 
                             />
                             <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity group-hover:from-black" />
                             <div className="absolute left-[1.25rem] bottom-[1.25rem] text-white text-[1.5rem] font-black italic uppercase leading-[1.1] tracking-tighter drop-shadow-lg line-clamp-2 pr-12">
-                                {slot3.nama}
+                                {slot3?.nama}
                             </div>
                             <div className="absolute right-[1.25rem] bottom-[1.25rem] w-10 h-10 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all">
                                 <ArrowUpRight className="w-5 h-5 text-white" strokeWidth={1.5} />
                             </div>
                         </div>
                         <div 
-                            onClick={() => navigate(`/product/${slot4.id}`)}
+                            onClick={() => navigate(`/product/${slot4?.id}`)}
                             className="flex-1 relative overflow-hidden bg-[#F3F4F6] rounded-[2rem] h-[18rem] group cursor-pointer"
                         >
                             <img 
                                 className="w-full h-full object-cover object-top transition-transform duration-1000 group-hover:scale-105" 
-                                src={slot4.imageUrl} 
-                                alt={slot4.nama} 
+                                src={slot4?.imageUrl} 
+                                alt={slot4?.nama} 
                             />
                             <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity group-hover:from-black" />
                             <div className="absolute left-[1.25rem] bottom-[1.25rem] text-white text-[1.5rem] font-black italic uppercase leading-[1.1] tracking-tighter drop-shadow-lg line-clamp-2 pr-12">
-                                {slot4.nama}
+                                {slot4?.nama}
                             </div>
                             <div className="absolute right-[1.25rem] bottom-[1.25rem] w-10 h-10 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all">
                                 <ArrowUpRight className="w-5 h-5 text-white" strokeWidth={1.5} />
@@ -234,6 +229,8 @@ export function NewHeroSection() {
                         </div>
                     </div>
                 </div>
+                </>
+                )}
             </div>
         </section>
     );

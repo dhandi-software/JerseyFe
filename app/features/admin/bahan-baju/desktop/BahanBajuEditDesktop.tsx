@@ -23,6 +23,9 @@ export function BahanBajuEditDesktop() {
     const [hargaBeli, setHargaBeli] = useState<number | "">("");
     const [keteranganUbah, setKeteranganUbah] = useState("");
 
+    const [rusakPcs, setRusakPcs] = useState("");
+    const [keteranganRusak, setKeteranganRusak] = useState("");
+
     const parsedKuantitas = parseFloat(String(kuantitasKg).replace(',', '.')) || 0;
     const parsedRasio = parseFloat(String(rasioKonversi).replace(',', '.')) || 2.5;
     
@@ -111,6 +114,24 @@ export function BahanBajuEditDesktop() {
         if (!value) return "";
         const num = typeof value === "string" ? value.replace(/[^0-9]/g, "") : value.toString();
         return new Intl.NumberFormat('id-ID').format(Number(num));
+    };
+
+    const handleKurangiRusak = () => {
+        let pcs = parseInt(rusakPcs);
+        if (isNaN(pcs)) return;
+        pcs = Math.abs(pcs); // Handle negative inputs gracefully
+        if (pcs === 0) return;
+        
+        // Menggunakan standar konversi Pendek S-2XL (0.8333)
+        const pengali = 0.8333;
+        const kgDikurangi = pcs * (pengali / parsedRasio);
+        
+        const newKuantitas = Math.max(0, parsedKuantitas - kgDikurangi);
+        const roundedKuantitas = Math.round(newKuantitas * 10000) / 10000;
+        setKuantitasKg(roundedKuantitas.toString().replace('.', ','));
+        setKeteranganRusak(`Dikurangi ${kgDikurangi.toFixed(2)} kg (Konversi dari ${pcs} pcs).`);
+        setKeteranganUbah(`Pengurangan barang rusak: ${pcs} pcs (${kgDikurangi.toFixed(2)} kg)`);
+        setRusakPcs("");
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -250,6 +271,14 @@ export function BahanBajuEditDesktop() {
                                             )}
                                             <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center backdrop-blur-sm gap-2">
                                                 <a href={buktiNotaPreview} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="px-6 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg">Lihat Nota</a>
+                                                <Button 
+                                                    type="button"
+                                                    variant="destructive"
+                                                    onClick={(e) => { e.stopPropagation(); handleRemoveBuktiNota(); }}
+                                                    className="rounded-xl font-bold uppercase tracking-widest text-[10px] px-6 h-9 shadow-lg mt-2"
+                                                >
+                                                    Ganti Nota
+                                                </Button>
                                             </div>
                                         </>
                                     ) : buktiNotaPreview && buktiNotaFile ? (
@@ -378,12 +407,46 @@ export function BahanBajuEditDesktop() {
                                         </select>
                                     </div>
                                 </div>
+
+                                {/* Widget Pengurangan Barang Rusak */}
+                                <div className="bg-red-50/50 p-5 rounded-2xl border border-red-100 shadow-sm space-y-3">
+                                    <label className="text-xs font-black text-red-500 uppercase tracking-widest italic ml-1 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                        Pengurangan Barang Rusak (Pcs)
+                                    </label>
+                                    <div className="flex gap-4">
+                                        <input 
+                                            type="number"
+                                            placeholder="Jml Pcs (Misal: 2)"
+                                            value={rusakPcs}
+                                            onChange={(e) => setRusakPcs(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleKurangiRusak();
+                                                }
+                                            }}
+                                            className="w-48 h-11 px-4 bg-white border border-red-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-400 placeholder:text-red-300"
+                                        />
+                                            <Button 
+                                                type="button" 
+                                                onClick={handleKurangiRusak}
+                                                className={`h-11 px-6 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all duration-300 ${
+                                                    parseInt(rusakPcs) > 0 
+                                                        ? "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/30 ring-2 ring-red-500/50" 
+                                                        : "bg-red-100 text-red-600 hover:bg-red-200"
+                                                }`}
+                                            >Kurangi Stok</Button>
+                                    </div>
+                                    <p className="text-[10px] font-medium text-red-400 italic mt-1">*Masukkan jumlah pcs, stok kg akan otomatis dikurangi setelah klik tombol</p>
+                                    {keteranganRusak && <p className="text-xs text-red-600 italic font-medium mt-2">{keteranganRusak}</p>}
+                                </div>
                                 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-xs font-black text-orange-600 uppercase tracking-widest italic ml-1 flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-                                            Harga Beli Per KG (Modal)
+                                            Total Harga Beli / Modal Keseluruhan (Rp)
                                         </label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black italic">Rp</span>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { userApi } from "~/api/userApi";
+import { authService } from "~/services/authService";
 import { useNavigate } from "react-router";
 
 interface ToastProps {
@@ -75,7 +75,7 @@ export const useRegister = () => {
 
     setIsLoading(true);
     try {
-      await userApi.createCustomer({
+      await authService.register({
         email: formData.email,
         password: formData.password,
         nama: formData.name,

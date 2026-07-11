@@ -94,7 +94,7 @@ export function BahanBajuCreateDesktop() {
             formData.append("status", status);
             formData.append("harga", String(harga));
             formData.append("hargaBeli", String(hargaBeli));
-            formData.append("actor", user?.name || (isGudang ? "Staf Gudang" : "Admin"));
+            formData.append("actor", (user as any)?.staff?.nama || (user as any)?.username || (isGudang ? "Staf Gudang" : "Admin"));
             if (image) {
                 formData.append("image", image);
             }
@@ -328,7 +328,7 @@ export function BahanBajuCreateDesktop() {
                                     <div className="space-y-2">
                                         <label className="text-xs font-black text-orange-600 uppercase tracking-widest italic ml-1 flex items-center gap-2">
                                             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-                                            Harga Beli Per KG (Modal)
+                                            Total Harga Beli / Modal Keseluruhan (Rp)
                                         </label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black italic">Rp</span>

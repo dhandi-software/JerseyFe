@@ -307,6 +307,7 @@ export function BahanBajuMobile() {
                                                 <span className={`px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-widest border
                                                     ${hist.aksi === 'TAMBAH' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
                                                       hist.aksi === 'KURANG' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
+                                                      hist.aksi === 'RUSAK' ? 'bg-red-50 text-red-600 border-red-100' : 
                                                       hist.aksi === 'BUAT' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                                                       hist.aksi === 'HAPUS' ? 'bg-red-50 text-red-600 border-red-100' :
                                                       'bg-slate-50 text-slate-500 border-slate-100'}`}>
@@ -327,8 +328,7 @@ export function BahanBajuMobile() {
                                                 <div className="text-right">
                                                     <div className="font-mono text-xs font-black">
                                                         {hist.aksi === 'TAMBAH' ? <span className="text-emerald-600">+{hist.jumlah} kg</span> : 
-                                                         hist.aksi === 'KURANG' ? <span className="text-orange-600">-{hist.jumlah} kg</span> : 
-                                                         hist.aksi === 'HAPUS' ? <span className="text-red-600">-{hist.jumlah} kg</span> :
+                                                         (hist.aksi === 'KURANG' || hist.aksi === 'RUSAK' || hist.aksi === 'HAPUS') ? <span className="text-red-600">-{hist.jumlah} kg</span> : 
                                                          <span className="text-slate-400">{hist.jumlah} kg</span>}
                                                     </div>
                                                     <div className="text-[9px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">Akhir: {hist.stokAkhir} kg</div>

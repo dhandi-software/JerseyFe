@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, X, Loader2, ChevronLeft, Copy, Truck, Search, ChevronDown, AlertCircle } from "lucide-react";
+import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, X, Loader2, ChevronLeft, Copy, Truck, Search, ChevronDown, AlertCircle, Printer, Upload } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
 import { orderService } from "~/services/orderService";
+import { chatService } from "~/services/chatService";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
 import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
+import { generateInvoicePDF } from "~/lib/pdfHelper";
 import { Button } from "~/components/ui/button";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Input } from "~/components/ui/input";
@@ -38,6 +40,52 @@ export function MonitoringPesananDesktop() {
             setTempRecommendedIds(selectedOrder.recommendedBahanIds || []);
         }
     }, [selectedOrder]);
+
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const handlePrintInvoice = async () => {
+        if (!selectedOrder) return;
+        setIsPrinting(true);
+        try {
+            await generateInvoicePDF(selectedOrder);
+        } catch (error) {
+            console.error("Failed to generate PDF", error);
+            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    const [isUploadingProof, setIsUploadingProof] = useState(false);
+    const proofInputRef = useRef<HTMLInputElement>(null);
+
+    const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedOrder) return;
+        
+        setIsUploadingProof(true);
+        try {
+            // Upload the file
+            const res = await chatService.uploadFile(file);
+            const newPaymentUrl = res.url;
+            
+            // We use the new dedicated API endpoint for paymentUrl update
+            await orderService.updatePaymentUrl(selectedOrder.rawId, newPaymentUrl);
+            
+            setToast({ title: "Bukti pembayaran berhasil diunggah!", variant: "success" });
+            
+            // Update local state
+            setSelectedOrder({ ...selectedOrder, paymentProofUrl: newPaymentUrl });
+            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, paymentProofUrl: newPaymentUrl } : o));
+            
+        } catch (error) {
+            console.error("Gagal mengunggah bukti pembayaran", error);
+            setToast({ title: "Gagal mengunggah bukti pembayaran", variant: "destructive" });
+        } finally {
+            setIsUploadingProof(false);
+            if (proofInputRef.current) proofInputRef.current.value = "";
+        }
+    };
 
     // Search, Sort, and Pagination states
     const [searchQuery, setSearchQuery] = useState("");
@@ -88,6 +136,7 @@ export function MonitoringPesananDesktop() {
                     designNote: o.designNote,
                     designUrl: o.designUrl,
                     paymentProofUrl: o.paymentUrl,
+                    isAdminOrder: !!o.isAdminOrder,
                     totalAmount: o.totalAmount,
                     shippingMethod: o.shippingMethod,
                     shippingAddress: o.shippingAddress,
@@ -97,6 +146,7 @@ export function MonitoringPesananDesktop() {
                     layoutUrl: o.layoutUrl,
                     layoutStatus: o.layoutStatus,
                     layoutFeedback: o.layoutFeedback,
+                    details: o.details,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
                         day: 'numeric', 
@@ -312,8 +362,28 @@ export function MonitoringPesananDesktop() {
                                      </div>
                                 </div>
                             </div>
-                            <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Detail Pesanan Custom</h1>
-                            <p className="text-slate-500 font-medium text-lg mt-2">{selectedOrder.product} - <span className="text-[#D25026]">{selectedOrder.customer}</span></p>
+                            <div className="flex items-center justify-between mt-4">
+                                <div>
+                                    <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Detail Pesanan Custom</h1>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <p className="text-slate-500 font-medium text-lg">{selectedOrder.product} - <span className="text-[#D25026]">{selectedOrder.customer}</span></p>
+                                        {selectedOrder.isAdminOrder && (
+                                            <span className="bg-[#D25026]/10 text-[#D25026] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1 mt-2 w-max">
+                                                <User size={12} />
+                                                Dibuat oleh: Admin
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={handlePrintInvoice}
+                                    disabled={isPrinting}
+                                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest italic flex items-center gap-2 transition-all shadow-md disabled:opacity-50"
+                                >
+                                    {isPrinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer size={16} />}
+                                    Cetak Invoice
+                                </button>
+                            </div>
                             {selectedOrder.status !== "MENUNGGU" && selectedOrder.status !== "DITOLAK" && (
                                 <p className="text-slate-600 font-bold mt-1">Dikerjakan oleh: <span className="text-purple-600">{selectedOrder.designer}</span></p>
                             )}
@@ -463,28 +533,68 @@ export function MonitoringPesananDesktop() {
                                         </div>
                                         Verifikasi Pembayaran
                                     </h3>
-                                    {selectedOrder.paymentProofUrl ? (
-                                            <div className="w-full bg-slate-50 rounded-[1.5rem] overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-sm">
-                                                {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
-                                                    <div className="w-full h-48 bg-red-50 flex flex-col items-center justify-center rounded-xl">
-                                                        <FileText className="w-12 h-12 text-red-500 mb-3" />
-                                                        <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
-                                                            Buka Bukti (PDF)
-                                                        </a>
+                                    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            {selectedOrder.paymentProofUrl && selectedOrder.paymentProofUrl !== "MENUNGGU_PEMBAYARAN_ADMIN" ? (
+                                                    <div className="w-full bg-slate-50 rounded-[1.5rem] overflow-hidden border border-slate-200 flex flex-col items-center justify-center p-3 shadow-sm relative group">
+                                                        {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
+                                                            <div className="w-full h-48 bg-emerald-50 flex flex-col items-center justify-center rounded-xl">
+                                                                <FileText className="w-12 h-12 text-emerald-500 mb-3" />
+                                                                <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-xs font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 underline">
+                                                                    Buka Bukti (PDF)
+                                                                </a>
+                                                            </div>
+                                                        ) : (
+                                                            <img 
+                                                                src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} 
+                                                                alt="Payment Proof" 
+                                                                className="w-full h-auto min-h-[150px] max-h-[500px] object-contain mx-auto rounded-xl" 
+                                                            />
+                                                        )}
+                                                        
+                                                        {selectedOrder.status === "MENUNGGU" && (
+                                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-[1.5rem]">
+                                                                <label className={`bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2 transition-transform cursor-pointer ${isUploadingProof ? 'opacity-50' : 'hover:scale-105'}`}>
+                                                                    {isUploadingProof ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                                                                    Ubah Bukti Pembayaran
+                                                                    <input 
+                                                                        type="file" 
+                                                                        onChange={handleUploadProof} 
+                                                                        accept="image/*,.pdf" 
+                                                                        className="hidden" 
+                                                                        disabled={isUploadingProof}
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <img 
-                                                        src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} 
-                                                        alt="Payment Proof" 
-                                                        className="w-full h-auto max-h-[500px] object-contain mx-auto rounded-xl" 
-                                                    />
-                                                )}
-                                            </div>
-                                    ) : (
-                                        <div className="w-full h-32 bg-slate-50 rounded-[2rem] flex items-center justify-center border-2 border-dashed border-slate-100">
-                                            <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada bukti pembayaran</p>
+                                            ) : (
+                                                <div className="w-full min-h-[8rem] bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-6">
+                                                    {selectedOrder.paymentProofUrl === "MENUNGGU_PEMBAYARAN_ADMIN" ? (
+                                                        <div className="flex flex-col items-center text-center">
+                                                            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-3">
+                                                                <Clock className="w-6 h-6 text-amber-600" />
+                                                            </div>
+                                                            <p className="text-xs font-bold text-slate-600 italic uppercase tracking-widest mb-4">Menunggu Unggahan Admin</p>
+                                                            <label className={`bg-[#D25026] text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingProof ? 'opacity-50' : 'hover:bg-[#B34320]'}`}>
+                                                                {isUploadingProof ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={14} />}
+                                                                Unggah Bukti Transfer
+                                                                <input 
+                                                                    type="file" 
+                                                                    onChange={handleUploadProof} 
+                                                                    accept="image/*,.pdf" 
+                                                                    className="hidden" 
+                                                                    disabled={isUploadingProof}
+                                                                />
+                                                            </label>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Belum ada bukti pembayaran</p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             </div>
 

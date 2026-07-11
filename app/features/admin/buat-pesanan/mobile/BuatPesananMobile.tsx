@@ -43,6 +43,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { Toast } from "~/components/ui/toast";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
+import { CustomSelect } from "~/components/ui/custom-select";
 
 const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -130,7 +131,7 @@ const compressImage = (file: File): Promise<File> => {
     });
 };
 
-export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
+export function BuatPesananMobile({ title }: { title: string }) {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { cart, clearCart } = useCart();
@@ -149,6 +150,8 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [shippingMethod, setShippingMethod] = useState("PICKUP");
     const [shippingAddress, setShippingAddress] = useState("");
+    const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
 
     const [pasteText, setPasteText] = useState("");
     const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
@@ -714,7 +717,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const handleSubmit = async () => {
         if (!isStepValid()) {
             setShowValidation(true);
-            setToast({ show: true, message: "Mohon lengkapi seluruh data (Pemain & Bukti Bayar) sebelum mengirim.", variant: "destructive" });
+            setToast({ show: true, message: "Mohon lengkapi seluruh data (Pemain) sebelum mengirim.", variant: "destructive" });
             return;
         }
 
@@ -722,7 +725,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
         setUploadProgress(10);
         try {
             let designUrl = existingOrder?.designUrl || "";
-            let paymentUrl = existingOrder?.paymentUrl || "";
+            let paymentUrl = "MENUNGGU_PEMBAYARAN_ADMIN";
 
             if (designReferenceFile) {
                 setUploadProgress(30);
@@ -731,12 +734,6 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                 designUrl = res.url;
             }
 
-            if (paymentProofFile) {
-                setUploadProgress(60);
-                const compressed = await compressImage(paymentProofFile);
-                const res = await chatService.uploadFile(compressed);
-                paymentUrl = res.url;
-            }
             setUploadProgress(90);
             
             try {
@@ -749,6 +746,8 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                     paymentUrl: paymentUrl,
                     shippingMethod: shippingMethod,
                     shippingAddress: shippingMethod === "COD" ? shippingAddress : "",
+                    customerName: customerName,
+                    customerPhone: customerPhone,
                     details: customDetails.map(d => ({
                         productId: d.productId,
                         productTitle: d.productTitle,
@@ -758,23 +757,17 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                     }))
                 };
 
-                if (isEditing && existingOrder) {
-                    await orderService.updateOrder(existingOrder.id, payload);
-                    setUploadProgress(100);
-                    setToast({ show: true, message: "Pesanan berhasil diperbarui!", variant: "success" });
-                } else {
-                    await orderService.createOrder(payload);
-                    setUploadProgress(100);
-                    setToast({ show: true, message: "Pesanan berhasil dibuat dan telah terkirim ke sistem admin!", variant: "success" });
-                }
+                await orderService.createOrder(payload);
+                setUploadProgress(100);
+                setToast({ show: true, message: "Pesanan berhasil dibuat!", variant: "success" });
 
                 setTimeout(() => {
                     clearCart();
-                    navigate("/customer");
+                    navigate("/admin/monitoring-pesanan");
                 }, 1500);
             } catch (apiErr) {
                 console.error("API Order failed", apiErr);
-                setToast({ show: true, message: isEditing ? "Gagal memperbarui pesanan. Silakan coba lagi." : "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
+                setToast({ show: true, message: "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
             }
         } catch (error) {
             console.error("Upload failed:", error);
@@ -860,6 +853,63 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                 </div>
                             </div>
                         )}
+
+                        <div className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-sm space-y-4">
+                            <h3 className="text-xs font-black uppercase italic tracking-tighter text-neutral-900">Data Pelanggan</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label className="text-[10px] font-bold mb-1.5 block">Nama Pelanggan</Label>
+                                    <Input 
+                                        value={customerName}
+                                        onChange={e => setCustomerName(e.target.value)}
+                                        placeholder="Contoh: Budi"
+                                        className="w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[10px] font-bold mb-1.5 block">No HP / WhatsApp</Label>
+                                    <Input 
+                                        value={customerPhone}
+                                        onChange={e => setCustomerPhone(e.target.value)}
+                                        placeholder="08123456789"
+                                        className="w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-[10px] font-bold mb-1.5 block">Pilih Bahan Baku</Label>
+                                    <CustomSelect 
+                                        options={allBahan.map(b => ({ label: `${b.nama} (${b.status})`, value: b.id.toString(), disabled: b.status === "Habis" }))}
+                                        value={directProduct?.id?.toString() || ""}
+                                        onChange={(val: string) => {
+                                            const product = allBahan.find(b => b.id.toString() === val);
+                                            if (product) {
+                                                setDirectProduct({
+                                                    id: product.id,
+                                                    title: product.nama,
+                                                    price: product.harga || 150000,
+                                                    status: product.status,
+                                                    kuantitasKg: product.kuantitasKg || 0,
+                                                    rasioKonversi: product.rasioKonversi || 2.5,
+                                                    image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
+                                                });
+                                            }
+                                        }}
+                                        placeholder="Pilih Bahan"
+                                        className="w-full h-11 bg-neutral-50 border-none rounded-xl"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center mb-4 mt-6">
+                            <div className="flex flex-col gap-1">
+                                <h2 className="text-xl font-black italic uppercase tracking-tighter text-neutral-900">Order Detail</h2>
+                                <span className="text-[10px] font-bold text-neutral-400">Total {customDetails.length} Pemain</span>
+                            </div>
+                        </div>
+
                         {isOverLimit && (
                             <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-2.5 mb-4">
                                 <AlertCircle className="w-4.5 h-4.5 text-red-600 shrink-0 mt-0.5" />
@@ -1221,105 +1271,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                     </div>
                 )}
 
-                {step === 3 && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24">
-                        <h2 className="text-xl font-black italic uppercase tracking-tighter">Payment Details</h2>
-
-                        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm space-y-6">
-                            <div className="flex justify-between items-center">
-                                <div className="w-16 h-8 bg-[#00529C] rounded flex items-center justify-center font-black text-white italic tracking-tighter text-lg">BCA</div>
-                                <span className="text-[9px] font-black uppercase italic text-emerald-500">Official</span>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-[9px] font-black uppercase italic text-neutral-300">Account Number</span>
-                                <p className="text-2xl font-black italic tracking-tighter">4921 8972 72</p>
-                                <p className="text-[10px] font-black uppercase italic text-neutral-900 mt-1">AN. BAHRUDIN YUSUF</p>
-                            </div>
-                        </div>
-
-                        {/* Order Summary Card Mobile */}
-                        <div className="bg-black rounded-[2rem] p-6 shadow-2xl relative overflow-hidden ring-1 ring-white/10">
-                            <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-blue-600/20 blur-[2.5rem] rounded-full z-0"></div>
-                            <div className="space-y-4 relative z-10">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black uppercase italic text-white/40">Subtotal</span>
-                                    <span className="text-xs font-black text-white italic">{formatRupiah(totalCalculated)}</span>
-                                </div>
-                                <div className="h-px bg-white/10 my-2"></div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black uppercase italic text-white">Grand Total</span>
-                                    <span className="text-lg font-black text-blue-400 italic tracking-tighter">{formatRupiah(totalCalculated)}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase italic text-neutral-400">Bukti Pembayaran (DP/Lunas)</Label>
-                            <div className={cn(
-                                "h-64 border-2 border-dashed border-neutral-100 rounded-[2rem] bg-white flex flex-col items-center justify-center gap-3 relative overflow-hidden active:scale-95 transition-transform",
-                                showValidation && step === 3 && !paymentProofFile && !existingOrder?.paymentUrl && "border-red-500 bg-red-50/10"
-                            )}>
-                                {paymentProofFile || existingOrder?.paymentUrl ? (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white p-4">
-                                        {paymentProofFile ? (
-                                            (paymentProofFile.type.includes("pdf") || paymentProofFile.name.toLowerCase().endsWith(".pdf")) ? (
-                                                <div className="w-16 h-16 bg-red-50 rounded-xl flex items-center justify-center mb-2 border border-red-100">
-                                                    <FileText className="w-8 h-8 text-red-500" />
-                                                </div>
-                                            ) : (
-                                                <img src={URL.createObjectURL(paymentProofFile)} className="w-full h-full object-contain mb-1 rounded-xl" />
-                                            )
-                                        ) : (
-                                            existingOrder.paymentUrl.toLowerCase().endsWith(".pdf") ? (
-                                                <div className="w-16 h-16 bg-red-50 rounded-xl flex items-center justify-center mb-2 border border-red-100">
-                                                    <FileText className="w-8 h-8 text-red-500" />
-                                                </div>
-                                            ) : (
-                                                <img src={existingOrder.paymentUrl.startsWith('http') ? existingOrder.paymentUrl : `${UPLOADS_URL}${existingOrder.paymentUrl.startsWith('/') ? '' : '/'}${existingOrder.paymentUrl}`} className="w-full h-full object-contain mb-1 rounded-xl" />
-                                            )
-                                        )}
-                                        <p className="text-[9px] font-black uppercase text-neutral-400 truncate w-full text-center px-4 italic">
-                                            {paymentProofFile ? paymentProofFile.name : "Existing Payment Proof"}
-                                        </p>
-                                        
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPaymentProofFile(null);
-                                                if (existingOrder) {
-                                                    setExistingOrder((prev: any) => ({ ...prev, paymentUrl: "" }));
-                                                }
-                                            }}
-                                            className="absolute top-2 right-2 z-20 w-7 h-7 bg-white text-red-500 rounded-full flex items-center justify-center border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-md"
-                                            title="Remove File"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center">
-                                            <CreditCard className="w-8 h-8 text-neutral-300" />
-                                        </div>
-                                        <span className="text-[10px] font-black uppercase italic text-neutral-400">Upload Receipt</span>
-                                    </>
-                                )}
-                                <input 
-                                    type="file" 
-                                    accept="image/*,.pdf"
-                                    className="absolute inset-0 opacity-0 z-10 cursor-pointer" 
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            setPaymentProofFile(file);
-                                            setToast({ show: true, message: "Payment proof uploaded!", variant: "success" });
-                                        }
-                                    }} 
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
+                        {/* Removed step 3 */}
             </div>
 
             {/* Mobile Footer Sticky */}
@@ -1342,11 +1294,11 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                         {step === 1 ? "Exit" : "Back"}
                     </Button>
                     <Button 
-                        onClick={() => step === 3 ? handleSubmit() : handleNextStep()}
-                        disabled={isUploading || (step === 3 && !paymentProofFile && !existingOrder?.paymentUrl)}
+                        onClick={() => step === 2 ? handleSubmit() : setStep(prev => prev + 1)}
+                        disabled={isUploading}
                         className="flex-[2] h-12 rounded-xl bg-[#D25026] text-white text-xs font-black uppercase italic shadow-lg shadow-[#D25026]/20"
                     >
-                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : (step === 3 ? "Complete Order" : "Next Step")}
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : (step === 2 ? "Complete Order" : "Next Step")}
                     </Button>
                 </div>
 

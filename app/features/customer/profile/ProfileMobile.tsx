@@ -47,7 +47,7 @@ export function ProfileMobile() {
             <Camera size={14} />
           </button>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">{user?.name || "Customer"}</h1>
+        <h1 className="text-xl font-bold text-gray-900">{(user as any)?.customer?.nama || (user as any)?.username || "Customer"}</h1>
         <p className="text-[#D25026] text-xs font-medium mt-1 flex items-center gap-1">
             <Shield size={14} /> Customer Akun
         </p>
@@ -60,7 +60,7 @@ export function ProfileMobile() {
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Nama Lengkap</label>
                 <input 
                     type="text" 
-                    defaultValue={user?.name || ""}
+                    defaultValue={(user as any)?.customer?.nama || (user as any)?.username || ""}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#D25026]/20 outline-none transition-all text-sm"
                 />
             </div>

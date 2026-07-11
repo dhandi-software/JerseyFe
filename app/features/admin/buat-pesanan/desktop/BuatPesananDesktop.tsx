@@ -45,6 +45,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { Toast } from "~/components/ui/toast";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
+import { CustomSelect } from "~/components/ui/custom-select";
 
 const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -134,7 +135,7 @@ const compressImage = (file: File): Promise<File> => {
     });
 };
 
-export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
+export function BuatPesananDesktop({ title }: { title: string }) {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { cart, clearCart } = useCart();
@@ -143,6 +144,10 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const productIdParam = searchParams.get("productId");
     const [directProduct, setDirectProduct] = useState<any>(null);
     const [isLoadingProduct, setIsLoadingProduct] = useState(false);
+    
+    // Admin fields
+    const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
     
     const [customDetails, setCustomDetails] = useState<any[]>([]);
     const [designNote, setDesignNote] = useState("");
@@ -727,7 +732,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     const handleSubmit = async () => {
         if (!isStepValid()) {
             setShowValidation(true);
-            setToast({ show: true, message: "Mohon lengkapi seluruh data pemain dan bukti transfer.", variant: "destructive" });
+            setToast({ show: true, message: "Mohon lengkapi seluruh data pemain.", variant: "destructive" });
             return;
         }
 
@@ -735,7 +740,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         setUploadProgress(10);
         try {
             let designUrl = existingOrder?.designUrl || "";
-            let paymentUrl = existingOrder?.paymentUrl || "";
+            let paymentUrl = "MENUNGGU_PEMBAYARAN_ADMIN";
 
             if (designReferenceFile) {
                 setUploadProgress(20);
@@ -743,14 +748,6 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                 setUploadProgress(40);
                 const res = await chatService.uploadFile(compressed);
                 designUrl = res.url;
-            }
-
-            if (paymentProofFile) {
-                setUploadProgress(60);
-                const compressed = await compressImage(paymentProofFile);
-                setUploadProgress(80);
-                const res = await chatService.uploadFile(compressed);
-                paymentUrl = res.url;
             }
 
             setUploadProgress(90);
@@ -765,6 +762,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                     paymentUrl: paymentUrl,
                     shippingMethod: shippingMethod,
                     shippingAddress: shippingMethod === "COD" ? shippingAddress : "",
+                    customerName: customerName,
+                    customerPhone: customerPhone,
                     details: customDetails.map(d => ({
                         productId: d.productId,
                         productTitle: d.productTitle,
@@ -774,23 +773,17 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                     }))
                 };
 
-                if (isEditing && existingOrder) {
-                    await orderService.updateOrder(existingOrder.id, payload);
-                    setUploadProgress(100);
-                    setToast({ show: true, message: "Pesanan berhasil diperbarui!", variant: "success" });
-                } else {
-                    await orderService.createOrder(payload);
-                    setUploadProgress(100);
-                    setToast({ show: true, message: "Pesanan berhasil dibuat dan telah terkirim ke sistem admin!", variant: "success" });
-                }
+                await orderService.createOrder(payload);
+                setUploadProgress(100);
+                setToast({ show: true, message: "Pesanan berhasil dibuat!", variant: "success" });
                 
                 setTimeout(() => {
                     clearCart();
-                    navigate("/customer");
+                    navigate("/admin/monitoring-pesanan");
                 }, 1500);
             } catch (apiErr) {
                 console.error("API Order failed", apiErr);
-                setToast({ show: true, message: isEditing ? "Gagal memperbarui pesanan. Silakan coba lagi." : "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
+                setToast({ show: true, message: "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
             }
         } catch (error) {
             console.error("Upload failed:", error);
@@ -801,9 +794,8 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
     };
 
     const steps = [
-        { id: 1, name: "Player Info", icon: User },
-        { id: 2, name: "Design Reference", icon: FileUp },
-        { id: 3, name: "Payment Proof", icon: CreditCard },
+        { id: 1, name: "Data Pemain & Pelanggan", icon: User },
+        { id: 2, name: "Design & Pengiriman", icon: FileUp },
     ];
 
     return (
@@ -904,8 +896,62 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                         {step === 1 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
                                 <div className="grid grid-cols-1 gap-8">
-                                    {/* Order Detail */}
+                                    {/* Data Pelanggan */}
                                     <div className="space-y-6">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex items-center gap-3">
+                                                <h2 className="text-xl font-black text-neutral-900 italic uppercase tracking-tighter">Data Pelanggan</h2>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-6 bg-white p-6 rounded-2xl border border-neutral-200">
+                                            <div>
+                                                <Label className="text-xs font-bold mb-2 block">Nama Pelanggan</Label>
+                                                <Input 
+                                                    value={customerName}
+                                                    onChange={e => setCustomerName(e.target.value)}
+                                                    placeholder="Contoh: Budi"
+                                                    className="w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-bold mb-2 block">Nomor Telepon</Label>
+                                                <Input 
+                                                    value={customerPhone}
+                                                    onChange={e => setCustomerPhone(e.target.value)}
+                                                    placeholder="Contoh: 08123456789"
+                                                    className="w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs font-bold mb-2 block">Pilih Bahan Baku</Label>
+                                                <CustomSelect 
+                                                    options={allBahan.map(b => ({ label: `${b.nama} (${b.status})`, value: b.id.toString(), disabled: b.status === "Habis" }))}
+                                                    value={directProduct?.id?.toString() || ""}
+                                                    onChange={(val: string) => {
+                                                        const product = allBahan.find(b => b.id.toString() === val);
+                                                        if (product) {
+                                                            setDirectProduct({
+                                                                id: product.id,
+                                                                title: product.nama,
+                                                                price: product.harga || 150000,
+                                                                status: product.status,
+                                                                kuantitasKg: product.kuantitasKg || 0,
+                                                                rasioKonversi: product.rasioKonversi || 2.5,
+                                                                image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
+                                                            });
+                                                        }
+                                                    }}
+                                                    placeholder="Pilih Bahan"
+                                                    className="w-full h-[3.25rem] bg-neutral-50 border-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Order Detail */}
+                                    <div className="space-y-6 mt-8">
                                         <div className="flex justify-between items-center">
                                             <div className="flex items-center gap-3">
                                                 <h2 className="text-xl font-black text-neutral-900 italic uppercase tracking-tighter">Order Detail</h2>
@@ -1312,143 +1358,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                             </div>
                         )}
 
-                        {step === 3 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
-                                <div>
-                                    <h2 className="text-3xl font-black text-neutral-900 italic uppercase tracking-tighter">Payment Details</h2>
-                                    <p className="text-neutral-400 font-medium mt-1">Silakan lakukan pembayaran DP minimal 50% atau Pelunasan.</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-12">
-                                    <div className="space-y-6">
-                                        <div className="bg-white rounded-[2.5rem] border border-neutral-100 p-8 shadow-sm ring-1 ring-black/5 space-y-6 relative overflow-hidden group">
-                                            <div className="flex justify-between items-start">
-                                                <div className="w-20 h-10 bg-[#00529C] rounded-lg flex items-center justify-center font-black text-white italic tracking-tighter text-2xl pr-1">
-                                                    BCA
-                                                </div>
-                                                <div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest italic">Official Account</div>
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest italic">Account Number</p>
-                                                <div className="flex items-center gap-3">
-                                                    <p className="text-3xl font-black text-neutral-900 tracking-tighter italic">4921 8972 72</p>
-                                                    <button 
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText("4921897272");
-                                                            setToast({ show: true, message: "Nomor rekening berhasil disalin ke clipboard", variant: "success" });
-                                                        }}
-                                                        className="p-2 hover:bg-neutral-50 rounded-lg transition-colors"
-                                                    >
-                                                        <FileText className="w-4 h-4 text-neutral-300" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest italic">Account Holder</p>
-                                                <p className="text-xl font-black text-neutral-900 tracking-tighter italic uppercase">BAHRUDIN YUSUF</p>
-                                            </div>
-
-                                            <div className="pt-6 border-t border-neutral-50 flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-[#FFF0EB] rounded-2xl flex items-center justify-center">
-                                                    <AlertCircle className="text-[#D25026] w-6 h-6" />
-                                                </div>
-                                                <p className="text-[11px] text-neutral-500 font-medium leading-relaxed">
-                                                    Harap lampirkan bukti transfer di samping. Pesanan akan diproses maksimal 1x24 jam setelah konfirmasi.
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-black text-white rounded-[2.5rem] p-8 shadow-xl shadow-black/10">
-                                            <div className="flex justify-between items-center mb-6">
-                                                <p className="text-[11px] font-black uppercase tracking-widest italic text-neutral-400">Checkout Summary</p>
-                                                <ShoppingCart className="w-5 h-5 opacity-20" />
-                                            </div>
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-neutral-500 font-medium">Order Items</span>
-                                                    <span className="font-bold tracking-tighter">{customDetails.length} Units</span>
-                                                </div>
-                                                <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-                                                    <span className="text-lg font-black uppercase tracking-tighter italic">Total Amount</span>
-                                                    <span className="text-3xl font-black tracking-tighter text-[#D25026]">{formatRupiah(totalCalculated)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <Label className="text-[11px] font-black uppercase tracking-widest italic text-neutral-900">Upload Bukti Transfer</Label>
-                                        <div className={cn(
-                                            "h-[25rem] border-2 border-dashed border-neutral-200 rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 bg-white hover:bg-neutral-50 hover:border-[#D25026]/30 transition-all cursor-pointer group relative overflow-hidden shadow-sm ring-1 ring-black/5",
-                                            showValidation && step === 3 && !paymentProofFile && !existingOrder?.paymentUrl && "border-red-500 bg-red-50/10"
-                                        )}>
-                                            {paymentProofFile || existingOrder?.paymentUrl ? (
-                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white p-4">
-                                                    {paymentProofFile ? (
-                                                        (paymentProofFile.type.includes("pdf") || paymentProofFile.name.toLowerCase().endsWith(".pdf")) ? (
-                                                            <div className="w-24 h-24 bg-red-50 rounded-2xl flex items-center justify-center mb-4 border border-red-100">
-                                                                <FileText className="w-12 h-12 text-red-500" />
-                                                            </div>
-                                                        ) : (
-                                                            <img src={URL.createObjectURL(paymentProofFile)} className="w-full h-full object-contain mb-2 rounded-xl" />
-                                                        )
-                                                    ) : (
-                                                        existingOrder.paymentUrl.toLowerCase().endsWith(".pdf") ? (
-                                                            <div className="w-24 h-24 bg-red-50 rounded-2xl flex items-center justify-center mb-4 border border-red-100">
-                                                                <FileText className="w-12 h-12 text-red-500" />
-                                                            </div>
-                                                        ) : (
-                                                            <img src={existingOrder.paymentUrl.startsWith('http') ? existingOrder.paymentUrl : `${UPLOADS_URL}${existingOrder.paymentUrl.startsWith('/') ? '' : '/'}${existingOrder.paymentUrl}`} className="w-full h-full object-contain mb-2 rounded-xl" />
-                                                        )
-                                                    )}
-                                                    <p className="text-[10px] font-black uppercase text-neutral-400 truncate w-full text-center px-4 italic">
-                                                        {paymentProofFile ? paymentProofFile.name : "Existing Payment Proof"}
-                                                    </p>
-                                                    
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setPaymentProofFile(null);
-                                                            if (existingOrder) {
-                                                                setExistingOrder((prev: any) => ({ ...prev, paymentUrl: "" }));
-                                                            }
-                                                        }}
-                                                        className="absolute top-6 right-6 z-20 w-10 h-10 bg-white text-red-500 rounded-full flex items-center justify-center border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                                                        title="Remove File"
-                                                    >
-                                                        <X className="w-5 h-5" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="w-20 h-20 bg-neutral-50 rounded-3xl flex items-center justify-center group-hover:bg-[#FFF0EB] transition-colors">
-                                                        <CreditCard className="w-10 h-10 text-neutral-300 group-hover:text-[#D25026]" />
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <p className="text-lg font-black italic uppercase text-neutral-900 tracking-tighter">Upload Transfer Receipt</p>
-                                                        <p className="text-[11px] font-bold text-neutral-400 mt-2 uppercase tracking-widest max-w-[200px]">PNG, JPG or PDF up to 5MB</p>
-                                                    </div>
-                                                </>
-                                            )}
-                                            <input 
-                                                type="file" 
-                                                accept="image/*,.pdf"
-                                                className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        setPaymentProofFile(file);
-                                                        setToast({ show: true, message: "Payment proof uploaded!", variant: "success" });
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        {/* Removed step 3 */}
 
                         {/* Navigation Buttons */}
                         <div className="mt-12 flex justify-between items-center bg-white p-8 rounded-[2.5rem] border border-neutral-100 shadow-sm ring-1 ring-black/5">
@@ -1489,9 +1399,9 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                     )}
                                     
                                     <Button 
-                                        onClick={() => step === 3 ? handleSubmit() : handleNextStep()}
+                                        onClick={() => step === 2 ? handleSubmit() : setStep(prev => prev + 1)}
                                         className="h-[52px] px-8 rounded-xl bg-[#D25026] hover:bg-[#B34320] text-white text-[12px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 transition-all flex gap-3 shrink-0"
-                                        disabled={isUploading || (step === 3 && !paymentProofFile && !existingOrder?.paymentUrl)}
+                                        disabled={isUploading}
                                     >
                                         {isUploading ? (
                                             <>
@@ -1500,26 +1410,26 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                                             </>
                                         ) : (
                                             <>
-                                                {step === 3 ? "Complete & Send Order" : "Continue to Next Step"}
+                                                {step === 2 ? "Complete & Create Order" : "Continue to Next Step"}
                                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                             </>
                                         )}
                                     </Button>
                                 </div>
                             </div>
-                            </div>
                         </div>
+                    </div>
 
-                        {/* Footer Info */}
-                        <div className="mt-8 flex justify-center">
-                            <div className="bg-[#FFF0EB] rounded-2xl px-6 py-3 border border-[#FFE0D5] flex items-center gap-3">
-                                <div className="w-6 h-6 bg-[#D25026] rounded-lg flex items-center justify-center shrink-0">
-                                    <Info className="text-white w-3 h-3" />
-                                </div>
-                                <p className="text-[10px] text-[#B34320] font-bold italic uppercase tracking-tight">
-                                    Butuh bantuan? Hubungi admin jika Anda kesulitan dalam mengisi detail pesanan.
-                                </p>
+                    {/* Footer Info */}
+                    <div className="mt-8 flex justify-center">
+                        <div className="bg-[#FFF0EB] rounded-2xl px-6 py-3 border border-[#FFE0D5] flex items-center gap-3">
+                            <div className="w-6 h-6 bg-[#D25026] rounded-lg flex items-center justify-center shrink-0">
+                                <Info className="text-white w-3 h-3" />
                             </div>
+                            <p className="text-[10px] text-[#B34320] font-bold italic uppercase tracking-tight">
+                                Butuh bantuan? Hubungi admin jika Anda kesulitan dalam mengisi detail pesanan.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </main>

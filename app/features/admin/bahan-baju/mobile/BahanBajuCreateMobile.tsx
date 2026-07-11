@@ -94,7 +94,7 @@ export function BahanBajuCreateMobile() {
             formData.append("status", status);
             formData.append("harga", String(harga));
             formData.append("hargaBeli", String(hargaBeli));
-            formData.append("actor", user?.name || (isGudang ? "Staf Gudang" : "Admin"));
+            formData.append("actor", (user as any)?.staff?.nama || (user as any)?.username || (isGudang ? "Staf Gudang" : "Admin"));
             if (image) {
                 formData.append("image", image);
             }

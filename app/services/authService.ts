@@ -1,4 +1,4 @@
-import type { LoginCredentials, LoginResponse } from "~/types/auth";
+import type { LoginCredentials, LoginResponse, RegisterCredentials } from "~/types/auth";
 import { client } from "~/api/client";
 
 export const authService = {
@@ -9,5 +9,10 @@ export const authService = {
 
   async logout(): Promise<void> {
     await client.post("/auth/logout").catch(err => console.error("Logout request failed:", err));
+  },
+
+  async register(credentials: RegisterCredentials): Promise<{ message: string; data: any }> {
+    const response = await client.post("/auth/register", credentials);
+    return response.data;
   },
 };

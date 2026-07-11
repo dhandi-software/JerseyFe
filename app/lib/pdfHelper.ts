@@ -50,11 +50,11 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("INVOICE", 195, 20, { align: 'right' });
     doc.setFontSize(10);
     doc.setTextColor(79, 70, 229); // indigo-600
-    doc.text(`${order.orderId || 'ORD-0001'}`, 195, 26, { align: 'right' });
+    doc.text(`${order.id || order.orderId || 'ORD-0001'}`, 195, 26, { align: 'right' });
     
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Tanggal: ${new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}`, 195, 35, { align: 'right' });
+    doc.text(`Tanggal: ${new Date(order.createdAt || order.dateTime || Date.now()).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}`, 195, 35, { align: 'right' });
 
     doc.setDrawColor(241, 245, 249);
     doc.line(14, 48, 195, 48);
@@ -66,8 +66,13 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
     doc.setFont("helvetica", "bold");
-    const customerName = order.customerName || order.user?.name || "Customer";
-    doc.text(customerName, 14, 66);
+    const customerName = order.customer || order.customerName || (order.user as any)?.customer?.nama || (order.user as any)?.username || "Customer";
+    const customerPhone = order.customerPhone || (order.user as any)?.customer?.phone;
+    if (customerPhone) {
+        doc.text(`${customerName} - ${customerPhone}`, 14, 66);
+    } else {
+        doc.text(customerName, 14, 66);
+    }
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
@@ -245,5 +250,5 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setTextColor(200, 200, 200);
     doc.text("Dokumen ini diterbitkan oleh FSCV · order@fscv.id", 105, 280, { align: 'center' });
     
-    doc.save(`Invoice_${order.orderId}.pdf`);
+    doc.save(`Invoice_${order.id || order.orderId}.pdf`);
 };

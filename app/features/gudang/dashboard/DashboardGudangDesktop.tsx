@@ -114,7 +114,7 @@ export function DashboardGudangDesktop() {
             formData.append("rasioKonversi", (adjustItem.rasioKonversi || 2.5).toString());
             formData.append("harga", (adjustItem.harga || 0).toString());
             formData.append("keterangan_ubah", adjustNote || (adjustAction === "TAMBAH" ? "Penambahan ketersediaan bahan" : "Pengurangan ketersediaan bahan"));
-            formData.append("actor", user?.name || "Staf Gudang");
+            formData.append("actor", (user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang");
 
             const res = await adminApi.updateBahanBaju(adjustItem.id, formData);
             if (res.status === "success") {
@@ -177,7 +177,7 @@ export function DashboardGudangDesktop() {
             formData.append("rasioKonversi", String(parsedEditRasio));
             formData.append("harga", editForm.harga.toString());
             formData.append("status", editForm.status);
-            formData.append("actor", user?.name || "Staf Gudang");
+            formData.append("actor", (user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang");
             
             if (editImage) {
                 formData.append("image", editImage);
@@ -213,7 +213,7 @@ export function DashboardGudangDesktop() {
 
         setDeleteLoading(true);
         try {
-            const res = await adminApi.deleteBahanBaju(deleteItem.id, user?.name || "Staf Gudang");
+            const res = await adminApi.deleteBahanBaju(deleteItem.id, (user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang");
             if (res.status === "success") {
                 setToast({ title: `Bahan ${deleteItem.nama} berhasil dihapus`, variant: "success" });
                 setIsDeleteModalOpen(false);

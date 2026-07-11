@@ -176,7 +176,7 @@ export function DashboardGudangMobile() {
             formData.append("status", newStatus);
             formData.append("harga", (adjustItem.harga || 0).toString());
             formData.append("keterangan_ubah", adjustNote || (adjustAction === "TAMBAH" ? "Penambahan ketersediaan bahan" : "Pengurangan ketersediaan bahan"));
-            formData.append("actor", user?.name || "Staf Gudang");
+            formData.append("actor", (user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang");
 
             const res = await adminApi.updateBahanBaju(adjustItem.id, formData);
             if (res.status === "success") {
@@ -239,7 +239,7 @@ export function DashboardGudangMobile() {
             formData.append("rasioKonversi", String(parsedEditRasio));
             formData.append("status", editForm.status);
             formData.append("harga", editForm.harga.toString());
-            formData.append("actor", user?.name || "Staf Gudang");
+            formData.append("actor", (user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang");
             
             if (editImage) {
                 formData.append("image", editImage);
@@ -275,7 +275,7 @@ export function DashboardGudangMobile() {
 
         setDeleteLoading(true);
         try {
-            const res = await adminApi.deleteBahanBaju(deleteItem.id, user?.name || "Staf Gudang");
+            const res = await adminApi.deleteBahanBaju(deleteItem.id, (user as any)?.staff?.nama || (user as any)?.username || "Staf Gudang");
             if (res.status === "success") {
                 setToast({ title: `Bahan ${deleteItem.nama} dihapus`, variant: "success" });
                 setIsDeleteModalOpen(false);
@@ -713,9 +713,20 @@ export function DashboardGudangMobile() {
                                                     <span className="text-[9px] font-mono text-slate-400 block mt-0.5">
                                                         {new Date(hist.createdAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })} {new Date(hist.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
-                                                    <span className="text-[9.5px] font-bold text-slate-550 block mt-1 bg-slate-50 border border-slate-100 rounded-md px-1.5 py-0.5 w-fit">
-                                                        Aktor: {hist.actor || "System"}
-                                                    </span>
+                                                    <div className="flex flex-col gap-1 mt-1">
+                                                        <span className="text-[9.5px] font-bold text-slate-550 block bg-slate-50 border border-slate-100 rounded-md px-1.5 py-0.5 w-fit">
+                                                            Aktor: {hist.actor || "System"}
+                                                        </span>
+                                                        {hist.customerName ? (
+                                                            <span className="text-[9.5px] font-bold text-blue-600 block bg-blue-50 border border-blue-100 rounded-md px-1.5 py-0.5 w-fit">
+                                                                Pemesan: {hist.customerName}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[9.5px] font-bold text-slate-600 block bg-slate-100 border border-slate-200 rounded-md px-1.5 py-0.5 w-fit">
+                                                                Pengguna: {hist.actor || "Tim Internal"}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <span className={cn(
                                                     "px-2 py-0.5 rounded-md text-[8px] font-black uppercase border",

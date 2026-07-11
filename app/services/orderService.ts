@@ -20,6 +20,11 @@ export const orderService = {
         return mapOrder(response.data);
     },
 
+    async updatePaymentUrl(id: number, paymentUrl: string) {
+        const response = await client.patch(`/orders/${id}/payment`, { paymentUrl });
+        return response.data;
+    },
+
     async getOrders() {
         const response = await client.get("/orders");
         return (response.data || []).map(mapOrder);
@@ -108,5 +113,20 @@ export const orderService = {
     async cancelLayout(id: number) {
         const response = await client.patch(`/orders/${id}/cancel-layout`);
         return mapOrder(response.data);
+    },
+
+    async reportDamage(orderId: number, data: { productId: number, pcs: number, keterangan?: string, actor?: string }) {
+        const response = await client.post(`/orders/${orderId}/damage`, data);
+        return mapOrder(response.data);
+    },
+
+    async getDamageHistory(orderId: number) {
+        const response = await client.get(`/orders/${orderId}/damage-history`);
+        return response.data;
+    },
+
+    async updateDamageReport(historyId: number, data: { pcs: number, keterangan?: string, actor?: string }) {
+        const response = await client.put(`/orders/damage/${historyId}`, data);
+        return response.data;
     }
 };
