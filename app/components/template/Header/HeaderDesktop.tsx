@@ -94,6 +94,7 @@ export default function HeaderDesktop() {
                         <Search className="w-4 h-4 text-neutral-400 group-focus-within:text-[#D25026] transition-colors" />
                     </div>
                     <input 
+                        suppressHydrationWarning
                         type="text" 
                         placeholder="Cari desain jersey impianmu..." 
                         className="w-full h-11 pl-11 pr-4 bg-neutral-50 border border-neutral-200 rounded-full text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#D25026]/20 focus:border-[#D25026] transition-all"
