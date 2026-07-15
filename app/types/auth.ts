@@ -14,12 +14,12 @@ export interface User {
     id: number;
     username: string;
     name: string;
-    role: 'customer' | 'desain' | 'gudang' | 'admin' | 'manager' | 'writer' | 'editor';
+    role: 'customer' | 'desain' | 'gudang' | 'admin' | 'manager';
     token?: string; 
     email?: string;
     photo?: string;
     jabatan?: string;
-    dosenId?: number;
+    
 }
 
 export interface LoginResponse {

@@ -1,7 +1,7 @@
 export interface User {
     id: string;
     email: string;
-    role: "admin" | "writer" | "editor" | "mahasiswa" | "customer" | "dosen" | "dosen_pembimbing" | "desain" | "kaprodi" | "manager" | "staf" | "staf_univ" | "gudang";
+    role: "admin" | "customer" | "desain" | "manager" | "gudang";
     token: string;
     name?: string;
     nama?: string;
@@ -30,7 +30,7 @@ export interface RegisterRequest {
     name: string;
     email: string;
     password: string;
-    role: "admin" | "writer" | "editor" | "customer" | "desain";
+    role: "admin" | "customer" | "desain";
 }
 
 export interface RegisterResponse {
@@ -45,7 +45,7 @@ export interface RegisterResponse {
 export interface ProfileData {
     user_id: string;
     email: string;
-    role: "admin" | "writer" | "editor" | "customer" | "desain";
+    role: "admin" | "customer" | "desain";
     name: string;
     username: string;
     photo: string;
@@ -94,7 +94,7 @@ export interface UserAccount {
     id: string;
     email: string;
     name: string;
-    role: "admin" | "writer" | "editor";
+    role: "admin" | "customer" | "desain";
     created_at: string;
     updated_at: string;
     avatar?: string;
@@ -113,42 +113,4 @@ export interface UserAccountResponse {
 
 export interface UpdateRoleRequest {
     role: string;
-}
-
-export interface PengajuanPayload {
-    dosenId: string;
-    judul: string;
-    peminatan: string;
-    semester: string;
-    tahunAkademik: string;
-    sksDicapai: string;
-    sksNilaiD: string;
-    ipk: string;
-    batasStudi: string;
-}
-
-export interface PengajuanResponse {
-    message: string;
-    data: any;
-}
-
-export interface Pengajuan {
-    id: number;
-    mahasiswa: {
-        nama: string;
-        nim: string;
-        jurusan: string;
-    };
-    judul: string;
-    peminatan: string;
-    semester: string;
-    tahunAkademik: string;
-    ipk?: number;
-    sksDicapai?: number;
-    sksNilaiD?: number;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
-    dosenId: string;
-    batasStudi?: string;
-    createdAt?: string;
-    updatedAt?: string;
 }

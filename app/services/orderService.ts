@@ -69,6 +69,11 @@ export const orderService = {
         return mapOrder(response.data);
     },
 
+    async unapproveDesign(id: number) {
+        const response = await client.patch(`/orders/${id}/unapprove-design`);
+        return mapOrder(response.data);
+    },
+
     async revisiDesign(id: number, feedback: string) {
         const response = await client.patch(`/orders/${id}/revisi-design`, { feedback });
         return mapOrder(response.data);
@@ -100,8 +105,35 @@ export const orderService = {
         return mapOrder(response.data);
     },
 
+    async uploadPrint(id: number, file: File) {
+        const formData = new FormData();
+        formData.append("print", file);
+        const response = await client.post(`/orders/${id}/print`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return mapOrder(response.data);
+    },
+
+    async uploadFinishing(id: number, file: File) {
+        const formData = new FormData();
+        formData.append("finishing", file);
+        const response = await client.post(`/orders/${id}/finishing`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return mapOrder(response.data);
+    },
+
     async approveLayout(id: number) {
         const response = await client.patch(`/orders/${id}/approve-layout`);
+        return mapOrder(response.data);
+    },
+
+    async unapproveLayout(id: number) {
+        const response = await client.patch(`/orders/${id}/unapprove-layout`);
         return mapOrder(response.data);
     },
 

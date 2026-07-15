@@ -83,20 +83,29 @@ export const profileApi = {
         }
 
         try {
-            const token = localStorage.getItem("jwt");
+            let token = localStorage.getItem("jwt");
             if (!token) {
-                throw new Error("No authentication token found");
+                const userStr = localStorage.getItem("user");
+                if (userStr) {
+                    try {
+                        const userObj = JSON.parse(userStr);
+                        token = userObj.token;
+                    } catch (e) {}
+                }
+            }
+
+            const headers: Record<string, string> = {
+                "Content-Type": "multipart/form-data",
+            };
+            
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
             }
 
             const response = await client.put<ProfileResponse>(
                 `/profile/${userId}`,
                 formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                        Authorization: `Bearer ${token}`,
-                    },
-                },
+                { headers },
             );
 
             if (response.data.code === 302 || response.data.code === 200) {

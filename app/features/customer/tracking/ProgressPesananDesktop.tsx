@@ -99,6 +99,29 @@ export function ProgressPesananDesktop() {
         }
     };
 
+    const handleUnapproveDesign = async () => {
+        if (!selectedOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.unapproveDesign(selectedOrder.id);
+            const updatedStatus = "SENT";
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                designStatus: updatedStatus
+            }));
+            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
+                ...o,
+                designStatus: updatedStatus
+            } : o));
+            setToast({ title: "Persetujuan desain dibatalkan!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal membatalkan persetujuan desain:", error);
+            setToast({ title: "Gagal membatalkan persetujuan desain", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
     const handleRevisi = async () => {
         if (!selectedOrder || !feedbackInput.trim()) return;
         setSubmittingAction(true);
@@ -147,6 +170,29 @@ export function ProgressPesananDesktop() {
         } catch (error) {
             console.error("Gagal menyetujui layout:", error);
             setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    const handleUnapproveLayout = async () => {
+        if (!selectedOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.unapproveLayout(selectedOrder.id);
+            const updatedStatus = "SENT";
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                layoutStatus: updatedStatus
+            }));
+            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
+                ...o,
+                layoutStatus: updatedStatus
+            } : o));
+            setToast({ title: "Persetujuan layout dibatalkan!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal membatalkan persetujuan layout:", error);
+            setToast({ title: "Gagal membatalkan persetujuan layout", variant: "destructive" });
         } finally {
             setSubmittingAction(false);
         }
@@ -386,6 +432,9 @@ export function ProgressPesananDesktop() {
                                             <p className="text-sm text-emerald-300 font-bold italic">
                                                 Desain telah disetujui! Pesanan akan segera dilanjutkan ke tahap Layout Pola & Cetak.
                                             </p>
+																{(selectedOrder.status === 'DESAIN' || selectedOrder.status === 'LAYOUT') && (
+																	<button onClick={handleUnapproveDesign} disabled={submittingAction} className="mt-3 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest italic w-fit active:scale-95 transition-all shadow-md disabled:opacity-50">Batal Setuju</button>
+																)}
                                         </div>
                                     )}
                                 </div>
@@ -542,6 +591,9 @@ export function ProgressPesananDesktop() {
                                             <p className="text-sm text-emerald-300 font-bold italic">
                                                 Layout telah disetujui! Pesanan akan segera dilanjutkan ke tahap Print Cetak Kain.
                                             </p>
+																{selectedOrder.status === 'LAYOUT' && (
+																	<button onClick={handleUnapproveLayout} disabled={submittingAction} className="mt-3 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest italic w-fit active:scale-95 transition-all shadow-md disabled:opacity-50">Batal Setuju</button>
+																)}
                                         </div>
                                     )}
                                 </div>
@@ -575,6 +627,48 @@ export function ProgressPesananDesktop() {
                                             />
                                         )}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Progress Print (Customer View) */}
+                    {selectedOrder.printUrl && (
+                        <div className="space-y-6 mt-16 pt-16 border-t border-slate-50">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                    <Printer className="text-[#D25026]" size={16} />
+                                </div>
+                                Progress Cetak (Print)
+                            </h3>
+                            <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
+                                <div className="w-full bg-white rounded-2xl overflow-hidden border border-slate-200 p-2 flex items-center justify-center shadow-sm">
+                                    <img 
+                                        src={selectedOrder.printUrl.startsWith('http') ? selectedOrder.printUrl : `${UPLOADS_URL}${selectedOrder.printUrl.startsWith('/') ? '' : '/'}${selectedOrder.printUrl}`} 
+                                        alt="Progress Print" 
+                                        className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-xl" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Progress Finishing (Customer View) */}
+                    {selectedOrder.finishingUrl && (
+                        <div className="space-y-6 mt-16 pt-16 border-t border-slate-50">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                    <CheckCircle2 className="text-[#D25026]" size={16} />
+                                </div>
+                                Progress Finishing
+                            </h3>
+                            <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
+                                <div className="w-full bg-white rounded-2xl overflow-hidden border border-slate-200 p-2 flex items-center justify-center shadow-sm">
+                                    <img 
+                                        src={selectedOrder.finishingUrl.startsWith('http') ? selectedOrder.finishingUrl : `${UPLOADS_URL}${selectedOrder.finishingUrl.startsWith('/') ? '' : '/'}${selectedOrder.finishingUrl}`} 
+                                        alt="Progress Finishing" 
+                                        className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-xl" 
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -845,3 +939,5 @@ export function ProgressPesananDesktop() {
         </div>
     );
 }
+
+

@@ -13,33 +13,33 @@ export default function RequirementsDesktop() {
                 </Link>
             </Button>
 
-            <h1 className="text-3xl font-bold mb-8 text-foreground uppercase">SYARAT PESERTA KERJA PRAKTIK</h1>
+            <h1 className="text-3xl font-bold mb-8 text-foreground uppercase">SYARAT PESERTA Pemesanan Jersey</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
                     {
                         title: "Akademik",
                         items: [
-                            "Terdaftar sebagai mahasiswa aktif Program Studi Teknik Informatika Fakultas Teknik FSCV pada tahun akademik semester berjalan",
+                            "Terdaftar sebagai customer aktif Program Studi Teknik Informatika Fakultas Teknik FSCV pada tahun akademik semester berjalan",
                             "Telah memenuhi 100 SKS dengan IPK ≥ 2,00 dan maksimal nilai D atau E sebanyak 6 SKS (tidak termasuk mata kuliah Praktikum, MKWU dan MKWN)",
                             "Untuk nilai mata kuliah Praktikum dan MKWU/MKWN adalah minimal C",
-                            "Memrogramkan/memilih mata kuliah Kerja Praktik (2 SKS) pada Kartu Rencana Studi (KRS)"
+                            "Memrogramkan/memilih mata kuliah Pemesanan Jersey (2 SKS) pada Kartu Rencana Studi (KRS)"
                         ]
                     },
                     {
-                        title: "Waktu Pelaksanaan Kerja Praktik",
+                        title: "Waktu Pelaksanaan Pemesanan Jersey",
                         items: [
-                            "Durasi pelaksanaan kegiatan KP menyesuaikan jam kerja dan kebijakan tempat yang dipilih oleh mahasiswa",
-                            "Jangka waktu pelaksanaan KP di perusahaan minimal selama 1 (satu) bulan dan penyusunan laporan KP dilakukan dalam 1 (satu) semester",
-                            "Apabila di luar dari jangka waktu tersebut, mahasiswa diwajibkan untuk memrogramkan kembali mata kuliah KP di KRS semester berikutnya"
+                            "Durasi pelaksanaan kegiatan FSCV menyesuaikan jam kerja dan kebijakan tempat yang dipilih oleh customer",
+                            "Jangka waktu pelaksanaan FSCV di perusahaan minimal selama 1 (satu) bulan dan penyusunan laporan FSCV dilakukan dalam 1 (satu) semester",
+                            "Apabila di luar dari jangka waktu tersebut, customer diwajibkan untuk memrogramkan kembali mata kuliah FSCV di KRS semester berikutnya"
                         ]
                     },
                     {
-                        title: "Tempat Kerja Praktik",
+                        title: "Tempat Pemesanan Jersey",
                         items: [
-                            "Mahasiswa dipersilakan untuk menentukan sendiri tempat pelaksanaan KP",
-                            "Kegiatan KP dapat dilakukan di seluruh perusahaan, instansi pemerintahan atau institusi pendidikan yang telah mempunyai sistem informasi atau sistem jaringan komputer",
-                            "Mahasiswa juga dapat diikutsertakan dalam kegiatan-kegiatan di lingkungan kampus FSCV yang berkaitan dengan pengembangan teknologi informasi"
+                            "customer dipersilakan untuk menentukan sendiri tempat pelaksanaan KP",
+                            "Kegiatan FSCV dapat dilakukan di seluruh perusahaan, instansi pemerintahan atau institusi pendidikan yang telah mempunyai sistem informasi atau sistem jaringan komputer",
+                            "customer juga dapat diikutsertakan dalam kegiatan-kegiatan di lingkungan kampus FSCV yang berkaitan dengan pengembangan teknologi informasi"
                         ]
                     }
                 ].map((category, idx) => (

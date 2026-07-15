@@ -71,23 +71,6 @@ export const adminApi = {
         return response.data;
     },
 
-    /**
-     * Clear all mahasiswa users
-     * POST /admin/users/mahasiswa/clear-all
-     */
-    clearAllMahasiswa: async (forceAll: boolean = false): Promise<ApiResponse<any>> => {
-        const response = await client.post<ApiResponse<any>>("/admin/users/mahasiswa/clear-all", { forceAll });
-        return response.data;
-    },
-
-    /**
-     * Clear all dosen users
-     * POST /admin/users/dosen/clear-all
-     */
-    clearAllDosen: async (forceAll: boolean = false): Promise<ApiResponse<any>> => {
-        const response = await client.post<ApiResponse<any>>("/admin/users/dosen/clear-all", { forceAll });
-        return response.data;
-    },
 
     /**
      * Get user by ID

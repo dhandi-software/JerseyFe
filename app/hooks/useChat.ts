@@ -227,8 +227,8 @@ export function useChat() {
         
         // Kondisi: Hanya tampilkan 'Internal Team' (sebelumnya Ruang Publik) untuk tim internal (Admin, Desain, Manager, Gudang)
         const userRole = user.role?.toUpperCase();
-        const isInternalTeam = userRole === 'ADMIN' || userRole === 'DOSEN' || userRole === 'KAPRODI' || userRole === 'DESAIN' || userRole === 'MANAGER' || userRole === 'GUDANG';
-        const isCustomer = userRole === 'CUSTOMER' || userRole === 'MAHASISWA';
+        const isInternalTeam = userRole === 'ADMIN' || userRole === 'DESAIN' || userRole === 'MANAGER' || userRole === 'GUDANG';
+        const isCustomer = userRole === 'CUSTOMER';
         
         const publicRoom: ChatContact = {
             id: 0,
@@ -441,7 +441,7 @@ export function useChat() {
       attachmentName: payload.attachmentName || null,
       attachmentType: payload.attachmentType || null,
       replyToId: payload.replyToId,
-      sender: { username: "Anda", role: user.role || "dosen" } // Dummy
+      sender: { username: "Anda", role: user.role || "customer" } // Dummy
     };
 
     (optimisticMessage as any).isOptimistic = true;

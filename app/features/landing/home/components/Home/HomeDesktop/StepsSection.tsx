@@ -12,10 +12,10 @@ export function StepsSection() {
                     <div className="space-y-4">
                         <h2 className="text-4xl font-bold text-zinc-950 leading-tight font-geist">
                             Langkah Mudah Memulai <br />
-                            Kerja Praktik Anda
+                            Pemesanan Jersey Anda
                         </h2>
                         <p className="text-gray-500 text-lg font-medium">
-                            Kami membantu Anda menemukan tempat magang yang
+                            Kami membantu Anda menemukan tempat pemesanan yang
                             tepat dengan proses yang terstruktur.
                         </p>
                     </div>
@@ -26,17 +26,17 @@ export function StepsSection() {
                                 {
                                     id: 1,
                                     title: "Langkah 1: Registrasi",
-                                    desc: "Registrasi akun untuk sistem kami akan dilakukan secara otomatis oleh Administrator Program Studi (Prodi). Akun ini dikhususkan bagi mahasiswa yang mengambil mata kuliah Kerja Praktik (KP) pada semester berjalan.",
+                                    desc: "Registrasi akun untuk sistem kami akan dilakukan secara otomatis oleh Administrator Program Studi (Prodi). Akun ini dikhususkan bagi customer yang mengambil mata kuliah Pemesanan Jersey (FSCV) pada semester berjalan.",
                                 },
                                 {
                                     id: 2,
                                     title: "Langkah 2: Pengajuan Proposal",
-                                    desc: "Ajukan proposal topik kerja Praktik Anda melalui sistem. Proposal akan direview oleh koordinator KP dan calon dosen pembimbing.",
+                                    desc: "Ajukan proposal topik Pemesanan Jersey Anda melalui sistem. Proposal akan direview oleh admin dan calon tim desainer.",
                                 },
                                 {
                                     id: 3,
                                     title: "Langkah 3: Pelaksanaan & Laporan",
-                                    desc: "Lakukan kegiatan kerja Praktik, isi logbook harian, dan susun laporan akhir untuk disidangkan sebagai syarat kelulusan mata kuliah.",
+                                    desc: "Lakukan kegiatan Pemesanan Jersey, isi logbook harian, dan susun laporan akhir untuk disidangkan sebagai syarat kelulusan mata kuliah.",
                                 },
                             ].map((step, idx) => (
                                 <div

@@ -89,7 +89,50 @@ export function MonitoringPesananDesktop() {
 
     // Search, Sort, and Pagination states
     const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState("menunggu");
+    const [sortBy, setSortBy] = useState("newest");
+
+    const [isUploadingPrint, setIsUploadingPrint] = useState(false);
+    const printInputRef = useRef<HTMLInputElement>(null);
+    const handleUploadPrint = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedOrder) return;
+        
+        setIsUploadingPrint(true);
+        try {
+            const res = await orderService.uploadPrint(selectedOrder.rawId, file);
+            setToast({ title: "Foto progres Print berhasil diunggah!", variant: "success" });
+            setSelectedOrder({ ...selectedOrder, printUrl: res.printUrl });
+            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, printUrl: res.printUrl } : o));
+        } catch (error) {
+            console.error("Gagal mengunggah foto Print", error);
+            setToast({ title: "Gagal mengunggah foto Print", variant: "destructive" });
+        } finally {
+            setIsUploadingPrint(false);
+            if (printInputRef.current) printInputRef.current.value = "";
+        }
+    };
+
+    const [isUploadingFinishing, setIsUploadingFinishing] = useState(false);
+    const finishingInputRef = useRef<HTMLInputElement>(null);
+    const handleUploadFinishing = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedOrder) return;
+        
+        setIsUploadingFinishing(true);
+        try {
+            const res = await orderService.uploadFinishing(selectedOrder.rawId, file);
+            setToast({ title: "Foto progres Finishing berhasil diunggah!", variant: "success" });
+            setSelectedOrder({ ...selectedOrder, finishingUrl: res.finishingUrl });
+            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, finishingUrl: res.finishingUrl } : o));
+        } catch (error) {
+            console.error("Gagal mengunggah foto Finishing", error);
+            setToast({ title: "Gagal mengunggah foto Finishing", variant: "destructive" });
+        } finally {
+            setIsUploadingFinishing(false);
+            if (finishingInputRef.current) finishingInputRef.current.value = "";
+        }
+    };
+    const [filterTab, setFilterTab] = useState("MENUNGGU");
     const [currentPage, setCurrentPage] = useState(1);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const itemsPerPage = 10;
@@ -98,7 +141,7 @@ export function MonitoringPesananDesktop() {
     // Reset page on filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, sortBy]);
+    }, [searchQuery, sortBy, filterTab]);
 
     // Click outside handler for dropdown
     useEffect(() => {
@@ -146,6 +189,8 @@ export function MonitoringPesananDesktop() {
                     layoutUrl: o.layoutUrl,
                     layoutStatus: o.layoutStatus,
                     layoutFeedback: o.layoutFeedback,
+                    printUrl: o.printUrl,
+                    finishingUrl: o.finishingUrl,
                     details: o.details,
                     dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                         weekday: 'long', 
@@ -226,6 +271,63 @@ export function MonitoringPesananDesktop() {
         }
     };
 
+    const handleApproveDesign = async (id: number) => {
+        try {
+            await orderService.approveDesign(id);
+            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, designStatus: "APPROVED" } : o));
+            if (selectedOrder?.rawId === id) {
+                setSelectedOrder((prev: any) => ({ ...prev, designStatus: "APPROVED" }));
+            }
+            setToast({ title: "Desain berhasil disetujui", variant: "success" });
+        } catch (error) {
+            console.error("Error approving design:", error);
+            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
+        }
+    };
+
+    const handleRevisiDesign = async (id: number, feedback: string) => {
+        try {
+            await orderService.revisiDesign(id, feedback);
+            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, designStatus: "REVISI", designFeedback: feedback } : o));
+            if (selectedOrder?.rawId === id) {
+                setSelectedOrder((prev: any) => ({ ...prev, designStatus: "REVISI", designFeedback: feedback }));
+            }
+            setToast({ title: "Revisi desain berhasil dikirim", variant: "success" });
+        } catch (error) {
+            console.error("Error requesting revision:", error);
+            setToast({ title: "Gagal mengirim revisi", variant: "destructive" });
+        }
+    };
+
+    const handleApproveLayout = async (id: number) => {
+        try {
+            await orderService.approveLayout(id);
+            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, layoutStatus: "APPROVED" } : o));
+            if (selectedOrder?.rawId === id) {
+                setSelectedOrder((prev: any) => ({ ...prev, layoutStatus: "APPROVED" }));
+            }
+            setToast({ title: "Layout berhasil disetujui", variant: "success" });
+        } catch (error) {
+            console.error("Error approving layout:", error);
+            setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
+        }
+    };
+
+    const handleRevisiLayout = async (id: number, feedback: string) => {
+        try {
+            await orderService.revisiLayout(id, feedback);
+            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, layoutStatus: "REVISI", layoutFeedback: feedback } : o));
+            if (selectedOrder?.rawId === id) {
+                setSelectedOrder((prev: any) => ({ ...prev, layoutStatus: "REVISI", layoutFeedback: feedback }));
+            }
+            setToast({ title: "Revisi layout berhasil dikirim", variant: "success" });
+        } catch (error) {
+            console.error("Error requesting revision:", error);
+            setToast({ title: "Gagal mengirim revisi", variant: "destructive" });
+        }
+    };
+
+
     const getStatusStyle = (status: string) => {
         switch (status) {
             case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -240,9 +342,11 @@ export function MonitoringPesananDesktop() {
 
     // Search, Filter and Sort orders
     const filteredAndSortedOrders = orders.filter(o => {
-        if (sortBy === "menunggu") {
+        if (filterTab !== "ALL") {
             const status = (o.status || "").toUpperCase();
-            if (status !== "MENUNGGU" && status !== "MENUNGGU VERIFIKASI") {
+            if (filterTab === "MENUNGGU" && status !== "MENUNGGU" && status !== "MENUNGGU VERIFIKASI") {
+                return false;
+            } else if (filterTab !== "MENUNGGU" && status !== filterTab) {
                 return false;
             }
         }
@@ -255,11 +359,6 @@ export function MonitoringPesananDesktop() {
             (o.product && o.product.toLowerCase().includes(query))
         );
     }).sort((a, b) => {
-        if (sortBy === "menunggu") {
-            if (a.status === "MENUNGGU" && b.status !== "MENUNGGU") return -1;
-            if (b.status === "MENUNGGU" && a.status !== "MENUNGGU") return 1;
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
         if (sortBy === "newest") {
             return new Date(b.date).getTime() - new Date(a.date).getTime();
         }
@@ -609,8 +708,9 @@ export function MonitoringPesananDesktop() {
                                     </h3>
                                     <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
                                         {selectedOrder.mockupUrl ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="space-y-4">
+                                            <>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    <div className="space-y-4">
                                                     <div className="flex flex-wrap items-center gap-3">
                                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Status Persetujuan:</span>
                                                         {selectedOrder.designStatus === "SENT" && (
@@ -660,6 +760,26 @@ export function MonitoringPesananDesktop() {
                                                     )}
                                                 </div>
                                             </div>
+                                            {selectedOrder.isAdminOrder && selectedOrder.designStatus === "SENT" && (
+                                                <div className="flex gap-3 mt-4 border-t border-slate-100 pt-4">
+                                                    <Button 
+                                                        onClick={() => {
+                                                            const feedback = prompt("Masukkan catatan revisi desain:");
+                                                            if (feedback) handleRevisiDesign(selectedOrder.rawId, feedback);
+                                                        }}
+                                                        className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                                                    >
+                                                        Minta Revisi (Admin)
+                                                    </Button>
+                                                    <Button 
+                                                        onClick={() => handleApproveDesign(selectedOrder.rawId)}
+                                                        className="bg-[#D25026] text-white hover:bg-[#B34320] px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                                                    >
+                                                        Setujui Desain (Admin)
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            </>
                                         ) : (
                                             <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-100">
                                                 <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Desainer belum mengupload mockup desain.</p>
@@ -680,8 +800,9 @@ export function MonitoringPesananDesktop() {
                                     </h3>
                                     <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
                                         {selectedOrder.layoutUrl ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                <div className="space-y-4">
+                                            <>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    <div className="space-y-4">
                                                     <div className="flex flex-wrap items-center gap-3">
                                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Status Persetujuan Layout:</span>
                                                         {selectedOrder.layoutStatus === "SENT" && (
@@ -731,9 +852,115 @@ export function MonitoringPesananDesktop() {
                                                     )}
                                                 </div>
                                             </div>
+                                            {selectedOrder.isAdminOrder && selectedOrder.layoutStatus === "SENT" && (
+                                                <div className="flex gap-3 mt-4 border-t border-slate-100 pt-4">
+                                                    <Button 
+                                                        onClick={() => {
+                                                            const feedback = prompt("Masukkan catatan revisi layout:");
+                                                            if (feedback) handleRevisiLayout(selectedOrder.rawId, feedback);
+                                                        }}
+                                                        className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                                                    >
+                                                        Minta Revisi (Admin)
+                                                    </Button>
+                                                    <Button 
+                                                        onClick={() => handleApproveLayout(selectedOrder.rawId)}
+                                                        className="bg-[#D25026] text-white hover:bg-[#B34320] px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                                                    >
+                                                        Setujui Layout (Admin)
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            </>
                                         ) : (
                                             <div className="w-full h-32 bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-100">
                                                 <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Desainer belum mengupload layout pola cetak.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Progress Print (Admin Monitor) */}
+                            {(["PRINT", "FINISHING", "SELESAI"].includes(selectedOrder.status) || selectedOrder.printUrl) && (
+                                <div className="space-y-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                            <Printer className="text-[#D25026]" size={16} />
+                                        </div>
+                                        Progress Cetak (Print)
+                                    </h3>
+                                    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
+                                        {selectedOrder.printUrl ? (
+                                            <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 p-2 flex items-center justify-center">
+                                                <img 
+                                                    src={selectedOrder.printUrl.startsWith('http') ? selectedOrder.printUrl : `${UPLOADS_URL}${selectedOrder.printUrl.startsWith('/') ? '' : '/'}${selectedOrder.printUrl}`} 
+                                                    alt="Progress Print" 
+                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full min-h-[8rem] bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-6">
+                                                <div className="flex flex-col items-center text-center">
+                                                    <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mb-3">
+                                                        <Printer className="w-6 h-6 text-cyan-600" />
+                                                    </div>
+                                                    <p className="text-xs font-bold text-slate-600 italic uppercase tracking-widest mb-4">Menunggu Foto Print</p>
+                                                    <label className={`bg-[#D25026] text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingPrint ? 'opacity-50' : 'hover:bg-[#B34320]'}`}>
+                                                        {isUploadingPrint ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={14} />}
+                                                        Unggah Foto Print
+                                                        <input 
+                                                            type="file" 
+                                                            onChange={handleUploadPrint} 
+                                                            accept="image/*" 
+                                                            className="hidden" 
+                                                            disabled={isUploadingPrint}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Progress Finishing (Admin Monitor) */}
+                            {(["FINISHING", "SELESAI"].includes(selectedOrder.status) || selectedOrder.finishingUrl) && (
+                                <div className="space-y-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic">
+                                        <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
+                                            <CheckCircle className="text-[#D25026]" size={16} />
+                                        </div>
+                                        Progress Finishing
+                                    </h3>
+                                    <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm ring-1 ring-black/5">
+                                        {selectedOrder.finishingUrl ? (
+                                            <div className="w-full bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 p-2 flex items-center justify-center">
+                                                <img 
+                                                    src={selectedOrder.finishingUrl.startsWith('http') ? selectedOrder.finishingUrl : `${UPLOADS_URL}${selectedOrder.finishingUrl.startsWith('/') ? '' : '/'}${selectedOrder.finishingUrl}`} 
+                                                    alt="Progress Finishing" 
+                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full min-h-[8rem] bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-6">
+                                                <div className="flex flex-col items-center text-center">
+                                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                                                        <CheckCircle className="w-6 h-6 text-blue-600" />
+                                                    </div>
+                                                    <p className="text-xs font-bold text-slate-600 italic uppercase tracking-widest mb-4">Menunggu Foto Finishing</p>
+                                                    <label className={`bg-[#D25026] text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingFinishing ? 'opacity-50' : 'hover:bg-[#B34320]'}`}>
+                                                        {isUploadingFinishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={14} />}
+                                                        Unggah Foto Finishing
+                                                        <input 
+                                                            type="file" 
+                                                            onChange={handleUploadFinishing} 
+                                                            accept="image/*" 
+                                                            className="hidden" 
+                                                            disabled={isUploadingFinishing}
+                                                        />
+                                                    </label>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -955,6 +1182,53 @@ export function MonitoringPesananDesktop() {
                     </div>
                 </div>
 
+                {/* Tabs */}
+                <div className="flex overflow-x-auto gap-2 mb-6 pb-2 custom-scrollbar">
+                    {[
+                        { id: "ALL", label: "Semua" },
+                        { id: "MENUNGGU", label: "Menunggu" },
+                        { id: "DESAIN", label: "Desain" },
+                        { id: "LAYOUT", label: "Layout" },
+                        { id: "PRINT", label: "Print" },
+                        { id: "FINISHING", label: "Finishing" },
+                        { id: "SELESAI", label: "Selesai" },
+                        { id: "DITOLAK", label: "Ditolak" },
+                    ].map(tab => {
+                        const count = tab.id === "ALL" 
+                            ? orders.length 
+                            : orders.filter(o => {
+                                const status = (o.status || "").toUpperCase();
+                                if (tab.id === "MENUNGGU") return status === "MENUNGGU" || status === "MENUNGGU VERIFIKASI";
+                                return status === tab.id;
+                            }).length;
+
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setFilterTab(tab.id)}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest italic whitespace-nowrap transition-all",
+                                    filterTab === tab.id 
+                                        ? "bg-[#D25026] text-white" 
+                                        : "bg-white text-slate-500 hover:bg-slate-100 border border-slate-200"
+                                )}
+                            >
+                                <span>{tab.label}</span>
+                                {count > 0 && (
+                                    <span className={cn(
+                                        "px-2 py-0.5 rounded-lg text-[10px]",
+                                        filterTab === tab.id
+                                            ? "bg-white/20 text-white"
+                                            : "bg-slate-100 text-slate-500"
+                                    )}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+
                 {/* Search & Sort Controls */}
                 <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
                     <div className="relative w-full md:w-96">
@@ -976,7 +1250,6 @@ export function MonitoringPesananDesktop() {
                                 className="flex items-center justify-between gap-4 bg-white border border-slate-200 px-5 py-3 rounded-2xl transition-all duration-200 min-w-[200px] text-left cursor-pointer shadow-sm text-xs font-black uppercase tracking-widest italic"
                             >
                                 <span className="text-slate-700">
-                                    {sortBy === "menunggu" && "Menunggu Verifikasi"}
                                     {sortBy === "newest" && "Terbaru (Tanggal)"}
                                     {sortBy === "oldest" && "Terlama (Tanggal)"}
                                     {sortBy === "name-asc" && "Customer A-Z"}
@@ -992,7 +1265,6 @@ export function MonitoringPesananDesktop() {
                             {showSortDropdown && (
                                 <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-150 rounded-2xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                                     {[
-                                        { val: "menunggu", label: "Menunggu Verifikasi" },
                                         { val: "newest", label: "Terbaru (Tanggal)" },
                                         { val: "oldest", label: "Terlama (Tanggal)" },
                                         { val: "name-asc", label: "Customer A-Z" },

@@ -50,6 +50,7 @@ export default [
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
             route("retur-barang", "routes/admin/retur-barang.tsx"),
             route("buat-pesanan", "routes/admin/buat-pesanan.tsx"),
+            route("profile", "routes/admin/profile.tsx"),
         ]),
     ]),
 
@@ -58,6 +59,7 @@ export default [
         ...prefix("desain", [
             index("routes/desain/dashboard.tsx"),
             route("chat", "routes/desain/chat_new.tsx"),
+            route("profile", "routes/desain/profile.tsx"),
         ]),
     ]),
 
@@ -70,6 +72,7 @@ export default [
             route("edit-account/:id", "routes/manager/edit-account.$id.tsx"),
             route("omset", "routes/manager/omset.tsx"),
             route("create-account", "routes/manager/create-account.tsx"),
+            route("profile", "routes/manager/profile.tsx"),
         ]),
     ]),
     
@@ -80,6 +83,7 @@ export default [
             route("bahan-baju/create", "routes/gudang/bahan-baju-create.tsx"),
             route("packing", "routes/gudang/packing.tsx"),
             route("retur-barang", "routes/gudang/retur-barang.tsx"),
+            route("profile", "routes/gudang/profile.tsx"),
         ]),
     ]),
    

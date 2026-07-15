@@ -5,7 +5,7 @@ import autoTable from "jspdf-autotable";
 import { userApi } from "~/api/userApi";
 import { cn } from "~/lib/utils";
 import { Link, useSearchParams, useNavigate } from "react-router";
-import { DataTable, type Column } from "~/components/ui/table-user-dosen";
+import { DataTable, type Column } from "~/components/ui/table-user";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { ForceDeleteModal } from "~/components/ui/force-delete-modal";

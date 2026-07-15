@@ -104,6 +104,9 @@ export function DashboardDesainDesktop() {
     });
 
     const sortedOrders = [...filteredOrders].sort((a, b) => {
+        if (a.status === "SELESAI" && b.status !== "SELESAI") return 1;
+        if (b.status === "SELESAI" && a.status !== "SELESAI") return -1;
+
         if (!a.queueNumber) return 1;
         if (!b.queueNumber) return -1;
         return a.queueNumber.localeCompare(b.queueNumber);

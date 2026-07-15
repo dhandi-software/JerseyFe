@@ -1,5 +1,5 @@
 import { SharedProfile } from "~/features/shared/profile";
 
-export default function CustomerProfile() {
+export default function AdminProfile() {
   return <SharedProfile />;
 }

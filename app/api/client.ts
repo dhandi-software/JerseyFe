@@ -25,12 +25,29 @@ export const client = axios.create({
     withCredentials: true,
 });
 
-// Request interceptor to handle FormData
+// Request interceptor to handle FormData and Tokens
 client.interceptors.request.use((config) => {
     if (config.data instanceof FormData) {
         // Remove default Content-Type to let Axios set it with the boundary
         delete config.headers["Content-Type"];
     }
+
+    if (typeof window !== "undefined") {
+        let token = localStorage.getItem("jwt");
+        if (!token) {
+            const userStr = localStorage.getItem("user");
+            if (userStr) {
+                try {
+                    const userObj = JSON.parse(userStr);
+                    token = userObj.token;
+                } catch (e) {}
+            }
+        }
+        if (token && !config.headers.Authorization) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+
     return config;
 });
 

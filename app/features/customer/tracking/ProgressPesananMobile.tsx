@@ -100,6 +100,29 @@ export function ProgressPesananMobile() {
         }
     };
 
+    const handleUnapproveDesign = async () => {
+        if (!selectedOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.unapproveDesign(selectedOrder.id);
+            const updatedStatus = "SENT";
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                designStatus: updatedStatus
+            }));
+            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
+                ...o,
+                designStatus: updatedStatus
+            } : o));
+            setToast({ title: "Persetujuan desain dibatalkan!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal membatalkan persetujuan desain:", error);
+            setToast({ title: "Gagal membatalkan persetujuan desain", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
     const handleRevisi = async () => {
         if (!selectedOrder || !feedbackInput.trim()) return;
         setSubmittingAction(true);
@@ -148,6 +171,29 @@ export function ProgressPesananMobile() {
         } catch (error) {
             console.error("Gagal menyetujui layout:", error);
             setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    const handleUnapproveLayout = async () => {
+        if (!selectedOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.unapproveLayout(selectedOrder.id);
+            const updatedStatus = "SENT";
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                layoutStatus: updatedStatus
+            }));
+            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
+                ...o,
+                layoutStatus: updatedStatus
+            } : o));
+            setToast({ title: "Persetujuan layout dibatalkan!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal membatalkan persetujuan layout:", error);
+            setToast({ title: "Gagal membatalkan persetujuan layout", variant: "destructive" });
         } finally {
             setSubmittingAction(false);
         }
@@ -407,6 +453,9 @@ export function ProgressPesananMobile() {
                                     <p className="text-xs text-emerald-300 font-bold italic">
                                         Desain disetujui! Segera dilanjutkan ke tahap berikutnya.
                                     </p>
+																{(selectedOrder.status === 'DESAIN' || selectedOrder.status === 'LAYOUT') && (
+																	<button onClick={handleUnapproveDesign} disabled={submittingAction} className="mt-3 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest italic w-fit active:scale-95 transition-all shadow-md disabled:opacity-50">Batal Setuju</button>
+																)}
                                 </div>
                             )}
                         </div>
@@ -549,6 +598,9 @@ export function ProgressPesananMobile() {
                                     <p className="text-xs text-emerald-300 font-bold italic">
                                         Layout disetujui! Segera dilanjutkan ke proses cetak kain.
                                     </p>
+																{selectedOrder.status === 'LAYOUT' && (
+																	<button onClick={handleUnapproveLayout} disabled={submittingAction} className="mt-3 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest italic w-fit active:scale-95 transition-all shadow-md disabled:opacity-50">Batal Setuju</button>
+																)}
                                 </div>
                             )}
                         </div>
@@ -633,6 +685,38 @@ export function ProgressPesananMobile() {
                             <p className="text-lg font-black text-emerald-700 italic">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</p>
                         </div>
                     </div>
+
+                    {/* Progress Print (Customer Mobile View) */}
+                    {selectedOrder.printUrl && (
+                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                                <Printer className="text-[#D25026]" size={14} /> Progress Cetak (Print)
+                            </h3>
+                            <div className="w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 p-2 flex items-center justify-center">
+                                <img 
+                                    src={selectedOrder.printUrl.startsWith('http') ? selectedOrder.printUrl : `${UPLOADS_URL}${selectedOrder.printUrl.startsWith('/') ? '' : '/'}${selectedOrder.printUrl}`} 
+                                    alt="Progress Print" 
+                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Progress Finishing (Customer Mobile View) */}
+                    {selectedOrder.finishingUrl && (
+                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
+                                <CheckCircle2 className="text-[#D25026]" size={14} /> Progress Finishing
+                            </h3>
+                            <div className="w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 p-2 flex items-center justify-center">
+                                <img 
+                                    src={selectedOrder.finishingUrl.startsWith('http') ? selectedOrder.finishingUrl : `${UPLOADS_URL}${selectedOrder.finishingUrl.startsWith('/') ? '' : '/'}${selectedOrder.finishingUrl}`} 
+                                    alt="Progress Finishing" 
+                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-xl" 
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Informasi Pengiriman Mobile */}
                     <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
@@ -788,3 +872,6 @@ export function ProgressPesananMobile() {
         </div>
     );
 }
+
+
+

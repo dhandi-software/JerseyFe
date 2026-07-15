@@ -13,17 +13,17 @@ export default function RequirementsMobile() {
                 </Link>
             </Button>
 
-            <h1 className="text-3xl font-bold mb-8 text-foreground">Persyaratan Kerja Praktik</h1>
+            <h1 className="text-3xl font-bold mb-8 text-foreground">Persyaratan Pemesanan Jersey</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
                     {
                         title: "Syarat Akademik",
-                        items: ["Telah menempuh min. 100 SKS", "IPK Minimal 2.75", "Lulus Mata Kuliah Prasyarat", "Status Mahasiswa Aktif"]
+                        items: ["Telah menempuh min. 100 SKS", "IPK Minimal 2.75", "Lulus Mata Kuliah Prasyarat", "Status customer Aktif"]
                     },
                     {
                         title: "Syarat Administrasi",
-                        items: ["Surat Pengantar dari Prodi", "Proposal KP disetujui", "Transkrip Nilai Terbaru", "KRS Semester Berjalan"]
+                        items: ["Surat Pengantar dari Prodi", "Proposal FSCV disetujui", "Transkrip Nilai Terbaru", "KRS Semester Berjalan"]
                     },
                     {
                         title: "Syarat Perusahaan",

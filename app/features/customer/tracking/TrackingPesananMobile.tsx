@@ -117,6 +117,29 @@ export function TrackingPesananMobile() {
         }
     };
 
+    const handleUnapproveDesign = async () => {
+        if (!selectedOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.unapproveDesign(selectedOrder.id);
+            const updatedStatus = "SENT";
+            setSelectedOrder((prev: any) => ({
+                ...prev,
+                designStatus: updatedStatus
+            }));
+            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
+                ...o,
+                designStatus: updatedStatus
+            } : o));
+            setToast({ title: "Persetujuan desain dibatalkan!", variant: "success" });
+        } catch (error) {
+            console.error("Gagal membatalkan persetujuan desain:", error);
+            setToast({ title: "Gagal membatalkan persetujuan desain", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
     const handleRevisi = async () => {
         if (!order || !feedbackInput.trim()) return;
         setSubmittingAction(true);
@@ -442,6 +465,9 @@ export function TrackingPesananMobile() {
                                     <p className="text-xs text-emerald-300 font-bold italic">
                                         Desain disetujui! Segera dilanjutkan ke tahap berikutnya.
                                     </p>
+																{(selectedOrder.status === 'DESAIN' || selectedOrder.status === 'LAYOUT') && (
+																	<button onClick={handleUnapproveDesign} disabled={submittingAction} className="mt-3 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest italic w-fit active:scale-95 transition-all shadow-md disabled:opacity-50">Batal Setuju</button>
+																)}
                                 </div>
                             )}
                         </div>
@@ -626,3 +652,6 @@ export function TrackingPesananMobile() {
         </div>
     );
 }
+
+
+

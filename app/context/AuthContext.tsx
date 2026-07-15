@@ -62,11 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const role = user.role.toLowerCase();
 
             switch (role) {
-                case 'kaprodi':
-                    navigate("/kaprodi");
-                    break;
+
                 case 'customer':
-                case 'mahasiswa':
                     navigate("/customer");
                     break;
                 case 'desain':
@@ -74,10 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     break;
                 case 'gudang':
                     navigate("/gudang");
-                    break;
-                case 'dosen':
-                case 'dosen_pembimbing':
-                    navigate("/dosen");
                     break;
                 case 'admin':
                     navigate("/admin");

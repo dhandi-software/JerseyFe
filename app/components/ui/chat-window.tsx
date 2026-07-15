@@ -76,27 +76,16 @@ export function ChatWindow({
         let image = "";
 
         if (contact.id === 0) { // Internal Team
-            return { initials: "IT", color: "bg-[#D25026] text-white", image: "" }; 
+            return { initials: "IT", color: "bg-slate-950 text-white", image: "" }; 
         }
 
-        if (role.includes("mahasiswa") || username.includes("mahasiswa") || role.includes("customer")) {
-            image = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
-        } else if (role.includes("dosen") || username.includes("dosen") || role.includes("desain")) {
-            image = "https://rmik.poltekkes-smg.ac.id/wp-content/uploads/2023/10/Doen.png";
-        } else if (role.includes("kaprodi") || username.includes("kaprodi")) {
-            initials = "Ka";
-            color = "bg-[#fdffb6]"; 
-        } else if (role.includes("staf") || username.includes("staf")) {
-            initials = "Sf";
-            color = "bg-[#caffbf]"; 
-        } else {
-            initials = contact.username
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2);
-        }
+        initials = (contact.username || "U")
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+        color = "bg-slate-800 text-white";
 
         return { 
             initials, 
@@ -133,8 +122,8 @@ export function ChatWindow({
             const isInternal = ["admin", "desain", "manager", "gudang"].includes(role);
             
             const contactRole = activeContact?.role?.toLowerCase() || "";
-            const isContactCustomer = contactRole.includes("customer") || contactRole.includes("mahasiswa");
-            const isContactInternal = ["admin", "desain", "manager", "gudang", "staf", "kaprodi"].some(r => contactRole.includes(r));
+            const isContactCustomer = contactRole.includes("customer");
+            const isContactInternal = ["admin", "desain", "manager", "gudang"].some(r => contactRole.includes(r));
 
             const queryOrderId = searchParams.get("orderId");
             if (queryOrderId) setIsOrderDismissed(false); // Reset dismissal if a new orderId is provided
@@ -144,7 +133,7 @@ export function ChatWindow({
             if (isInternal && isContactCustomer) {
                 // Admin/Staff chatting with Customer
                 targetCustomerId = typeof activeContact.id === 'string' ? parseInt(activeContact.id) : activeContact.id;
-            } else if ((role.includes("customer") || role.includes("mahasiswa")) && isContactInternal) {
+            } else if (role.includes("customer") && isContactInternal) {
                 // Customer chatting with Staff
                 targetCustomerId = currentUser?.id;
             }
@@ -270,40 +259,47 @@ export function ChatWindow({
     const { initials: avatarInitials, color: avatarColor, image: avatarImage } = getAvatarDetails(activeContact);
 
     return (
-        <div className="flex flex-col h-full bg-[#FCFCFC] relative w-full mb-0 font-['Inter'] overflow-hidden">
+        <div className="flex flex-col h-full bg-slate-50/50 relative w-full mb-0 font-['Inter'] overflow-hidden">
             {/* Modern Background Pattern (Subtle Dots) */}
-            <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{
-                backgroundImage: `radial-gradient(#D25026 1px, transparent 1px)`,
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+                backgroundImage: `radial-gradient(#0f172a 1px, transparent 1px)`,
                 backgroundSize: "32px 32px"
             }} />
 
 
             {/* Header */}
             <div 
-                className={cn("flex items-center p-4 bg-white/80 backdrop-blur-md border-b border-[#F0F0F0] z-20 shrink-0 h-[70px]", (activeContact.isGroup || activeContact.id === 0) && "cursor-pointer hover:bg-gray-50/50 transition-colors")}
+                className={cn("flex items-center px-6 py-4 bg-white/70 backdrop-blur-xl border-b border-white/50 z-20 shrink-0 h-[80px] shadow-sm", (activeContact.isGroup || activeContact.id === 0) && "cursor-pointer hover:bg-slate-50/50 transition-colors")}
                 onClick={() => (activeContact.isGroup || activeContact.id === 0) && setIsGroupInfoOpen(true)}
             >
                 <div className="flex items-center flex-1">
-                    <Button variant="ghost" size="icon" className="md:hidden mr-2 text-[#54656f]" onClick={(e) => { e.stopPropagation(); onBack?.(); }}>
+                    <Button variant="ghost" size="icon" className="md:hidden mr-3 text-slate-500 hover:bg-slate-100 rounded-xl" onClick={(e) => { e.stopPropagation(); onBack?.(); }}>
                         <ArrowLeft size={24} />
                     </Button>
                     
-                    <Avatar className={cn("h-10 w-10 mr-3", !avatarImage && avatarColor)} src={avatarImage || ""}>
+                    <Avatar className={cn("h-12 w-12 mr-4 shadow-sm border-2 border-white", !avatarImage && avatarColor)} src={avatarImage || ""}>
                         <AvatarImage src={avatarImage} />
-                        <AvatarFallback className={cn("text-sm font-bold text-[#54656f]", !avatarImage && avatarColor)}>
+                        <AvatarFallback className={cn("text-sm font-black tracking-wider", !avatarImage && avatarColor)}>
                             {avatarInitials}
                         </AvatarFallback>
                     </Avatar>
                     
                     <div className="flex flex-col">
-                        <span className="text-[#111b21] font-medium">{activeContact.username}</span>
-                        <span className="text-xs text-[#667781]">{activeContact.isGroup ? `${activeContact.members?.length || 0} anggota` : 'online'}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-900 font-black text-[17px] tracking-tight">{activeContact.username}</span>
+                            {activeContact.role && activeContact.id !== 0 && !activeContact.isGroup && (
+                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-wider font-bold">
+                                    {activeContact.role}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-[13px] font-bold text-slate-400 mt-0.5">{activeContact.isGroup ? `${activeContact.members?.length || 0} anggota` : 'Online'}</span>
                     </div>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pt-4 pb-[4px] md:px-12 w-full z-10 relative">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pt-6 pb-[4px] md:px-12 w-full z-10 relative">
                 <div className="flex flex-col space-y-2 pb-0">
                     {isLoadingHistory ? (
                         <div className="flex justify-center p-4">
@@ -335,13 +331,13 @@ export function ChatWindow({
                             }
 
                             return (
-                                <div key={idx} className={cn("flex flex-col mb-1 group max-w-full", isMe ? "items-end" : "items-start")}>
+                                <div key={idx} className={cn("flex flex-col mb-2 group max-w-full", isMe ? "items-end" : "items-start")}>
                                     <div
                                         className={cn(
-                                            "max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 relative shadow-sm text-[15px] break-words flex flex-col min-w-[140px] transition-all",
+                                            "max-w-[85%] sm:max-w-[70%] px-5 py-3.5 relative shadow-sm text-[15px] break-words flex flex-col min-w-[140px] transition-all",
                                             isMe
-                                                ? "bg-[#FFF0EB] text-[#2C1A14] border border-[#FDE0D5] rounded-tr-none"
-                                                : "bg-white text-[#1A1A1A] rounded-tl-none border border-[#F0F0F0]"
+                                                ? "bg-slate-900 text-white rounded-2xl rounded-tr-sm shadow-slate-900/10 border border-slate-800"
+                                                : "bg-white text-slate-800 rounded-2xl rounded-tl-sm shadow-[0_4px_14px_rgba(0,0,0,0.03)] border border-slate-100"
                                         )}
                                     >
                                         {/* Action Menu Trigger (Hover) */}
@@ -358,15 +354,15 @@ export function ChatWindow({
                                         {/* Reply Context */}
                                         {msg.parent && (
                                             <div className={cn(
-                                                "rounded-xl p-2 mb-2 border-l-4 text-xs flex flex-col cursor-pointer transition-colors",
-                                                isMe ? "bg-[#FDE2D7] border-[#D25026]" : "bg-gray-50 border-[#D25026]"
+                                                "rounded-xl p-2.5 mb-2.5 border-l-4 text-xs flex flex-col cursor-pointer transition-colors backdrop-blur-sm",
+                                                isMe ? "bg-white/10 border-white/40 hover:bg-white/20" : "bg-slate-50 border-slate-950 hover:bg-slate-100"
                                             )} onClick={() => {
                                                 const el = document.getElementById(`msg-${msg.parent!.id}`);
                                                 el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                             }}>
-                                                <span className={cn("font-bold mb-1", "text-[#D25026]")}>{msg.parent.sender.username}</span>
+                                                <span className={cn("font-bold mb-0.5", isMe ? "text-white" : "text-slate-950")}>{msg.parent.sender.username}</span>
                                                 <span 
-                                                    className={cn("block break-words overflow-hidden text-ellipsis", isMe ? "text-[#5C453C]" : "text-[#666]")}
+                                                    className={cn("block break-words overflow-hidden text-ellipsis font-medium", isMe ? "text-slate-200" : "text-slate-600")}
                                                     style={{
                                                         display: '-webkit-box',
                                                         WebkitLineClamp: 1,
@@ -427,7 +423,7 @@ export function ChatWindow({
                                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             {isMe && !isPublic && (
-                                                <span className={cn(msg.isRead ? "text-[#D25026]" : "text-[#A1A1A1]")}>
+                                                <span className={cn(msg.isRead ? "text-slate-950" : "text-[#A1A1A1]")}>
                                                     {msg.isRead ? <CheckCheck size={14} /> : <Check size={14} />}
                                                 </span>
                                             )}
@@ -446,9 +442,9 @@ export function ChatWindow({
              {(replyingTo || editingMessageId) && (
                 <div className="px-6 py-3 bg-white border-t border-[#F0F0F0] flex justify-between items-center animate-in slide-in-from-bottom-4 duration-300">
                     <div className="flex items-center gap-3">
-                        <div className={cn("w-1 h-10 rounded-full", editingMessageId ? "bg-blue-500" : "bg-[#D25026]")} />
+                        <div className={cn("w-1 h-10 rounded-full", editingMessageId ? "bg-blue-500" : "bg-slate-950")} />
                         <div className="flex flex-col">
-                            <span className={cn("text-[13px] font-bold", editingMessageId ? "text-blue-500" : "text-[#D25026]")}>
+                            <span className={cn("text-[13px] font-bold", editingMessageId ? "text-blue-500" : "text-slate-950")}>
                                 {editingMessageId ? "Editing Message" : `Replying to ${replyingTo?.sender?.username || 'user'}`}
                             </span>
                             <span className="text-xs text-[#666] truncate max-w-[300px]">
@@ -485,7 +481,7 @@ export function ChatWindow({
 
                         <div className="flex items-center gap-4">
                             {/* Product Image */}
-                            <div className="w-16 h-16 bg-[#FFF3ED] rounded-2xl flex items-center justify-center border border-[#FDE8DF] overflow-hidden shrink-0">
+                            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center border border-[#FDE8DF] overflow-hidden shrink-0">
                                 {activeOrder.designUrl ? (
                                     <img 
                                         src={`${UPLOADS_URL}${activeOrder.designUrl}`} 
@@ -493,7 +489,7 @@ export function ChatWindow({
                                         className="w-full h-full object-cover" 
                                     />
                                 ) : (
-                                    <ShoppingBag size={24} className="text-[#D25026]" />
+                                    <ShoppingBag size={24} className="text-slate-950" />
                                 )}
                             </div>
 
@@ -503,7 +499,7 @@ export function ChatWindow({
                                         {activeOrder.details?.[0]?.productTitle || "Custom Jersey"}
                                     </h4>
                                     <p className="text-[13px] font-bold text-slate-500 mt-1">
-                                        {activeOrder.details?.length || 0} Produk · <span className="text-[#D25026]">Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</span>
+                                        {activeOrder.details?.length || 0} Produk · <span className="text-slate-950">Rp {activeOrder.totalAmount?.toLocaleString('id-ID')}</span>
                                     </p>
                                     <div className="flex items-center gap-2 mt-2">
                                         <span className={cn(
@@ -522,7 +518,7 @@ export function ChatWindow({
                             {/* Send Button */}
                             <button 
                                 onClick={handleSendOrderReference}
-                                className="px-4 py-2.5 bg-[#D25026] text-white text-[11px] font-black uppercase italic rounded-2xl hover:bg-[#B3411A] transition-all shadow-md shadow-[#D25026]/10 flex items-center gap-2 self-center"
+                                className="px-4 py-2.5 bg-slate-900 text-white text-[11px] font-black uppercase italic rounded-2xl hover:bg-slate-800 transition-all shadow-md shadow-slate-900/20 flex items-center gap-2 self-center"
                             >
                                 <Send size={14} />
                                 Kirim
@@ -533,9 +529,9 @@ export function ChatWindow({
             )}
 
             {/* Input Area */}
-            <div className="px-6 py-4 bg-[#FCFCFC] z-20 border-t border-[#F0F0F0]">
+            <div className="px-6 py-5 bg-white/70 backdrop-blur-xl z-20 border-t border-white/50 shadow-[0_-4px_24px_rgba(0,0,0,0.02)]">
                 <div className="max-w-5xl mx-auto flex items-end gap-3">
-                    <div className="flex flex-1 items-end bg-white rounded-2xl px-4 py-2 shadow-sm border border-[#F0F0F0] focus-within:ring-2 focus-within:ring-[#D25026]/10 focus-within:border-[#D25026] transition-all">
+                    <div className="flex flex-1 items-end bg-white rounded-2xl px-4 py-2 shadow-sm border border-slate-100 focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 focus-within:shadow-[0_4px_20px_rgba(15,23,42,0.08)] transition-all duration-300">
                          <input
                             type="file"
                             ref={fileInputRef}
@@ -543,7 +539,7 @@ export function ChatWindow({
                             onChange={handleFileUpload}
                         />
                         
-                        <Button variant="ghost" size="icon" className="mb-1 text-[#A1A1A1] hover:text-[#D25026] hover:bg-[#FFF3ED] rounded-xl transition-all" onClick={() => fileInputRef.current?.click()}>
+                        <Button variant="ghost" size="icon" className="mb-1 text-[#A1A1A1] hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-all" onClick={() => fileInputRef.current?.click()}>
                             <Paperclip size={20} />
                         </Button>
                         
@@ -572,8 +568,8 @@ export function ChatWindow({
                         onClick={handleSend} 
                         disabled={!inputValue.trim()}
                         className={cn(
-                            "rounded-2xl p-0 h-[44px] w-[44px] shadow-lg transition-all active:scale-95 shrink-0",
-                             inputValue.trim() ? "bg-[#D25026] text-white hover:bg-[#B3411A]" : "bg-[#E5E5E5] text-white"
+                            "rounded-2xl p-0 h-[48px] w-[48px] shadow-lg transition-all active:scale-95 shrink-0",
+                             inputValue.trim() ? "bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/20" : "bg-slate-100 text-slate-400"
                         )}
                     >
                         {editingMessageId ? (

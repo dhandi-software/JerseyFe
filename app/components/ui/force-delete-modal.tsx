@@ -63,7 +63,7 @@ export function ForceDeleteModal({
 
             <div className="bg-red-50/50 rounded-lg p-3 text-left border border-red-100">
                 <p className="text-xs text-red-800 leading-relaxed">
-                    <strong>Catatan:</strong> Seluruh riwayat bimbingan, sidang, nilai, dan pesan chat mahasiswa ini akan dihapus permanen dari sistem untuk menjaga integritas database.
+                    <strong>Catatan:</strong> Seluruh seluruh riwayat pesanan, chat, dan aktivitas customer ini akan dihapus permanen dari sistem untuk menjaga integritas database.
                 </p>
             </div>
         </div>

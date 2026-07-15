@@ -18,7 +18,7 @@ export default function GuideMobile() {
             </Button>
 
             <h1 className="text-3xl font-bold mb-8 text-foreground">
-                Panduan Kerja Praktik
+                Panduan Pemesanan Jersey
             </h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -41,7 +41,7 @@ export default function GuideMobile() {
                     {
                         step: 4,
                         title: "Pelaksanaan KP",
-                        desc: "Jalankan kerja Praktik, isi logbook harian, dan ikut bimbingan dengan dosen pembimbing.",
+                        desc: "Jalankan Pemesanan Jersey, isi logbook harian, dan ikut bimbingan dengan tim desainer.",
                     },
                 ].map((item, i) => (
                     <Card
