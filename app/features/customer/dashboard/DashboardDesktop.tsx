@@ -33,7 +33,7 @@ export function DashboardDesktop() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">
-            Welcome, <span className="text-[#D25026]">{user?.username || "Player"}!</span>
+            Welcome, <span className="text-[#D25026]">{user?.name || user?.username || "Player"}!</span>
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 italic">
             Dashboard Panel & Information Center

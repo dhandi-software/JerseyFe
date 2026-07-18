@@ -41,7 +41,7 @@ export function DashboardMobile() {
         </div>
         <div className="mt-6">
             <h1 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">
-                Hi, {user?.username || "Player"}!
+                Hi, {user?.name || user?.username || "Player"}!
             </h1>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 italic">Notification Center</p>
         </div>
