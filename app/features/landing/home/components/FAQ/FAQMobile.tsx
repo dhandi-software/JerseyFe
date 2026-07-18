@@ -21,16 +21,16 @@ export default function FAQMobile() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="border rounded-xl p-6 bg-card hover:shadow-md transition-shadow">
-          <h3 className="font-semibold text-lg mb-3 text-foreground">Berapa lama durasi minimal Pemesanan Jersey?</h3>
-          <p className="text-muted-foreground leading-relaxed">Durasi minimal pelaksanaan Pemesanan Jersey adalah 1 bulan atau setara dengan 160 jam kerja efektif di perusahaan.</p>
+          <h3 className="font-semibold text-lg mb-3 text-foreground">Berapa lama proses pembuatan jersey custom?</h3>
+          <p className="text-muted-foreground leading-relaxed">Proses pengerjaan biasanya memakan waktu 7-14 hari kerja setelah desain akhir disetujui dan pembayaran uang muka (DP) diterima, tergantung antrean dan jumlah pesanan.</p>
         </div>
         <div className="border rounded-xl p-6 bg-card hover:shadow-md transition-shadow">
-          <h3 className="font-semibold text-lg mb-3 text-foreground">Apakah boleh FSCV di perusahaan startup?</h3>
-          <p className="text-muted-foreground leading-relaxed">Boleh, selama perusahaan tersebut memiliki badan hukum yang jelas (PT/CV) dan kegiatan yang dilakukan relevan dengan program studi.</p>
+          <h3 className="font-semibold text-lg mb-3 text-foreground">Apakah ada minimal jumlah pemesanan (MOQ)?</h3>
+          <p className="text-muted-foreground leading-relaxed">Ya, untuk pembuatan jersey custom kami menetapkan minimal pemesanan sebanyak 12 pcs (1 lusin) per desain untuk memastikan kualitas dan efisiensi produksi.</p>
         </div>
         <div className="border rounded-xl p-6 bg-card hover:shadow-md transition-shadow">
-          <h3 className="font-semibold text-lg mb-3 text-foreground">Bagaimana jika saya ditolak oleh perusahaan?</h3>
-          <p className="text-muted-foreground leading-relaxed">Anda dapat mengajukan surat pengantar baru untuk perusahaan lain. Hubungi admin untuk prosedur pembatalan surat sebelumnya.</p>
+          <h3 className="font-semibold text-lg mb-3 text-foreground">Bahan kain apa saja yang tersedia?</h3>
+          <p className="text-muted-foreground leading-relaxed">Kami menyediakan berbagai bahan olahraga premium seperti Dryfit Milano, Benzema, Pique, dan bahan lainnya yang menyerap keringat dengan sangat baik dan nyaman digunakan.</p>
         </div>
         {/* Added placeholder for more Q&A if needed to show grid effect */}
       </div>
