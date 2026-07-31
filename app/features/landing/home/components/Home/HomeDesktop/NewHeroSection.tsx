@@ -34,7 +34,7 @@ export function NewHeroSection() {
     const activeList = materials.map(item => ({
         id: item.id,
         nama: item.nama,
-        deskripsi: item.deskripsi || "Premium FSCV Jersey series designed for champions.",
+        deskripsi: item.deskripsi || "Premium FCSV Jersey series designed for champions.",
         imageUrl: item.imageUrl ? `${UPLOADS_URL}${item.imageUrl}` : "https://via.placeholder.com/1200?text=Premium+Jersey"
     }));
 

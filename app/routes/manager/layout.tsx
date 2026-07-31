@@ -97,8 +97,8 @@ export function ManagerSidebar() {
         <div className="mb-10 flex justify-center w-full px-2">
           <div className="bg-white/5 p-4 rounded-2xl w-full flex justify-center shadow-inner border border-white/10">
             <img
-              src="/images/FSCV.png"
-              alt="Logo FSCV"
+              src="/images/FCSV.png"
+              alt="Logo FCSV"
               className="h-16 w-auto object-contain mx-auto"
             />
           </div>

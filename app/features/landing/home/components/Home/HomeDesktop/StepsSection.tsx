@@ -26,7 +26,7 @@ export function StepsSection() {
                                 {
                                     id: 1,
                                     title: "Langkah 1: Registrasi",
-                                    desc: "Registrasi akun untuk sistem kami akan dilakukan secara otomatis oleh Administrator Program Studi (Prodi). Akun ini dikhususkan bagi customer yang mengambil mata kuliah Pemesanan Jersey (FSCV) pada semester berjalan.",
+                                    desc: "Registrasi akun untuk sistem kami akan dilakukan secara otomatis oleh Administrator Program Studi (Prodi). Akun ini dikhususkan bagi customer yang mengambil mata kuliah Pemesanan Jersey (FCSV) pada semester berjalan.",
                                 },
                                 {
                                     id: 2,

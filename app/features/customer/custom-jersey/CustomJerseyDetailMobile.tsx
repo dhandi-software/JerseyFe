@@ -262,7 +262,7 @@ export function CustomJerseyDetailMobile() {
                             Product Story
                         </h3>
                         <p className="text-base text-slate-500 leading-relaxed font-medium italic border-l-4 border-slate-100 pl-6 py-1">
-                            {currentBahan.deskripsi || "Experience the perfect blend of performance and style with our FSCV professional jersey series."}
+                            {currentBahan.deskripsi || "Experience the perfect blend of performance and style with our FCSV professional jersey series."}
                         </p>
                     </div>
 

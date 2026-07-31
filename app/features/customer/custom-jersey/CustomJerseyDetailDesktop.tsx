@@ -154,7 +154,7 @@ export function CustomJerseyDetailDesktop() {
                     <div className="flex items-center gap-4">
                         <div className="text-right">
                             <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none mb-1">Authentic Gear</p>
-                            <p className="text-sm font-black text-slate-900 italic uppercase">FSCV Professional Series</p>
+                            <p className="text-sm font-black text-slate-900 italic uppercase">FCSV Professional Series</p>
                         </div>
                         <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg">
                             <ShoppingBag className="w-6 h-6 text-white" />
@@ -276,7 +276,7 @@ export function CustomJerseyDetailDesktop() {
                                     </Button>
                                 </div>
                                 <p className="text-lg text-slate-500 leading-relaxed font-medium italic border-l-4 border-slate-100 pl-8">
-                                    {currentBahan.deskripsi || "Experience the perfect blend of performance and style with our FSCV professional jersey series. Crafted from premium moisture-wicking fabric designed for champions."}
+                                    {currentBahan.deskripsi || "Experience the perfect blend of performance and style with our FCSV professional jersey series. Crafted from premium moisture-wicking fabric designed for champions."}
                                 </p>
                             </div>
 

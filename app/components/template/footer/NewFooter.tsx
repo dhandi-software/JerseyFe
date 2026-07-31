@@ -10,13 +10,13 @@ export default function NewFooter() {
                     <div className="flex items-center gap-3">
                         <div className="bg-slate-900 p-2 rounded-lg shadow-sm">
                             <img
-                                src="/images/FSCV.png"
-                                alt="Logo FSCV"
+                                src="/images/FCSV.png"
+                                alt="Logo FCSV"
                                 className="h-8 w-auto"
                             />
                         </div>
                         <span className="text-xl font-bold text-zinc-950">
-                            FSCV
+                            FCSV
                         </span>
                     </div>
 
@@ -45,7 +45,7 @@ export default function NewFooter() {
                 {/* Partners/Copyright Section */}
                 <div className="flex flex-col md:flex-row justify-between items-end border-t border-zinc-100 pt-8 gap-6">
                     <div className="text-xs text-gray-400">
-                        © 2026 FSCV. All
+                        © 2026 FCSV. All
                         rights reserved.
                     </div>
 

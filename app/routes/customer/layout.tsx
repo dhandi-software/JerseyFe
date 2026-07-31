@@ -120,8 +120,8 @@ export function AppSidebar() {
         <div className="mb-10 flex justify-center w-full px-2">
           <div className="bg-white/5 p-4 rounded-2xl w-full flex justify-center shadow-inner border border-white/10">
             <img
-              src="/images/FSCV.png"
-              alt="Logo FSCV"
+              src="/images/FCSV.png"
+              alt="Logo FCSV"
               className="h-14 w-auto object-contain mx-auto"
             />
           </div>
@@ -214,7 +214,7 @@ export default function CustomerLayout() {
               {isMobile && !location.pathname.includes("/chat") && (
                 <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
-                  <span className="ml-2 font-bold text-[#D25026] text-lg tracking-tight">FSCV Customer</span>
+                  <span className="ml-2 font-bold text-[#D25026] text-lg tracking-tight">FCSV Customer</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (

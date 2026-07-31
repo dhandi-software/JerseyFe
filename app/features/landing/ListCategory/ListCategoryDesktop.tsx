@@ -50,7 +50,7 @@ export function ListCategoryDesktop() {
         if (cart.length === 0) return;
 
         const waNumber = "6285892720034";
-        let message = "Halo FSCV, saya ingin memesan barang berikut:\n\n";
+        let message = "Halo FCSV, saya ingin memesan barang berikut:\n\n";
         
         cart.forEach(item => {
             message += `- ${item.product.title} (x${item.quantity}) - ${formatRupiah(item.product.price * item.quantity)}\n`;
@@ -71,7 +71,7 @@ export function ListCategoryDesktop() {
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-3xl font-black text-neutral-900 tracking-tighter italic uppercase">List Category</h1>
-                    <p className="text-neutral-500 text-sm font-medium mt-1">Sistem Point of Sale FSCV</p>
+                    <p className="text-neutral-500 text-sm font-medium mt-1">Sistem Point of Sale FCSV</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-neutral-100 flex items-center gap-2">

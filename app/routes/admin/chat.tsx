@@ -4,7 +4,7 @@ import type { Route } from "./+types/chat";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Chat - FSCV Sistem" },
+    { title: "Chat - FCSV Sistem" },
     { name: "description", content: "Chat with Customer and Desain." },
   ];
 }

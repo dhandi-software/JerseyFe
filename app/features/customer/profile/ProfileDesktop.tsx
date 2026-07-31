@@ -110,8 +110,8 @@ export function ProfileDesktop() {
       <PasswordSection />
 
       <div className="text-center py-10 opacity-30 grayscale saturate-0 px-24">
-         <img src="/images/FSCV.png" alt="FSCV Logo" className="h-10 mx-auto mb-2" />
-         <p className="text-xs font-medium uppercase tracking-[0.2em]">FSCV Lifestyle & Apparel</p>
+         <img src="/images/FCSV.png" alt="FCSV Logo" className="h-10 mx-auto mb-2" />
+         <p className="text-xs font-medium uppercase tracking-[0.2em]">FCSV Lifestyle & Apparel</p>
       </div>
     </div>
   );

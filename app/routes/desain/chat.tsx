@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 export function meta() {
   return [
-    { title: "Chat Designer - FSCV Sistem" },
+    { title: "Chat Designer - FCSV Sistem" },
     { name: "description", content: "Chat with Customer and Team." },
   ];
 }

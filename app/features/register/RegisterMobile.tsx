@@ -30,7 +30,7 @@ export function RegisterMobile() {
                         <ShieldCheck className="text-white w-7 h-7" />
                     </div>
                     <h1 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter">
-                        FSCV Portal
+                        FCSV Portal
                     </h1>
                     <p className="text-slate-500 text-[10px] font-bold mt-0.5 uppercase tracking-widest opacity-60">Mobile Registration</p>
                 </div>
@@ -126,7 +126,7 @@ export function RegisterMobile() {
 
                 <footer className="mt-8 text-center shrink-0">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] opacity-40">
-                        © {new Date().getFullYear()} FSCV Tech
+                        © {new Date().getFullYear()} FCSV Tech
                     </p>
                 </footer>
             </div>

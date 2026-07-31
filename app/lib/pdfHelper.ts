@@ -4,9 +4,15 @@ import autoTable from 'jspdf-autotable';
 export const generateInvoicePDF = async (order: any) => {
     const doc = new jsPDF();
     
+    // Large Faint Watermark Text (Drawn first so it acts as background)
+    doc.setFontSize(80);
+    doc.setTextColor(248, 248, 250); // Make it slightly lighter
+    doc.setFont("helvetica", "bold");
+    doc.text("FCSV", 105, 260, { align: 'center' });
+    
     // Load Logo
     try {
-        const logoData = await fetch('/images/FSCV.png').then(res => {
+        const logoData = await fetch('/images/FCSV.png').then(res => {
             if (!res.ok) throw new Error("Image not found");
             return res.blob();
         }).then(blob => {
@@ -29,10 +35,10 @@ export const generateInvoicePDF = async (order: any) => {
         // Fallback to text if logo fails to load
         doc.setFontSize(16);
         doc.setTextColor(15, 23, 42);
-        doc.text("FSCV", 14, 20);
+        doc.text("FCSV", 14, 20);
     }
     
-    // FSCV Text
+    // FCSV Text
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
@@ -41,7 +47,7 @@ export const generateInvoicePDF = async (order: any) => {
     // Header Info Below Logo
     doc.setFontSize(9);
     doc.text("Indonesia", 14, 35);
-    doc.text("+62 858-9272-0034 · order@fscv.id", 14, 40);
+    doc.text("+62 858-9272-0034 · order@fcsv.id", 14, 40);
 
     // INVOICE text right aligned
     doc.setFontSize(24);
@@ -92,7 +98,7 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("DARI", 110, 60);
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
-    doc.text("FSCV", 110, 66);
+    doc.text("FCSV", 110, 66);
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
@@ -233,22 +239,16 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setFont("helvetica", "normal");
     doc.text(
         isPaid 
-            ? "Terima kasih sudah mempercayakan pesanan jersey kepada FSCV! Pesanan telah LUNAS dan sedang diproses." 
-            : "Terima kasih sudah mempercayakan pesanan jersey kepada FSCV! Pesanan menunggu konfirmasi pembayaran dari admin.", 
+            ? "Terima kasih sudah mempercayakan pesanan jersey kepada FCSV! Pesanan telah LUNAS dan sedang diproses." 
+            : "Terima kasih sudah mempercayakan pesanan jersey kepada FCSV! Pesanan menunggu konfirmasi pembayaran dari admin.", 
         14, 
         finalY + 5
     );
 
-    // Large Faint Watermark Text
-    doc.setFontSize(80);
-    doc.setTextColor(245, 245, 255);
-    doc.setFont("helvetica", "bold");
-    doc.text("FSCV", 105, 260, { align: 'center' });
-
     // Watermark Footer
     doc.setFontSize(8);
     doc.setTextColor(200, 200, 200);
-    doc.text("Dokumen ini diterbitkan oleh FSCV · order@fscv.id", 105, 280, { align: 'center' });
+    doc.text("Dokumen ini diterbitkan oleh FCSV · order@fcsv.id", 105, 280, { align: 'center' });
     
     doc.save(`Invoice_${order.id || order.orderId}.pdf`);
 };

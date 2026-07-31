@@ -79,10 +79,10 @@ export default function HeaderDesktop() {
             {/* Logo Section */}
             <Link to="/" className="flex items-center gap-3 shrink-0 group">
                 <div className="bg-slate-900 p-2 rounded-xl shadow-lg flex items-center justify-center transition-transform group-hover:scale-105">
-                    <img src="/images/FSCV.png" alt="FSCV Logo" className="h-8 w-auto" />
+                    <img src="/images/FCSV.png" alt="FCSV Logo" className="h-8 w-auto" />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-neutral-900 text-[1.25rem] font-black leading-none tracking-tight">FSCV</span>
+                    <span className="text-neutral-900 text-[1.25rem] font-black leading-none tracking-tight">FCSV</span>
                     <span className="text-neutral-400 text-[0.65rem] font-bold tracking-[0.2em] uppercase mt-1">Custom Jersey</span>
                 </div>
             </Link>

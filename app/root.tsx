@@ -37,8 +37,8 @@ export const links: Route.LinksFunction = () => [
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
     },
-    { rel: "icon", href: "/images/FSCV.jpeg", type: "image/jpeg" },
-    { rel: "apple-touch-icon", href: "/images/FSCV.jpeg" },
+    { rel: "icon", href: "/images/FCSV.jpeg", type: "image/jpeg" },
+    { rel: "apple-touch-icon", href: "/images/FCSV.jpeg" },
 ];
 
 export async function loader({ context, request }: Route.LoaderArgs) {

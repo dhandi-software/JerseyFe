@@ -624,7 +624,7 @@ export function ChatWindow({
                                     </AvatarFallback>
                                 </Avatar>
                                 <h2 className="text-xl font-medium text-[#111b21] text-center px-4 break-words max-w-full leading-tight">{activeContact.username}</h2>
-                                <p className="text-[15px] text-[#667781] mt-1.5">{activeContact.id === 0 ? "FSCV" : "Grup"} · {displayedMembers.length} anggota</p>
+                                <p className="text-[15px] text-[#667781] mt-1.5">{activeContact.id === 0 ? "FCSV" : "Grup"} · {displayedMembers.length} anggota</p>
                             </div>
                             
                             {/* Members List Area */}

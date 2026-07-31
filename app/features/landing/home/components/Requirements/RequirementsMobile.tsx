@@ -23,7 +23,7 @@ export default function RequirementsMobile() {
                     },
                     {
                         title: "Syarat Administrasi",
-                        items: ["Surat Pengantar dari Prodi", "Proposal FSCV disetujui", "Transkrip Nilai Terbaru", "KRS Semester Berjalan"]
+                        items: ["Surat Pengantar dari Prodi", "Proposal FCSV disetujui", "Transkrip Nilai Terbaru", "KRS Semester Berjalan"]
                     },
                     {
                         title: "Syarat Perusahaan",

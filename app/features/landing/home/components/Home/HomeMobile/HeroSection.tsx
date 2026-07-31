@@ -19,7 +19,7 @@ export function HeroSection() {
                     transition={{ duration: 0.6 }}
                 >
                     <span className="inline-block py-1 px-3 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-semibold mb-6">
-                        FSCV - Custom Jersey
+                        FCSV - Custom Jersey
                     </span>
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground mb-6">
                         Mulai Perjalanan <br />

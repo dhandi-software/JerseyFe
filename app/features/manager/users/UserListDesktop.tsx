@@ -281,7 +281,7 @@ export function UserListDesktop() {
         activeTab === "customer" ? (u.memberSince || "2026") : (u.user?.role || "-")
     ]);
     autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
-    doc.save(`FSCV_${activeTab}_Data.pdf`);
+    doc.save(`FCSV_${activeTab}_Data.pdf`);
   };
 
   return (
@@ -299,7 +299,7 @@ export function UserListDesktop() {
         <div className="flex justify-between items-end">
             <div>
                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">Manajemen Pengguna</h1>
-                 <p className="text-slate-500 font-medium mt-1">Kelola akun {activeTab === "customer" ? "Kustomer" : "Tim Internal"} FSCV Jersey.</p>
+                 <p className="text-slate-500 font-medium mt-1">Kelola akun {activeTab === "customer" ? "Kustomer" : "Tim Internal"} FCSV Jersey.</p>
             </div>
              <div className="flex gap-3">
                  <button onClick={handleDownloadPDF} className="px-5 py-2.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center gap-2">

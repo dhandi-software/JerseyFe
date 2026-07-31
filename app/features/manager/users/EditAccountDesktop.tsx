@@ -64,7 +64,7 @@ export function EditAccountDesktop() {
                         </h1>
                     </div>
                     <p className="text-slate-500 font-medium ml-12">
-                        Perbarui informasi akun dan detail profil pengguna FSCV.
+                        Perbarui informasi akun dan detail profil pengguna FCSV.
                     </p>
                 </div>
                 

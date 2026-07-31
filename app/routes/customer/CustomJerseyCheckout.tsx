@@ -15,7 +15,7 @@ export default function CustomJerseyCheckoutRoute() {
 
 export function meta() {
     return [
-        { title: "Checkout Custom Jersey - FSCV" },
+        { title: "Checkout Custom Jersey - FCSV" },
         { name: "description", content: "Lengkapi detail pesanan jersey custom Anda" },
     ];
 }

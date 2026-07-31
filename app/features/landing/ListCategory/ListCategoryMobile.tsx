@@ -58,7 +58,7 @@ export function ListCategoryMobile() {
         if (cart.length === 0) return;
 
         const waNumber = "6285892720034";
-        let message = "Halo FSCV, saya ingin memesan barang berikut:\n\n";
+        let message = "Halo FCSV, saya ingin memesan barang berikut:\n\n";
         
         cart.forEach(item => {
             message += `- ${item.product.title} (x${item.quantity}) - ${formatRupiah(item.product.price * item.quantity)}\n`;

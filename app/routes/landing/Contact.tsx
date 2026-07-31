@@ -14,7 +14,7 @@ export default function ContactPage() {
         if (!name || !email || !message) return;
         
         const waNumber = "6285892720034";
-        const formattedMsg = `Halo FSCV, saya ${name} (${email}).\nSubjek: ${subject || "Tanya FSCV"}\n\nPesan:\n${message}`;
+        const formattedMsg = `Halo FCSV, saya ${name} (${email}).\nSubjek: ${subject || "Tanya FCSV"}\n\nPesan:\n${message}`;
         window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(formattedMsg)}`, "_blank");
         
         setSubmitted(true);
@@ -52,7 +52,7 @@ export default function ContactPage() {
                                     <MessageSquare className="w-6 h-6" />
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-sm font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">Admin FSCV</h3>
+                                    <h3 className="text-sm font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">Admin FCSV</h3>
                                     <span className="text-lg font-bold text-neutral-900 italic block mt-1">+62 858-9272-0034</span>
                                     <p className="text-xs text-neutral-400 mt-1 font-medium">WhatsApp chat respons cepat.</p>
                                     <a 
@@ -73,10 +73,10 @@ export default function ContactPage() {
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="text-sm font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">Surel Resmi</h3>
-                                    <span className="text-lg font-bold text-neutral-900 italic block mt-1">support@fscvjersey.id</span>
+                                    <span className="text-lg font-bold text-neutral-900 italic block mt-1">support@fcsvjersey.id</span>
                                     <p className="text-xs text-neutral-400 mt-1 font-medium">Kirimkan penawaran atau kerjasama bisnis.</p>
                                     <a 
-                                        href="mailto:support@fscvjersey.id" 
+                                        href="mailto:support@fcsvjersey.id" 
                                         className="text-xs font-black text-[#D25026] hover:underline uppercase tracking-wider block mt-3"
                                     >
                                         Kirim Surel &rarr;
@@ -105,7 +105,7 @@ export default function ContactPage() {
                             <div>
                                 <h3 className="text-[10px] font-black text-white/50 uppercase tracking-widest leading-none mb-2">Alamat Studio</h3>
                                 <p className="text-sm font-bold leading-relaxed italic uppercase tracking-tighter text-white/95">
-                                    FSCV Custom Jersey Studio<br/>
+                                    FCSV Custom Jersey Studio<br/>
                                     Jl. Raya Kampus Bayu No. 45, Jakarta, Indonesia
                                 </p>
                             </div>

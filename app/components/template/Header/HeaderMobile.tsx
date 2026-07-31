@@ -69,12 +69,12 @@ export default function HeaderMobile() {
             <Link to="/" className="flex items-center gap-2 max-w-[50%] justify-center">
                 <div className="bg-slate-900 p-1.5 rounded-lg shadow-sm flex items-center justify-center">
                     <img
-                        src="/images/FSCV.png"
-                        alt="Logo FSCV"
+                        src="/images/FCSV.png"
+                        alt="Logo FCSV"
                         className="h-6 md:h-8 w-auto"
                     />
                 </div>
-                <span className="text-[1rem] md:text-[1.125rem] font-black text-black tracking-tighter uppercase whitespace-nowrap leading-tight">FSCV</span>
+                <span className="text-[1rem] md:text-[1.125rem] font-black text-black tracking-tighter uppercase whitespace-nowrap leading-tight">FCSV</span>
             </Link>
 
             <div className="flex items-center shrink-0">

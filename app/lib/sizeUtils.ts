@@ -55,7 +55,7 @@ export const downloadPlayersPDF = (order: any) => {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("FSCV Custom Jersey", 15, 18);
+    doc.text("FCSV Custom Jersey", 15, 18);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("Penyedia Layanan Custom Jersey & Sportswear Premium", 15, 24);
@@ -159,14 +159,14 @@ export const downloadPlayersPDF = (order: any) => {
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
         doc.text(
-            `FSCV Official | Halaman ${i} dari ${pageCount}`,
+            `FCSV Official | Halaman ${i} dari ${pageCount}`,
             105,
             285,
             { align: "center" }
         );
     }
 
-    doc.save(`Pesanan_FSCV_${orderId}.pdf`);
+    doc.save(`Pesanan_FCSV_${orderId}.pdf`);
 };
 
 export const SIZE_REGEX = /\b(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL|5XL|6XL)\b/i;
@@ -192,7 +192,7 @@ export const downloadOmsetPDF = (
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("FSCV APPAREL INDONESIA", 15, 18);
+    doc.text("FCSV APPAREL INDONESIA", 15, 18);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.text("Laporan Analisis Omset & Transaksi Penjualan Jersey", 15, 25);
@@ -307,11 +307,11 @@ export const downloadOmsetPDF = (
         doc.text(
             `Laporan Omset FCSV Apparel | Halaman ${i} dari ${pageCount}`,
             105,
-            285,
+            310,
             { align: "center" }
         );
     }
 
     const filePeriod = periodText.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
-    doc.save(`Laporan_Omset_FSCV_${filePeriod}.pdf`);
+    doc.save(`Laporan_Omset_FCSV_${filePeriod}.pdf`);
 };

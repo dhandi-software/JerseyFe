@@ -91,7 +91,7 @@ export function ProfileMobile() {
       </div>
 
       <div className="text-center py-6 opacity-20 grayscale saturate-0">
-         <img src="/images/FSCV.png" alt="FSCV Logo" className="h-8 mx-auto mb-2" />
+         <img src="/images/FCSV.png" alt="FCSV Logo" className="h-8 mx-auto mb-2" />
       </div>
     </div>
   );

@@ -138,8 +138,8 @@ export function SharedProfileMobile() {
       </div>
       
       <div className="text-center mt-12 mb-8 opacity-30 grayscale saturate-0">
-         <img src="/images/FSCV.png" alt="FSCV Logo" className="h-8 mx-auto mb-2" />
-         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900">FSCV Lifestyle & Apparel</p>
+         <img src="/images/FCSV.png" alt="FCSV Logo" className="h-8 mx-auto mb-2" />
+         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900">FCSV Lifestyle & Apparel</p>
       </div>
     </div>
   );

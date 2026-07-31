@@ -20,7 +20,7 @@ export default function RequirementsDesktop() {
                     {
                         title: "Akademik",
                         items: [
-                            "Terdaftar sebagai customer aktif Program Studi Teknik Informatika Fakultas Teknik FSCV pada tahun akademik semester berjalan",
+                            "Terdaftar sebagai customer aktif Program Studi Teknik Informatika Fakultas Teknik FCSV pada tahun akademik semester berjalan",
                             "Telah memenuhi 100 SKS dengan IPK ≥ 2,00 dan maksimal nilai D atau E sebanyak 6 SKS (tidak termasuk mata kuliah Praktikum, MKWU dan MKWN)",
                             "Untuk nilai mata kuliah Praktikum dan MKWU/MKWN adalah minimal C",
                             "Memrogramkan/memilih mata kuliah Pemesanan Jersey (2 SKS) pada Kartu Rencana Studi (KRS)"
@@ -29,17 +29,17 @@ export default function RequirementsDesktop() {
                     {
                         title: "Waktu Pelaksanaan Pemesanan Jersey",
                         items: [
-                            "Durasi pelaksanaan kegiatan FSCV menyesuaikan jam kerja dan kebijakan tempat yang dipilih oleh customer",
-                            "Jangka waktu pelaksanaan FSCV di perusahaan minimal selama 1 (satu) bulan dan penyusunan laporan FSCV dilakukan dalam 1 (satu) semester",
-                            "Apabila di luar dari jangka waktu tersebut, customer diwajibkan untuk memrogramkan kembali mata kuliah FSCV di KRS semester berikutnya"
+                            "Durasi pelaksanaan kegiatan FCSV menyesuaikan jam kerja dan kebijakan tempat yang dipilih oleh customer",
+                            "Jangka waktu pelaksanaan FCSV di perusahaan minimal selama 1 (satu) bulan dan penyusunan laporan FCSV dilakukan dalam 1 (satu) semester",
+                            "Apabila di luar dari jangka waktu tersebut, customer diwajibkan untuk memrogramkan kembali mata kuliah FCSV di KRS semester berikutnya"
                         ]
                     },
                     {
                         title: "Tempat Pemesanan Jersey",
                         items: [
                             "customer dipersilakan untuk menentukan sendiri tempat pelaksanaan KP",
-                            "Kegiatan FSCV dapat dilakukan di seluruh perusahaan, instansi pemerintahan atau institusi pendidikan yang telah mempunyai sistem informasi atau sistem jaringan komputer",
-                            "customer juga dapat diikutsertakan dalam kegiatan-kegiatan di lingkungan kampus FSCV yang berkaitan dengan pengembangan teknologi informasi"
+                            "Kegiatan FCSV dapat dilakukan di seluruh perusahaan, instansi pemerintahan atau institusi pendidikan yang telah mempunyai sistem informasi atau sistem jaringan komputer",
+                            "customer juga dapat diikutsertakan dalam kegiatan-kegiatan di lingkungan kampus FCSV yang berkaitan dengan pengembangan teknologi informasi"
                         ]
                     }
                 ].map((category, idx) => (

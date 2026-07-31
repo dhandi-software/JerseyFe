@@ -14,7 +14,7 @@ export default function CustomJerseyRoute() {
 
 export function meta() {
   return [
-    { title: "Custom Jersey - FSCV" },
-    { name: "description", content: "Buat jersey custom Anda sendiri di FSCV" },
+    { title: "Custom Jersey - FCSV" },
+    { name: "description", content: "Buat jersey custom Anda sendiri di FCSV" },
   ];
 }

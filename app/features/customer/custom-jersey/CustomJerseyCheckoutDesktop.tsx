@@ -759,7 +759,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                 const payload = {
                     customerId: user?.id || 0,
                     bahanBajuId: activeProduct?.id,
-                    totalAmount: totalCalculated + 20000,
+                    totalAmount: totalCalculated,
                     designNote: designNote,
                     designUrl: designUrl,
                     paymentUrl: paymentUrl,

@@ -18,7 +18,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 export function meta({ }: Route.MetaArgs) {
     return [
-        { title: "FSCV" },
-        { name: "description", content: "Welcome to FSCV - Custom Jersey Premium" },
+        { title: "FCSV" },
+        { name: "description", content: "Welcome to FCSV - Custom Jersey Premium" },
     ];
 }

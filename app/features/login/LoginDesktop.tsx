@@ -54,7 +54,7 @@ export function LoginDesktop() {
                         <ShieldCheck className="text-white w-7 h-7" />
                     </div>
                     <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter text-center line-height-1">
-                        FSCV PORTAL
+                        FCSV PORTAL
                     </h1>
                     <p className="text-slate-500 text-[9px] font-black mt-1 uppercase tracking-[0.3em] opacity-60">
                         Secure Environment Authorization
@@ -157,7 +157,7 @@ export function LoginDesktop() {
 
                 <footer className="mt-6 pt-6 border-t border-slate-100 text-center shrink-0">
                     <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">
-                        © {new Date().getFullYear()} FSCV Tech Group
+                        © {new Date().getFullYear()} FCSV Tech Group
                     </p>
                 </footer>
             </motion.div>

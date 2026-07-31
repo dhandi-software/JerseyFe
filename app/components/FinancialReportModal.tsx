@@ -153,10 +153,10 @@ export function FinancialReportModal({ isOpen, onClose }: FinancialReportModalPr
                     <div className="flex justify-between items-end mb-4 border-b-2 border-slate-800 pb-4">
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden">
-                                <img src="/images/FSCV.jpeg" alt="FSCV Logo" className="w-full h-full object-contain" />
+                                <img src="/images/FCSV.jpeg" alt="FCSV Logo" className="w-full h-full object-contain" />
                             </div>
                             <div>
-                                <h1 className="text-xl font-black text-slate-900">FSCV APPAREL INDONESIA</h1>
+                                <h1 className="text-xl font-black text-slate-900">FCSV APPAREL INDONESIA</h1>
                                 <p className="text-xs text-slate-500 font-medium">Divisi Produksi & Keuangan</p>
                                 <p className="text-[10px] text-slate-400 mt-1 max-w-[250px] leading-relaxed">Jalan raya cikande kopo. Kp padaharan, Ds Rancasumur rt 001 rw 001 kecamatan kopo. Kabupaten Serang. Provinsi Banten 42178</p>
                             </div>
@@ -372,7 +372,7 @@ export function FinancialReportModal({ isOpen, onClose }: FinancialReportModalPr
                     {/* Footer / Signatures */}
                     <div className="mt-10 pt-6 border-t-2 border-slate-200 flex justify-between items-end text-[8px] text-slate-400">
                         <div className="leading-tight">
-                            <p>Digenerate otomatis oleh sistem ERP FSCV Apparel Indonesia.</p>
+                            <p>Digenerate otomatis oleh sistem ERP FCSV Apparel Indonesia.</p>
                             <p>Dokumen internal. Dilarang memperbanyak tanpa izin tertulis.</p>
                         </div>
                         <div className="flex gap-10 text-center text-[9px] font-bold text-slate-600">
