@@ -1,12 +1,12 @@
-import { 
-    Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight 
+import {
+    Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight, TrendingUp
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { adminApi } from "~/api/admin";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
 } from 'recharts';
 
 
@@ -104,10 +104,11 @@ export function DashboardDesktop() {
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (chartScrollRef.current) {
+        const isEmpty = currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
+        if (chartScrollRef.current && !isEmpty) {
             chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
         }
-    }, [timeView, statsData]);
+    }, [timeView, statsData, currentTotal]);
 
     return (
         <div className="w-full min-h-[100vh] p-8 bg-[#F5F5F3] font-['Inter'] flex flex-col gap-6">
@@ -115,7 +116,7 @@ export function DashboardDesktop() {
 
             {/* TIER 1: Top Metrics */}
             <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                
+
                 {/* Total Pendapatan Card */}
                 <div className="flex-1 bg-white rounded-2xl p-6 flex flex-col justify-between shadow-sm border border-transparent">
                     <div>
@@ -125,7 +126,9 @@ export function DashboardDesktop() {
                                 Rp {statsData.totalRevenue.toLocaleString('id-ID')}
                             </div>
                         </div>
-                        <div className="text-slate-500 text-sm mt-1">Akumulasi omset bruto</div>
+                        <div className="text-slate-500 text-sm mt-1">
+                            {statsData.totalRevenue > 0 ? "Akumulasi omset bruto" : "Belum ada data transaksi"}
+                        </div>
                     </div>
                 </div>
                 {/* Total Customer Card */}
@@ -168,7 +171,7 @@ export function DashboardDesktop() {
 
             {/* TIER 2: Customers & Growth */}
             <div className="w-full grid grid-cols-1 lg:grid-cols-[1.2fr_2fr] gap-6">
-                
+
                 {/* Customers List Section */}
                 <div className="bg-white rounded-2xl py-6 flex flex-col shadow-sm border border-transparent h-full min-h-[25rem]">
                     <div className="px-6 flex justify-between items-center mb-6">
@@ -182,7 +185,7 @@ export function DashboardDesktop() {
                     <div className="flex-1 px-4 flex flex-col overflow-y-auto gap-1">
                         {statsData.recentCustomers.length > 0 ? (
                             statsData.recentCustomers.map((customer, index) => (
-                                <div 
+                                <div
                                     key={customer.id}
                                     className={cn(
                                         "p-4 rounded-2xl flex items-center gap-3 transition-all group cursor-pointer",
@@ -220,7 +223,7 @@ export function DashboardDesktop() {
                                     </div>
                                     {index !== 0 && (
                                         <div className="flex items-center gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
+                                            <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     window.location.href = `/admin/chat?userId=${customer.id}`;
@@ -235,8 +238,8 @@ export function DashboardDesktop() {
                                         </div>
                                     )}
                                     {index === 0 && (
-                                         <div className="flex items-center gap-2 pr-2">
-                                            <button 
+                                        <div className="flex items-center gap-2 pr-2">
+                                            <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     window.location.href = `/admin/chat?userId=${customer.id}`;
@@ -275,7 +278,7 @@ export function DashboardDesktop() {
                         <div className="flex justify-between items-center mb-4">
                             <div className="text-slate-900 text-xl font-semibold">Omset Transaksi</div>
                             <div className="relative">
-                                <button 
+                                <button
                                     onClick={() => setShowDropdown(!showDropdown)}
                                     className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
                                 >
@@ -284,7 +287,7 @@ export function DashboardDesktop() {
                                     </span>
                                     <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDropdown && "rotate-180")} />
                                 </button>
-                                
+
                                 {showDropdown && (
                                     <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
                                         {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
@@ -316,58 +319,64 @@ export function DashboardDesktop() {
                                 Rp {currentTotal.toLocaleString('id-ID')}
                             </span>
                         </div>
-                        
-                        <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
-                            <div className={cn(
-                                "h-[220px] relative -ml-4",
-                                timeView === 'daily' ? 'w-[900px] min-w-full' : 
-                                timeView === 'lifetime' ? 'w-[1200px] min-w-full' : 
-                                timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
-                            )}>
-                                {loading || !isMounted ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                        <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
-                                        <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
-                                    </div>
-                                ) : activeData.length === 0 ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                        <span className="text-slate-400 text-xs font-semibold">Tidak Ada Data Transaksi</span>
-                                    </div>
-                                ) : (
+
+                        {loading || !isMounted ? (
+                            <div className="w-full h-[220px] flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
+                                <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
+                            </div>
+                        ) : activeData.length === 0 || currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0) ? (
+                            <div className="w-full h-[220px] flex flex-col items-center justify-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6 text-center">
+                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3 shrink-0">
+                                    <TrendingUp className="w-6 h-6 text-slate-400" />
+                                </div>
+                                <span className="text-slate-800 text-sm font-bold w-full text-center block">Belum ada data transaksi</span>
+                                <p className="text-slate-500 text-xs mt-1.5 w-full text-center leading-relaxed">
+                                    Data omset dan grafik penjualan akan otomatis tampil setelah ada transaksi yang tercatat.
+                                </p>
+                            </div>
+                        ) : (
+                            <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
+                                <div className={cn(
+                                    "h-[220px] relative -ml-4",
+                                    timeView === 'daily' ? 'w-[900px] min-w-full' :
+                                    timeView === 'lifetime' ? 'w-[1200px] min-w-full' :
+                                    timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
+                                )}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={activeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                                                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                                                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
+                                                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <XAxis 
-                                                dataKey="name" 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tick={{fill: '#94a3b8', fontSize: 10}}
+                                            <XAxis
+                                                dataKey="name"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#94a3b8', fontSize: 10 }}
                                                 dy={10}
                                             />
-                                            <YAxis 
-                                                axisLine={false} 
-                                                tickLine={false} 
-                                                tick={{fill: '#94a3b8', fontSize: 10}}
-                                                tickFormatter={(val) => `${val/1000}k`}
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                                tickFormatter={(val) => `${val / 1000}k`}
                                             />
-                                            <Tooltip 
+                                            <Tooltip
                                                 contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                                 formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, 'Omset']}
                                                 labelStyle={{ color: '#64748b', fontWeight: 'bold' }}
                                             />
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                            <Area 
-                                                type="linear" 
-                                                dataKey="pv" 
-                                                stroke="#22c55e" 
-                                                strokeWidth={2} 
-                                                fillOpacity={1} 
-                                                fill="url(#colorPv)" 
+                                            <Area
+                                                type="linear"
+                                                dataKey="pv"
+                                                stroke="#22c55e"
+                                                strokeWidth={2}
+                                                fillOpacity={1}
+                                                fill="url(#colorPv)"
                                                 dot={(props: any) => {
                                                     const { cx, cy, payload, index } = props;
                                                     if (index === 0) {
@@ -377,48 +386,76 @@ export function DashboardDesktop() {
                                                     const currentVal = payload.pv || 0;
                                                     const isPointDecrease = currentVal < prevVal;
                                                     return (
-                                                        <circle 
+                                                        <circle
                                                             key={`dot-${index}`}
-                                                            cx={cx} 
-                                                            cy={cy} 
-                                                            r={3} 
-                                                            fill={isPointDecrease ? "#ef4444" : "#22c55e"} 
-                                                            stroke="#fff" 
-                                                            strokeWidth={1} 
+                                                            cx={cx}
+                                                            cy={cy}
+                                                            r={3}
+                                                            fill={isPointDecrease ? "#ef4444" : "#22c55e"}
+                                                            stroke="#fff"
+                                                            strokeWidth={1}
                                                         />
                                                     );
                                                 }}
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Bottom Stats of Chart */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent">
                             <div className="text-slate-500 text-sm font-semibold mb-6">Bulan Terlaris</div>
-                            <div className="text-[#E85C2F] text-2xl font-semibold">{statsData.bestMonth.month}</div>
-                            <div className="text-[#E85C2F] text-sm font-medium mt-1">{statsData.bestMonth.year}</div>
+                            {statsData.bestMonth.pv > 0 ? (
+                                <>
+                                    <div className="text-[#E85C2F] text-2xl font-semibold">{statsData.bestMonth.month}</div>
+                                    <div className="text-[#E85C2F] text-sm font-medium mt-1">{statsData.bestMonth.year}</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-slate-700 text-base font-bold">Belum ada data</div>
+                                    <div className="text-slate-400 text-xs font-medium mt-1">Belum ada data transaksi</div>
+                                </>
+                            )}
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent flex flex-col justify-between">
                             <div className="text-slate-500 text-sm font-semibold mb-6">Tahun Terbaik</div>
                             <div>
-                                <div className="text-[#E85C2F] text-2xl font-semibold">{statsData.bestYear.year}</div>
-                                <div className="text-slate-500 text-sm mt-1">{statsData.bestYear.totalQuantity >= 1000 ? (statsData.bestYear.totalQuantity/1000).toFixed(1) + 'K' : statsData.bestYear.totalQuantity} jersey terjual</div>
+                                {statsData.bestYear.totalRevenue > 0 ? (
+                                    <>
+                                        <div className="text-[#E85C2F] text-2xl font-semibold">{statsData.bestYear.year}</div>
+                                        <div className="text-slate-500 text-sm mt-1">{statsData.bestYear.totalQuantity >= 1000 ? (statsData.bestYear.totalQuantity / 1000).toFixed(1) + 'K' : statsData.bestYear.totalQuantity} jersey terjual</div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-slate-700 text-base font-bold">Belum ada data</div>
+                                        <div className="text-slate-400 text-xs font-medium mt-1">Belum ada data transaksi</div>
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className="bg-white p-5 rounded-2xl shadow-sm border border-transparent flex flex-col justify-between">
                             <div className="text-slate-500 text-sm font-semibold mb-4">Top Buyer</div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-sm font-bold truncate px-1">{statsData.topBuyer.initial}</div>
-                                <div className="min-w-0">
-                                    <div className="text-slate-900 text-sm font-medium truncate">{statsData.topBuyer.name}</div>
-                                    <div className="text-slate-400 text-xs truncate">{statsData.topBuyer.category}</div>
+                            {statsData.topBuyer.name !== '-' && statsData.topBuyer.name !== 'Belum ada' ? (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-sm font-bold truncate px-1">{statsData.topBuyer.initial}</div>
+                                    <div className="min-w-0">
+                                        <div className="text-slate-900 text-sm font-medium truncate">{statsData.topBuyer.name}</div>
+                                        <div className="text-slate-400 text-xs truncate">{statsData.topBuyer.category}</div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex justify-center items-center text-slate-400 text-sm font-bold">-</div>
+                                    <div className="min-w-0">
+                                        <div className="text-slate-700 text-sm font-bold">Belum ada data</div>
+                                        <div className="text-slate-400 text-xs">Belum ada data transaksi</div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -427,19 +464,19 @@ export function DashboardDesktop() {
 
             {/* TIER 3: Footer Cards */}
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-                
+
                 {/* Chats Card */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-transparent flex flex-col">
                     <div className="mb-4">
                         <div className="text-slate-900 text-xl font-semibold">Chats</div>
                         <div className="text-slate-500 text-sm">{statsData.totalUnreadChat} pesan belum dibaca</div>
                     </div>
-                    
+
                     <div className="flex-1 flex flex-col gap-4 overflow-y-auto mb-6">
                         {statsData.recentChats.length > 0 ? (
                             statsData.recentChats.map((chat) => (
-                                <div 
-                                    key={chat.id} 
+                                <div
+                                    key={chat.id}
                                     onClick={() => {
                                         if (chat.partnerId) {
                                             window.location.href = `/admin/chat?userId=${chat.partnerId}`;
@@ -469,7 +506,7 @@ export function DashboardDesktop() {
                         )}
                     </div>
                     <div className="mt-auto pt-4 border-t border-slate-50">
-                        <button 
+                        <button
                             onClick={() => window.location.href = '/admin/chat'}
                             className="text-[#E85C2F] text-sm font-medium hover:underline"
                         >
@@ -500,7 +537,7 @@ export function DashboardDesktop() {
                             </div>
                             <span className="absolute right-0 text-slate-800 text-xs font-semibold">70k</span>
                         </div>
-                         <div className="flex items-center w-full relative">
+                        <div className="flex items-center w-full relative">
                             <div className="w-full max-w-[45%] bg-gradient-to-r from-[#FDE8DF] to-transparent py-2 px-3 rounded-lg flex items-center justify-between">
                                 <span className="text-slate-900 text-sm font-semibold uppercase">SMR</span>
                             </div>

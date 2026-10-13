@@ -1,2 +1,2 @@
-export * from "~/features/admin/create-account/CreateAccountDesktop";
-export * from "~/features/admin/create-account/CreateAccountMobile";
+export { CreateAccountDesktop } from "./CreateAccountDesktop";
+export { CreateAccountMobile } from "./CreateAccountMobile";

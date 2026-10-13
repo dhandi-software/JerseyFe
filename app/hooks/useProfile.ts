@@ -2,40 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { profileApi } from "~/api/profileApi";
 import type { ProfileData } from "~/api/types";
-
-interface ToastProps {
-    title: string;
-    variant: "success" | "destructive" | "default";
-}
-
-interface ProfileFormData {
-    name: string;
-    email: string;
-    username: string;
-    bio: string;
-    photo: string;
-    photoFile: File | null;
-}
-
-interface UseProfileReturn {
-    profile: ProfileData | null;
-    isLoading: boolean;
-    formData: ProfileFormData;
-    isEditing: boolean;
-    isSaving: boolean;
-    lastPasswordUpdate: string;
-    toastProps: ToastProps | null;
-    showToast: (title: string, variant?: ToastProps["variant"]) => void;
-    handleInputChange: (
-        field: keyof Omit<ProfileFormData, "photoFile">,
-        value: string,
-    ) => void;
-    handlePhotoUpload: (file: File) => void;
-    handleSaveProfile: () => Promise<void>;
-    handleCancelEdit: () => void;
-    updateLastPasswordTime: () => void;
-    loadProfile: () => Promise<void>;
-}
+import type { ToastProps } from "~/types/common";
+import type { ProfileFormData, UseProfileReturn } from "~/types/profile";
 
 export function useProfile(userId?: string): UseProfileReturn {
     const [profile, setProfile] = useState<ProfileData | null>(null);

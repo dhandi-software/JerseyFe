@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Trash2, ShoppingCart, CreditCard, ChevronUp, Loader2, Filter } from "lucide-react";
+import { Search, Trash2, ShoppingCart, CreditCard, ChevronUp } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useCart } from "~/context/CartContext";
 import { CardProduct } from "~/components/template/CardProduct";
@@ -13,6 +13,8 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "~/components/ui/sheet";
+import { CategoryProductGridSkeleton } from "./CategoryProductSkeleton";
+import { CategoryEmptyState } from "./CategoryEmptyState";
 
 const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -30,13 +32,16 @@ export function ListCategoryMobile() {
     const categories = ["Semua", "Jersey"];
 
     useEffect(() => {
+        let isMounted = true;
+        setLoading(true);
         adminApi.getBahanBaju().then(res => {
-            if (res.status === "success" && res.data.length > 0) {
+            if (!isMounted) return;
+            if (res.status === "success" && Array.isArray(res.data)) {
                 const mapped = res.data.map((m: any) => ({
                     id: m.id,
                     title: m.nama,
-                    price: m.harga || 150000,
-                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "https://via.placeholder.com/300?text=Jersey",
+                    price: Number(m.harga) || 0,
+                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "/images/mockup-jersey.jpg",
                     category: "Jersey",
                     status: m.status,
                     kuantitasKg: m.kuantitasKg,
@@ -44,13 +49,24 @@ export function ListCategoryMobile() {
                     description: m.deskripsi || "Bahan jersey premium."
                 }));
                 setMaterials(mapped);
+            } else {
+                setMaterials([]);
             }
-        }).catch(console.error).finally(() => setLoading(false));
+        }).catch(err => {
+            console.error("Gagal memuat bahan baju:", err);
+            if (isMounted) setMaterials([]);
+        }).finally(() => {
+            if (isMounted) setLoading(false);
+        });
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const filteredProducts = materials.filter(p => {
         const matchesCategory = selectedCategory === "Semua" || p.category === selectedCategory;
-        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase().trim());
         return matchesCategory && matchesSearch;
     });
 
@@ -77,6 +93,7 @@ export function ListCategoryMobile() {
         <div className="min-h-screen bg-[#FAFAFA] p-4 font-['Inter'] flex flex-col gap-6 pb-24">
             <div className="px-1 mb-2">
                 <h1 className="text-3xl font-black text-neutral-900 tracking-tighter italic uppercase">List Category</h1>
+                <p className="text-xs font-semibold text-neutral-400 mt-1">Katalog Bahan Jersey FCSV</p>
                 <div className="w-12 h-1.5 bg-neutral-900 mt-2 rounded-full"></div>
             </div>
 
@@ -85,10 +102,10 @@ export function ListCategoryMobile() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within:text-black transition-colors" />
                     <input 
                         type="text"
-                        placeholder="Cari Koleksi Jersey..."
+                        placeholder="Cari Bahan Jersey..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3.5 bg-white border border-neutral-100 rounded-[1.25rem] text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                        className="w-full pl-11 pr-4 py-3.5 bg-white border border-neutral-100 rounded-[1.25rem] text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-black/5 transition-all text-neutral-900 placeholder:text-neutral-400"
                     />
                 </div>
 
@@ -96,6 +113,7 @@ export function ListCategoryMobile() {
                     {categories.map(cat => (
                         <button 
                             key={cat}
+                            type="button"
                             onClick={() => setSelectedCategory(cat)}
                             className={cn(
                                 "px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all cursor-pointer",
@@ -111,27 +129,28 @@ export function ListCategoryMobile() {
             </div>
 
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-4">
-                    <Loader2 className="w-8 h-8 animate-spin text-neutral-300" />
-                    <p className="text-xs font-bold text-neutral-400">Memuat Koleksi...</p>
-                </div>
+                <CategoryProductGridSkeleton count={4} className="grid-cols-2 gap-4 mt-2" />
+            ) : materials.length === 0 ? (
+                <CategoryEmptyState type="no-data" />
+            ) : filteredProducts.length === 0 ? (
+                <CategoryEmptyState 
+                    type="not-found" 
+                    searchQuery={searchQuery} 
+                    onReset={() => {
+                        setSearchQuery("");
+                        setSelectedCategory("Semua");
+                    }} 
+                />
             ) : (
                 <div className="grid grid-cols-2 gap-4 mt-2">
-                    {filteredProducts.length > 0 ? (
-                        filteredProducts.map(product => (
-                            <CardProduct 
-                                key={product.id} 
-                                product={product} 
-                                onAdd={addToCart}
-                                className="rounded-[1.25rem]"
-                            />
-                        ))
-                    ) : (
-                        <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-neutral-200 flex flex-col items-center justify-center gap-4">
-                            <Filter className="w-10 h-10 text-neutral-200" />
-                            <span className="text-neutral-400 font-medium">Koleksi tidak ditemukan</span>
-                        </div>
-                    )}
+                    {filteredProducts.map(product => (
+                        <CardProduct 
+                            key={product.id} 
+                            product={product} 
+                            onAdd={addToCart}
+                            className="rounded-[1.5rem]"
+                        />
+                    ))}
                 </div>
             )}
 

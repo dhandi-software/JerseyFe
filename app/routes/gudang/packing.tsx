@@ -1,9 +1,7 @@
 import { useOutletContext } from "react-router";
-import type { ContextType } from "~/root";
-import { PackingDesktop } from "~/features/gudang/packing/PackingDesktop";
-import { PackingMobile } from "~/features/gudang/packing/PackingMobile";
+import { PackingDesktop, PackingMobile } from "~/features/gudang/packing";
 
 export default function GudangPackingRoute() {
-  const { isMobile } = useOutletContext<ContextType>();
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
   return isMobile ? <PackingMobile /> : <PackingDesktop />;
 }

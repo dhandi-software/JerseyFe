@@ -153,7 +153,7 @@ export function PackingDesktop() {
     if (selectedOrder) {
         return (
             <div className="min-h-screen bg-slate-50 font-geist">
-                <div className="max-w-[87.5rem] mx-auto px-8 py-10">
+                <div className="w-full px-8 py-10">
                     <button 
                         onClick={() => setSelectedOrder(null)}
                         className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors font-bold text-sm mb-8 group"
@@ -375,7 +375,7 @@ export function PackingDesktop() {
 
     return (
         <div className="min-h-screen bg-slate-50 p-8 font-geist">
-            <div className="max-w-[87.5rem] mx-auto space-y-8">
+            <div className="w-full space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div>

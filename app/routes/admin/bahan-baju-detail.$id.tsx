@@ -1,5 +1,7 @@
-import { BahanBajuDetail } from "~/features/admin/bahan-baju/BahanBajuDetail";
+import { useOutletContext } from "react-router";
+import { BahanBajuDetailDesktop, BahanBajuDetailMobile } from "~/features/admin/bahan-baju";
 
-export default function AdminBahanBajuDetailPage() {
-  return <BahanBajuDetail />;
+export default function AdminBahanBajuDetailRoute() {
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
+  return isMobile ? <BahanBajuDetailMobile /> : <BahanBajuDetailDesktop />;
 }

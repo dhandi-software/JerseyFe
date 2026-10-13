@@ -74,7 +74,7 @@ export function EditAccountDesktop() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 max-w-6xl">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 w-full">
                 {/* Main Content Area */}
                 <div className="lg:col-span-8 flex flex-col gap-8">
                     
@@ -193,7 +193,7 @@ export function EditAccountDesktop() {
                                 <div className="flex flex-col gap-2.5">
                                     <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Posisi / Jabatan</label>
                                     <CustomSelect
-                                        value={formData.position}
+                                        value={formData.position || ""}
                                         onChange={(value) => handleInputChange({ target: { name: "position", value } } as any)}
                                         options={[
                                             { label: "Designer", value: "Designer" },

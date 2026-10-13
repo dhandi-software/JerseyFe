@@ -1,9 +1,14 @@
-import { useOutletContext } from "react-router";
-import type { ContextType } from "../../root";
-import { TrackingPesananDesktop } from "../../features/customer/tracking/TrackingPesananDesktop";
-import { TrackingPesananMobile } from "../../features/customer/tracking/TrackingPesananMobile";
+import { TrackingPesananDesktop, TrackingPesananMobile } from "~/features/customer/tracking";
 
 export default function TrackingPesananRoute() {
-  const { isMobile } = useOutletContext<ContextType>();
-  return isMobile ? <TrackingPesananMobile /> : <TrackingPesananDesktop />;
+  return (
+    <>
+      <div className="block md:hidden w-full">
+        <TrackingPesananMobile />
+      </div>
+      <div className="hidden md:block w-full">
+        <TrackingPesananDesktop />
+      </div>
+    </>
+  );
 }

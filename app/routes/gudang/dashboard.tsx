@@ -1,9 +1,7 @@
 import { useOutletContext } from "react-router";
-import type { ContextType } from "~/root";
-import { DashboardGudangDesktop } from "~/features/gudang/dashboard/DashboardGudangDesktop";
-import { DashboardGudangMobile } from "~/features/gudang/dashboard/DashboardGudangMobile";
+import { DashboardGudangDesktop, DashboardGudangMobile } from "~/features/gudang/dashboard";
 
 export default function WarehouseDashboardRoute() {
-  const { isMobile } = useOutletContext<ContextType>();
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
   return isMobile ? <DashboardGudangMobile /> : <DashboardGudangDesktop />;
 }

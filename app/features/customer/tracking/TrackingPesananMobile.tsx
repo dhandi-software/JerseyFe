@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { Search, Package, Clock, CheckCircle2, Truck, FileText, AlertCircle, Loader2, ChevronRight, MapPin, Printer, User, Scissors, Palette, Ruler, Eye } from "lucide-react";
+import { Search, Package, Clock, CheckCircle2, Truck, FileText, AlertCircle, Loader2, ChevronRight, MapPin, Printer, User, Scissors, Palette, Ruler, Eye, MessageCircle, HelpCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { sortPlayersBySize } from "~/lib/sizeUtils";
@@ -118,19 +118,15 @@ export function TrackingPesananMobile() {
     };
 
     const handleUnapproveDesign = async () => {
-        if (!selectedOrder) return;
+        if (!order) return;
         setSubmittingAction(true);
         try {
-            await orderService.unapproveDesign(selectedOrder.id);
+            await orderService.unapproveDesign(order.id);
             const updatedStatus = "SENT";
-            setSelectedOrder((prev: any) => ({
+            setOrder((prev: any) => ({
                 ...prev,
                 designStatus: updatedStatus
             }));
-            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
-                ...o,
-                designStatus: updatedStatus
-            } : o));
             setToast({ title: "Persetujuan desain dibatalkan!", variant: "success" });
         } catch (error) {
             console.error("Gagal membatalkan persetujuan desain:", error);
@@ -174,39 +170,48 @@ export function TrackingPesananMobile() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 font-geist pb-20">
+        <div className="min-h-screen bg-slate-50 font-sans pb-20 w-full overflow-x-hidden">
             {/* Header */}
-            <div className="bg-slate-900 pt-16 pb-24 px-6 relative overflow-hidden">
-                <div className="relative z-10 space-y-6">
-                    <div className="text-center">
-                        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none">Lacak Jersey</h1>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2 italic">Real-Time Production Tracking</p>
-                    </div>
+            <div className="bg-slate-900 pt-7 pb-12 px-4 relative overflow-hidden w-full">
+                <div className="relative z-10 space-y-3 w-full text-center">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D25026]">
+                        Live Tracking
+                    </span>
+                    <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
+                        Lacak Pesanan Jersey
+                    </h1>
+                    <p className="text-xs text-slate-300 font-medium leading-relaxed px-2">
+                        Pantau progres produksi jersey custom FCSV secara real-time
+                    </p>
 
-                    <form onSubmit={handleSearch} className="relative">
-                        <input 
-                            type="text" 
-                            value={orderId}
-                            onChange={(e) => setOrderId(e.target.value.toUpperCase())}
-                            placeholder="Tracking ID (JK-XXXXXX)"
-                            className="w-full h-14 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-6 text-white text-sm font-black placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#D25026] text-center uppercase tracking-[0.2em]"
-                        />
+                    <form onSubmit={handleSearch} className="w-full pt-1 flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input 
+                                type="text" 
+                                value={orderId}
+                                onChange={(e) => setOrderId(e.target.value.toUpperCase())}
+                                placeholder="Masukkan Kode (JK-XXXXXX)"
+                                className="w-full h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl pl-10 pr-3 text-white text-xs font-bold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#D25026] uppercase tracking-wider"
+                            />
+                        </div>
                         <button 
                             type="submit"
                             disabled={loading}
-                            className="absolute right-2 top-2 bottom-2 bg-[#D25026] text-slate-900 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2"
+                            aria-label="Cari Pesanan"
+                            className="h-12 px-5 bg-[#D25026] hover:bg-[#B3411A] text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center shrink-0 shadow-sm active:scale-95 cursor-pointer transition-all"
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search size={16} />}
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Lacak</span>}
                         </button>
                     </form>
                 </div>
             </div>
 
-            <div className="px-6 -mt-10 relative z-20 space-y-6">
+            <div className="px-4 -mt-6 relative z-20 space-y-4 w-full">
                 {error && (
-                    <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3 text-red-600">
+                    <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600">
                         <AlertCircle size={18} />
-                        <p className="font-bold text-[10px] italic uppercase tracking-tight">{error}</p>
+                        <p className="font-bold text-xs">{error}</p>
                     </div>
                 )}
 
@@ -465,7 +470,7 @@ export function TrackingPesananMobile() {
                                     <p className="text-xs text-emerald-300 font-bold italic">
                                         Desain disetujui! Segera dilanjutkan ke tahap berikutnya.
                                     </p>
-																{(selectedOrder.status === 'DESAIN' || selectedOrder.status === 'LAYOUT') && (
+																{(order.status === 'DESAIN' || order.status === 'LAYOUT') && (
 																	<button onClick={handleUnapproveDesign} disabled={submittingAction} className="mt-3 bg-red-500/90 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest italic w-fit active:scale-95 transition-all shadow-md disabled:opacity-50">Batal Setuju</button>
 																)}
                                 </div>
@@ -634,9 +639,170 @@ export function TrackingPesananMobile() {
                             <p className="text-[9px] text-slate-400 font-medium italic leading-relaxed mb-4">
                                 Hubungi admin jika kode pelacakan tidak valid atau bermasalah.
                             </p>
-                            <button className="w-full bg-[#D25026] text-slate-900 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest italic">
-                                Hubungi Support
+                            <button 
+                                onClick={() => window.open('https://wa.me/6285892720034?text=Halo%20Admin%20FCSV%2C%20saya%20ingin%20menanyakan%20status%20pesanan%20jersey', '_blank')}
+                                className="w-full min-h-[44px] bg-[#D25026] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest italic flex items-center justify-center gap-2 active:scale-98 transition-transform cursor-pointer shadow-sm"
+                            >
+                                <MessageCircle size={14} />
+                                Hubungi Support (+62 858-9272-0034)
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Initial State / Panduan Mobile */}
+                {!order && !error && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
+                        {/* 3 Steps Guide */}
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm w-full">
+                            <div className="text-center mb-4">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D25026] block mb-1">
+                                    Panduan Singkat
+                                </span>
+                                <h2 className="text-lg font-black text-slate-900 tracking-tight leading-snug">
+                                    3 Langkah Cek Pesanan
+                                </h2>
+                                <p className="text-slate-500 text-xs font-medium mt-1">
+                                    Ketahui progres pembuatan jersey custom Anda kapan saja.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {/* Step 1 */}
+                                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
+                                    <div className="w-9 h-9 rounded-lg bg-[#D25026]/10 text-[#D25026] flex items-center justify-center font-bold shrink-0">
+                                        <FileText size={17} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h3 className="text-xs font-bold text-slate-900">
+                                                1. Cek Kode ID
+                                            </h3>
+                                            <span className="text-[9px] font-mono font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">JK-XXXXXX</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-600 leading-relaxed mt-1">
+                                            Lihat nomor tracking pada nota fisik atau konfirmasi chat admin FCSV.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Step 2 */}
+                                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
+                                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                                        <Search size={17} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-xs font-bold text-slate-900">
+                                            2. Masukkan ID & Lacak
+                                        </h3>
+                                        <p className="text-[11px] text-slate-600 leading-relaxed mt-1">
+                                            Ketik kode di kolom atas lalu tekan tombol cari untuk memuat status terkini.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Step 3 */}
+                                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-3">
+                                    <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                                        <Eye size={17} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-xs font-bold text-slate-900">
+                                            3. Pantau & Setujui
+                                        </h3>
+                                        <p className="text-[11px] text-slate-600 leading-relaxed mt-1">
+                                            Tinjau foto produksi, preview desain 3D, dan konfirmasi persetujuan mockup.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 6 Stages Mobile */}
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm w-full">
+                            <div className="mb-3.5">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D25026] block mb-1">
+                                    Alur Produksi
+                                </span>
+                                <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                                    6 Tahapan Pengerjaan
+                                </h3>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2.5">
+                                {STAGES.map((stage, idx) => {
+                                    const Icon = stage.icon;
+                                    return (
+                                        <div key={stage.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#D25026]">
+                                                    <Icon size={14} />
+                                                </div>
+                                                <span className="text-[9px] font-bold text-slate-400">
+                                                    0{idx + 1}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-900 leading-tight">
+                                                    {stage.label}
+                                                </h4>
+                                                <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                                                    {stage.id === "MENUNGGU" && "Cek DP & order"}
+                                                    {stage.id === "DESAIN" && "Mockup 3D"}
+                                                    {stage.id === "LAYOUT" && "Pola ukuran"}
+                                                    {stage.id === "PRINT" && "Cetak sublim"}
+                                                    {stage.id === "FINISHING" && "Jahit & QC"}
+                                                    {stage.id === "SELESAI" && "Siap kirim"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Quality Highlight */}
+                        <div className="bg-slate-900 p-5 rounded-2xl text-white w-full space-y-4">
+                            <div>
+                                <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#D25026] block mb-1">
+                                    Kualitas Terjamin
+                                </span>
+                                <h3 className="text-base font-black text-white tracking-tight">
+                                    Standar Produksi FCSV
+                                </h3>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2.5 text-xs text-slate-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                                    <span>Kain Dryfit Premium berdaya serap tinggi</span>
+                                </div>
+                                <div className="flex items-center gap-2.5 text-xs text-slate-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                    <span>Tinta cetak sublimasi tajam dan anti luntur</span>
+                                </div>
+                                <div className="flex items-center gap-2.5 text-xs text-slate-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                    <span>QC inspeksi jahitan rapi dan presisi ukuran</span>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-white/10 space-y-2">
+                                <a
+                                    href="https://wa.me/6285892720034?text=Halo%20Admin%20FCSV%2C%20saya%20ingin%20menanyakan%20status%20pesanan%20jersey"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full h-11 bg-[#D25026] hover:bg-[#B3411A] text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-98 shadow-sm cursor-pointer"
+                                >
+                                    <MessageCircle size={15} />
+                                    <span>Bantuan CS via WhatsApp</span>
+                                </a>
+                                <a
+                                    href="/faq"
+                                    className="w-full h-10 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                                >
+                                    <span>Pusat Bantuan & FAQ</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 )}

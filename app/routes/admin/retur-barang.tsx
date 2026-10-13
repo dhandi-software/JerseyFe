@@ -1,5 +1,7 @@
-import { ReturBarang } from "~/features/admin/retur-barang/ReturBarang";
+import { useOutletContext } from "react-router";
+import { ReturBarangDesktop, ReturBarangMobile } from "~/features/admin/retur-barang";
 
-export default function ReturBarangRoute() {
-  return <ReturBarang />;
+export default function AdminReturBarangRoute() {
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
+  return isMobile ? <ReturBarangMobile /> : <ReturBarangDesktop />;
 }

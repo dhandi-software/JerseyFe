@@ -1,9 +1,7 @@
 import { useOutletContext } from "react-router";
-import type { ContextType } from "~/root";
-import { OmsetDesktop } from "~/features/manager/omset/OmsetDesktop";
-import { OmsetMobile } from "~/features/manager/omset/OmsetMobile";
+import { OmsetDesktop, OmsetMobile } from "~/features/manager/omset";
 
 export default function ManagerOmsetRoute() {
-  const { isMobile } = useOutletContext<ContextType>();
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
   return isMobile ? <OmsetMobile /> : <OmsetDesktop />;
 }

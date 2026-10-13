@@ -1,14 +1,8 @@
+import { useOutletContext } from "react-router";
 import { CustomJerseyDetailDesktop } from "~/features/customer/custom-jersey/CustomJerseyDetailDesktop";
 import { CustomJerseyDetailMobile } from "~/features/customer/custom-jersey/CustomJerseyDetailMobile";
-import { useRouteLoaderData } from "react-router";
-import type { ContextType } from "~/root";
 
 export default function CustomJerseyDetailRoute() {
-    const { isMobile } = useRouteLoaderData("root") as ContextType;
-    
-    if (isMobile) {
-        return <CustomJerseyDetailMobile />;
-    }
-    
-    return <CustomJerseyDetailDesktop />;
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
+  return isMobile ? <CustomJerseyDetailMobile /> : <CustomJerseyDetailDesktop />;
 }

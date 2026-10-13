@@ -1,5 +1,5 @@
 import { 
-    Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight, Menu 
+    Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight, Menu, TrendingUp 
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { adminApi } from "~/api/admin";
@@ -91,10 +91,11 @@ export function DashboardMobile() {
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (chartScrollRef.current) {
+        const isEmpty = currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
+        if (chartScrollRef.current && !isEmpty) {
             chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
         }
-    }, [timeView, statsData]);
+    }, [timeView, statsData, currentTotal]);
 
     return (
         <div className="w-full min-h-screen bg-[#F5F5F3] font-['Inter'] flex flex-col gap-4 p-4 pb-20">
@@ -115,7 +116,9 @@ export function DashboardMobile() {
                 <div className="text-slate-900 text-4xl font-bold">
                     Rp {statsData.totalRevenue.toLocaleString('id-ID')}
                 </div>
-                <div className="text-slate-500 text-sm mt-1">Akumulasi omset bruto</div>
+                <div className="text-slate-500 text-sm mt-1">
+                    {statsData.totalRevenue > 0 ? "Akumulasi omset bruto" : "Belum ada data transaksi"}
+                </div>
             </div>
 
             {/* Total Customer Card */}
@@ -190,23 +193,29 @@ export function DashboardMobile() {
                     </span>
                 </div>
                 
-                <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
-                    <div className={cn(
-                        "h-[220px] relative -ml-6 -mb-4",
-                        timeView === 'daily' ? 'w-[650px] min-w-full' : 
-                        timeView === 'lifetime' ? 'w-[950px] min-w-full' : 
-                        timeView === 'monthly' ? 'w-[500px] min-w-full' : 'w-full'
-                    )}>
-                        {loading || !isMounted ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
-                                <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
-                            </div>
-                        ) : activeData.length === 0 ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                <span className="text-slate-400 text-xs font-semibold">Tidak Ada Data Transaksi</span>
-                            </div>
-                        ) : (
+                {loading || !isMounted ? (
+                    <div className="w-full h-[220px] flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                        <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
+                        <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
+                    </div>
+                ) : activeData.length === 0 || currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0) ? (
+                    <div className="w-full h-[220px] flex flex-col items-center justify-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6 text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2 shrink-0">
+                            <TrendingUp className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <span className="text-slate-800 text-xs font-bold w-full text-center block">Belum ada data transaksi</span>
+                        <p className="text-slate-500 text-xs mt-1 w-full text-center leading-relaxed">
+                            Data omset dan grafik penjualan akan otomatis tampil setelah ada transaksi yang tercatat.
+                        </p>
+                    </div>
+                ) : (
+                    <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
+                        <div className={cn(
+                            "h-[220px] relative -ml-6 -mb-4",
+                            timeView === 'daily' ? 'w-[650px] min-w-full' : 
+                            timeView === 'lifetime' ? 'w-[950px] min-w-full' : 
+                            timeView === 'monthly' ? 'w-[500px] min-w-full' : 'w-full'
+                        )}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={activeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                                     <defs>
@@ -259,27 +268,41 @@ export function DashboardMobile() {
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
              {/* Bottom Stats of Chart (Mobile specific layout) */}
              <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-transparent">
                     <div className="text-slate-500 text-xs font-semibold mb-2">Bulan Terlaris</div>
-                    <div className="text-[#E85C2F] text-lg font-bold">{statsData.bestMonth.month}</div>
+                    {statsData.bestMonth.pv > 0 ? (
+                        <div className="text-[#E85C2F] text-lg font-bold">{statsData.bestMonth.month}</div>
+                    ) : (
+                        <div className="text-slate-400 text-xs font-medium">Belum ada data</div>
+                    )}
                 </div>
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-transparent">
                     <div className="text-slate-500 text-xs font-semibold mb-2">Tahun Terbaik</div>
-                    <div className="text-[#E85C2F] text-lg font-bold">{statsData.bestYear.year}</div>
+                    {statsData.bestYear.totalRevenue > 0 ? (
+                        <div className="text-[#E85C2F] text-lg font-bold">{statsData.bestYear.year}</div>
+                    ) : (
+                        <div className="text-slate-400 text-xs font-medium">Belum ada data</div>
+                    )}
                 </div>
                 <div className="col-span-2 bg-white p-4 rounded-2xl shadow-sm border border-transparent flex justify-between items-center">
                     <div className="flex-1 min-w-0 pr-4">
                         <div className="text-slate-500 text-xs font-semibold mb-1">Top Buyer</div>
-                        <div className="text-slate-900 text-sm font-medium truncate">{statsData.topBuyer.name}</div>
+                        <div className="text-slate-900 text-sm font-medium truncate">
+                            {statsData.topBuyer.name !== '-' && statsData.topBuyer.name !== 'Belum ada' 
+                                ? statsData.topBuyer.name 
+                                : "Belum ada transaksi"}
+                        </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-[#119DA4] flex justify-center items-center text-white text-xs font-bold shrink-0">{statsData.topBuyer.initial}</div>
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex justify-center items-center text-slate-400 text-xs font-bold shrink-0">
+                        {statsData.topBuyer.initial !== '-' ? statsData.topBuyer.initial : "-"}
+                    </div>
                 </div>
             </div>
 

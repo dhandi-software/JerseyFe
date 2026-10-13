@@ -1,5 +1,7 @@
-import { SharedProfile } from "~/features/shared/profile";
+import { useOutletContext } from "react-router";
+import { SharedProfileDesktop, SharedProfileMobile } from "~/features/shared/profile";
 
-export default function ManagerProfile() {
-  return <SharedProfile />;
+export default function ManagerProfileRoute() {
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
+  return isMobile ? <SharedProfileMobile /> : <SharedProfileDesktop />;
 }

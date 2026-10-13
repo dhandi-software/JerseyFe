@@ -1,5 +1,5 @@
+import { useOutletContext } from "react-router";
 import { ChatDesktop, ChatMobile } from "~/features/admin/chat";
-import { useEffect, useState } from "react";
 
 export function meta() {
   return [
@@ -9,20 +9,6 @@ export function meta() {
 }
 
 export default function ChatPage() {
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const checkIsMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-        checkIsMobile();
-        window.addEventListener('resize', checkIsMobile);
-        return () => window.removeEventListener('resize', checkIsMobile);
-    }, []);
-
-    if (isMobile) {
-        return <ChatMobile title="Chat Designer" />;
-    }
-
-    return <ChatDesktop title="Chat Designer" />;
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
+  return isMobile ? <ChatMobile title="Chat Designer" /> : <ChatDesktop title="Chat Designer" />;
 }

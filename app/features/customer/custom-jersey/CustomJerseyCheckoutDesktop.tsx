@@ -810,7 +810,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         <div className="min-h-screen bg-[#FAFAFA] font-['Inter']">
             {/* Top Navigation */}
             <div className="bg-white border-b border-neutral-100 sticky top-0 z-50">
-                <div className="max-w-[87.5rem] mx-auto px-8 h-20 flex items-center justify-between">
+                <div className="w-full px-8 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-6">
                         <button 
                             onClick={() => navigate("/customer/custom-jersey")}
@@ -870,7 +870,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
 
             {/* Horizontal Progress Bar */}
             <div className="bg-white border-b border-neutral-100">
-                <div className="max-w-[87.5rem] mx-auto px-8 py-6">
+                <div className="w-full px-8 py-6">
                     <div className="flex items-center justify-center gap-12">
                         {steps.map((s, idx) => {
                             const isActive = step === s.id;
@@ -897,7 +897,7 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
                 </div>
             </div>
 
-            <main className="max-w-[87.5rem] mx-auto px-8 py-12">
+            <main className="w-full px-8 py-12">
                 <div className="space-y-12">
                     {/* Main Content Area */}
                     <div className="w-full">

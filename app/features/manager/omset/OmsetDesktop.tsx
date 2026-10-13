@@ -125,7 +125,7 @@ export function OmsetDesktop() {
 
     const currentMonthVal = new Date().getMonth() + 1;
     const currentDayVal = new Date().getDate();
-    
+
     let activeData = statsData.salesData[timeView] || [];
     const isCurrentYear = !selectedYear || selectedYear === currentYear;
     const isCurrentMonth = !selectedMonth || selectedMonth === currentMonthVal;
@@ -148,10 +148,11 @@ export function OmsetDesktop() {
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (chartScrollRef.current) {
+        const isEmpty = currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
+        if (chartScrollRef.current && !isEmpty) {
             chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
         }
-    }, [timeView, statsData]);
+    }, [timeView, statsData, currentTotal]);
 
     return (
         <div className="w-full min-h-screen p-8 bg-[#F5F5F3] font-['Inter'] flex flex-col gap-6">
@@ -212,12 +213,21 @@ export function OmsetDesktop() {
                     </div>
                     <div>
                         <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Bulan Terlaris</span>
-                        <h3 className="text-slate-900 text-xl font-black mt-2 text-[#E85C2F]">
-                            {statsData.bestMonth.month} {statsData.bestMonth.year !== '-' && `'${statsData.bestMonth.year.substring(2)}`}
-                        </h3>
-                        <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
-                            Rp {statsData.bestMonth.pv.toLocaleString('id-ID')} omset bulanan
-                        </p>
+                        {statsData.bestMonth.pv > 0 ? (
+                            <>
+                                <h3 className="text-slate-900 text-xl font-black mt-2 text-[#E85C2F]">
+                                    {statsData.bestMonth.month} {statsData.bestMonth.year !== '-' && `'${statsData.bestMonth.year.substring(2)}`}
+                                </h3>
+                                <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
+                                    Rp {statsData.bestMonth.pv.toLocaleString('id-ID')} omset bulanan
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className="text-slate-700 text-lg font-bold mt-2">Belum ada data</h3>
+                                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">Belum ada data transaksi</p>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -228,12 +238,21 @@ export function OmsetDesktop() {
                     </div>
                     <div>
                         <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block">Tahun Terbaik</span>
-                        <h3 className="text-slate-900 text-2xl font-black mt-2 text-slate-800">
-                            {statsData.bestYear.year}
-                        </h3>
-                        <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
-                            Rp {statsData.bestYear.totalRevenue.toLocaleString('id-ID')} ({statsData.bestYear.totalQuantity} jersey)
-                        </p>
+                        {statsData.bestYear.totalRevenue > 0 ? (
+                            <>
+                                <h3 className="text-slate-900 text-2xl font-black mt-2 text-slate-800">
+                                    {statsData.bestYear.year}
+                                </h3>
+                                <p className="text-slate-500 text-xs mt-1.5 leading-relaxed">
+                                    Rp {statsData.bestYear.totalRevenue.toLocaleString('id-ID')} ({statsData.bestYear.totalQuantity} jersey)
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className="text-slate-700 text-lg font-bold mt-2">Belum ada data</h3>
+                                <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">Belum ada data transaksi</p>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -400,23 +419,29 @@ export function OmsetDesktop() {
                         </div>
                     </div>
 
-                    <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
-                        <div className={cn(
-                            "h-[250px] relative -ml-4",
-                            timeView === 'daily' ? 'w-[900px] min-w-full' :
+                    {loading || !isMounted ? (
+                        <div className="w-full h-[250px] flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            <div className="w-8 h-8 rounded-full border-4 border-[#D25026] border-t-transparent animate-spin mb-2" />
+                            <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
+                        </div>
+                    ) : activeData.length === 0 || currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0) ? (
+                        <div className="w-full h-[250px] flex flex-col items-center justify-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3 shrink-0">
+                                <TrendingUp className="w-6 h-6 text-slate-400" />
+                            </div>
+                            <span className="text-slate-800 text-sm font-bold w-full text-center block">Belum ada data transaksi</span>
+                            <p className="text-slate-500 text-xs mt-1.5 w-full text-center leading-relaxed">
+                                Data grafik omset akan otomatis tampil setelah ada transaksi penjualan.
+                            </p>
+                        </div>
+                    ) : (
+                        <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
+                            <div className={cn(
+                                "h-[250px] relative -ml-4",
+                                timeView === 'daily' ? 'w-[900px] min-w-full' :
                                 timeView === 'lifetime' ? 'w-[1200px] min-w-full' :
-                                    timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
-                        )}>
-                            {loading || !isMounted ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                    <div className="w-8 h-8 rounded-full border-4 border-[#D25026] border-t-transparent animate-spin mb-2" />
-                                    <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
-                                </div>
-                            ) : activeData.length === 0 ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                    <span className="text-slate-400 text-xs font-semibold">Tidak Ada Data Transaksi</span>
-                                </div>
-                            ) : (
+                                timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
+                            )}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={activeData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                         <defs>
@@ -474,12 +499,12 @@ export function OmsetDesktop() {
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
-                            )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Right Side: Tabular/Text Breakdown (The user's direct request) */}
+                {/* Tabular omset history */}
                 <div className="lg:col-span-5 bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col h-[380px] lg:h-[420px]">
                     <div className="mb-4 flex justify-between items-center">
                         <div>
@@ -543,9 +568,9 @@ export function OmsetDesktop() {
 
             </div>
 
-            <FinancialReportModal 
-                isOpen={isReportModalOpen} 
-                onClose={() => setIsReportModalOpen(false)} 
+            <FinancialReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
             />
         </div>
     );

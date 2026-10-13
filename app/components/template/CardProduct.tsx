@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -13,6 +14,7 @@ interface Product {
     status?: string;
     kuantitasKg?: number;
     rasioKonversi?: number;
+    description?: string;
 }
 
 interface CardProductProps {
@@ -20,47 +22,83 @@ interface CardProductProps {
     onCustomize?: (product: any) => void;
     onPreview?: (product: any) => void;
     className?: string;
-    // Legacy support for other pages
     onAdd?: (product: any) => void;
 }
 
 const formatRupiah = (number: number | string) => {
-    const value = typeof number === "string" ? parseInt(number.replace(/[^0-9]/g, "")) : number;
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+    const value = typeof number === "string" ? parseInt(number.replace(/[^0-9]/g, ""), 10) : number;
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value || 0);
 };
 
 export function CardProduct({ product, onCustomize, onPreview, onAdd, className }: CardProductProps) {
+    const [imgSrc, setImgSrc] = useState(product.image || "/images/mockup-jersey.jpg");
+
+    useEffect(() => {
+        setImgSrc(product.image || "/images/mockup-jersey.jpg");
+    }, [product.image]);
+
+    const getStatusConfig = () => {
+        const statusLower = (product.status || "").toLowerCase().trim();
+        if (statusLower === "habis" || (product.kuantitasKg !== undefined && product.kuantitasKg <= 0)) {
+            return {
+                label: "HABIS",
+                isOutOfStock: true,
+                badgeClass: "text-red-700 bg-red-50 border-red-200"
+            };
+        }
+        if (statusLower === "menipis") {
+            return {
+                label: "MENIPIS",
+                isOutOfStock: false,
+                badgeClass: "text-amber-800 bg-amber-50 border-amber-200"
+            };
+        }
+        return {
+            label: "TERSEDIA",
+            isOutOfStock: false,
+            badgeClass: "text-emerald-800 bg-emerald-50 border-emerald-200"
+        };
+    };
+
+    const statusConfig = getStatusConfig();
+
     return (
         <Card className={cn("overflow-hidden group flex flex-col h-full border-neutral-100/50 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:border-neutral-200/50 transition-all duration-500 rounded-[2.5rem] bg-white pt-0", className)}>
             <div className="relative aspect-square overflow-hidden bg-neutral-50 shrink-0">
                 <img 
-                    src={product.image} 
+                    src={imgSrc} 
                     alt={product.title} 
+                    onError={() => setImgSrc("/images/mockup-jersey.jpg")}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 />
+                
+                {/* Status Badge */}
                 <div className={cn(
-                    "absolute top-5 right-5 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl text-[10px] font-black shadow-sm border border-white/50 flex items-center gap-1",
-                    product.status === "Habis" ? "text-red-500" : "text-emerald-600"
+                    "absolute top-4 right-4 backdrop-blur-md px-3 py-1.5 rounded-2xl text-[10px] font-black shadow-sm border flex items-center gap-1.5",
+                    statusConfig.badgeClass
                 )}>
-                    {product.status ? (product.status === "Habis" ? "HABIS" : "TERSEDIA") : `${product.stock ?? 0} STOK`}
-                    {product.kuantitasKg !== undefined && product.rasioKonversi !== undefined && (
-                        <span className="text-slate-400 font-bold ml-1">
-                            (~{(product.kuantitasKg * product.rasioKonversi).toFixed(1)}m)
+                    <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                    <span>{statusConfig.label}</span>
+                    {product.kuantitasKg !== undefined && (
+                        <span className="font-semibold opacity-80 ml-0.5">
+                            ({product.kuantitasKg} kg{product.rasioKonversi ? ` • ~${(product.kuantitasKg * product.rasioKonversi).toFixed(1)}m` : ""})
                         </span>
                     )}
                 </div>
                 
                 {/* Overlay on Hover */}
-                <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3">
-                    {onPreview && (
-                        <div 
+                {onPreview && (
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                        <button 
+                            type="button"
+                            aria-label={`Lihat detail ${product.title}`}
                             onClick={(e) => { e.stopPropagation(); onPreview(product); }}
-                            className="w-20 h-20 rounded-[2rem] bg-white flex items-center justify-center cursor-pointer hover:scale-110 active:scale-90 transition-all shadow-2xl border-4 border-white/20"
+                            className="w-16 h-16 rounded-[1.75rem] bg-white flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-all shadow-xl"
                         >
-                            <Eye className="w-10 h-10 text-slate-900" strokeWidth={2.5} />
-                        </div>
-                    )}
-                </div>
+                            <Eye className="w-8 h-8 text-neutral-900" strokeWidth={2.5} />
+                        </button>
+                    </div>
+                )}
             </div>
             
             <CardHeader className="p-6 pb-0 flex-none bg-transparent gap-0">
@@ -82,17 +120,29 @@ export function CardProduct({ product, onCustomize, onPreview, onAdd, className 
                 {onCustomize ? (
                     <Button 
                         onClick={(e) => { e.stopPropagation(); onCustomize(product); }}
-                        className="flex-1 bg-[#D25026] hover:bg-slate-900 text-white rounded-2xl text-[11px] font-black h-12 transition-all shadow-xl shadow-[#D25026]/10 active:scale-95 uppercase italic tracking-widest gap-2"
+                        disabled={statusConfig.isOutOfStock}
+                        className={cn(
+                            "flex-1 rounded-2xl text-[11px] font-black h-12 transition-all shadow-xl uppercase italic tracking-widest gap-2 cursor-pointer",
+                            statusConfig.isOutOfStock
+                                ? "bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none"
+                                : "bg-[#D25026] hover:bg-neutral-900 text-white shadow-[#D25026]/10 active:scale-95"
+                        )}
                     >
                         <CreditCard className="w-4 h-4" />
-                        Order Now
+                        {statusConfig.isOutOfStock ? "Stok Habis" : "Order Now"}
                     </Button>
                 ) : onAdd ? (
                     <Button 
                         onClick={(e) => { e.stopPropagation(); onAdd(product); }}
-                        className="flex-1 bg-neutral-900 hover:bg-black text-white rounded-2xl text-[11px] font-black h-12 transition-all shadow-md active:scale-95 uppercase italic tracking-widest"
+                        disabled={statusConfig.isOutOfStock}
+                        className={cn(
+                            "flex-1 rounded-2xl text-[11px] font-black h-12 transition-all uppercase italic tracking-widest cursor-pointer",
+                            statusConfig.isOutOfStock
+                                ? "bg-neutral-200 text-neutral-400 cursor-not-allowed"
+                                : "bg-neutral-900 hover:bg-black text-white shadow-md active:scale-95"
+                        )}
                     >
-                        Add to Cart
+                        {statusConfig.isOutOfStock ? "Stok Habis" : "Add to Cart"}
                     </Button>
                 ) : null}
             </CardFooter>

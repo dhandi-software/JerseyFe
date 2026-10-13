@@ -1,9 +1,7 @@
 import { useOutletContext } from "react-router";
-import type { ContextType } from "../../root";
-import { ProgressPesananDesktop } from "../../features/customer/tracking/ProgressPesananDesktop";
-import { ProgressPesananMobile } from "../../features/customer/tracking/ProgressPesananMobile";
+import { ProgressPesananDesktop, ProgressPesananMobile } from "~/features/customer/tracking";
 
 export default function ProgressPesananRoute() {
-  const { isMobile } = useOutletContext<ContextType>();
+  const { isMobile } = useOutletContext<{ isMobile: boolean }>();
   return isMobile ? <ProgressPesananMobile /> : <ProgressPesananDesktop />;
 }

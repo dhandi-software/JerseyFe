@@ -285,7 +285,7 @@ export function UserListDesktop() {
   };
 
   return (
-    <div className="p-8 w-full max-w-[1600px] mx-auto font-geist">
+    <div className="p-8 w-full font-geist">
       <DeleteConfirmationModal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} onConfirm={handleDelete} title="Hapus Akun" itemName={userToDelete?.name || ""} description="Apakah Anda yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan." />
       <ForceDeleteModal isOpen={forceDeleteModalOpen} onClose={() => setForceDeleteModalOpen(false)} onConfirm={handleForceDelete} title="Hapus Paksa" description={blockingMessage} itemName={userToDelete?.name || ""} />
       

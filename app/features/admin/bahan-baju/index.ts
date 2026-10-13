@@ -1,5 +1,11 @@
 export { BahanBajuDesktop } from "./desktop/BahanBajuDesktop";
 export { BahanBajuMobile } from "./mobile/BahanBajuMobile";
+export { BahanBajuCreateDesktop } from "./desktop/BahanBajuCreateDesktop";
+export { BahanBajuCreateMobile } from "./mobile/BahanBajuCreateMobile";
+export { BahanBajuEditDesktop } from "./desktop/BahanBajuEditDesktop";
+export { BahanBajuEditMobile } from "./mobile/BahanBajuEditMobile";
+export { BahanBajuDetailDesktop } from "./desktop/BahanBajuDetailDesktop";
+export { BahanBajuDetailMobile } from "./mobile/BahanBajuDetailMobile";
 export { BahanBajuCreate } from "./BahanBajuCreate";
 export { BahanBajuEdit } from "./BahanBajuEdit";
 export { BahanBajuDetail } from "./BahanBajuDetail";

@@ -94,7 +94,7 @@ export function BahanBajuDetailDesktop() {
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start max-w-[1600px] mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start w-full">
                 {/* Left: Interactive Image Gallery */}
                 <div className="space-y-8">
                     <div className="relative group">

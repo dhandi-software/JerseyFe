@@ -171,10 +171,11 @@ export function OmsetMobile() {
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (chartScrollRef.current) {
+        const isEmpty = currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
+        if (chartScrollRef.current && !isEmpty) {
             chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
         }
-    }, [timeView, statsData]);
+    }, [timeView, statsData, currentTotal]);
 
     return (
         <div className="w-full min-h-screen bg-[#F5F5F3] font-['Inter'] flex flex-col gap-4 p-4 pb-20">
@@ -391,23 +392,29 @@ export function OmsetMobile() {
                     </div>
                 </div>
 
-                <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
-                    <div className={cn(
-                        "h-[180px] relative -ml-6 -mb-2",
-                        timeView === 'daily' ? 'w-[650px] min-w-full' :
+                {loading || !isMounted ? (
+                    <div className="w-full h-[180px] flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                        <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
+                        <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
+                    </div>
+                ) : activeData.length === 0 || currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0) ? (
+                    <div className="w-full h-[180px] flex flex-col items-center justify-center bg-slate-50/70 rounded-2xl border border-dashed border-slate-200 p-6 text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-2 shrink-0">
+                            <TrendingUp className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <span className="text-slate-800 text-xs font-bold w-full text-center block">Belum ada data transaksi</span>
+                        <p className="text-slate-500 text-xs mt-1 w-full text-center leading-relaxed">
+                            Grafik omset akan tampil setelah ada transaksi penjualan.
+                        </p>
+                    </div>
+                ) : (
+                    <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
+                        <div className={cn(
+                            "h-[180px] relative -ml-6 -mb-2",
+                            timeView === 'daily' ? 'w-[650px] min-w-full' :
                             timeView === 'lifetime' ? 'w-[950px] min-w-full' :
-                                timeView === 'monthly' ? 'w-[500px] min-w-full' : 'w-full'
-                    )}>
-                        {loading || !isMounted ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
-                                <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
-                            </div>
-                        ) : activeData.length === 0 ? (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                                <span className="text-slate-400 text-xs font-semibold">Tidak Ada Data Transaksi</span>
-                            </div>
-                        ) : (
+                            timeView === 'monthly' ? 'w-[500px] min-w-full' : 'w-full'
+                        )}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={activeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                                     <defs>
@@ -460,9 +467,9 @@ export function OmsetMobile() {
                                     />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* List Breakdown Card */}
@@ -475,8 +482,8 @@ export function OmsetMobile() {
                 <div className="flex-1 w-full overflow-y-auto custom-scrollbar pr-1">
                     {loading || !isMounted ? (
                         <div className="py-8 text-center text-slate-400 text-xs italic">Memuat rincian...</div>
-                    ) : activeData.length === 0 ? (
-                        <div className="py-8 text-center text-slate-400 text-xs italic">Belum ada data rincian</div>
+                    ) : activeData.length === 0 || currentTotal === 0 ? (
+                        <div className="py-8 text-center text-slate-400 text-xs italic">Belum ada data transaksi</div>
                     ) : (
                         <div className="flex flex-col gap-2">
                             {activeData.slice().reverse().map((item, idx) => {

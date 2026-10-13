@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Search, Trash2, ShoppingCart, Filter, CreditCard, Loader2 } from "lucide-react";
+import { Search, Trash2, ShoppingCart, CreditCard } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useCart } from "~/context/CartContext";
 import { CardProduct } from "~/components/template/CardProduct";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
+import { CategoryProductGridSkeleton } from "./CategoryProductSkeleton";
+import { CategoryEmptyState } from "./CategoryEmptyState";
 
 const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -22,13 +24,16 @@ export function ListCategoryDesktop() {
     const categories = ["Semua", "Jersey"];
 
     useEffect(() => {
+        let isMounted = true;
+        setLoading(true);
         adminApi.getBahanBaju().then(res => {
-            if (res.status === "success" && res.data.length > 0) {
+            if (!isMounted) return;
+            if (res.status === "success" && Array.isArray(res.data)) {
                 const mapped = res.data.map((m: any) => ({
                     id: m.id,
                     title: m.nama,
-                    price: m.harga || 150000,
-                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "https://via.placeholder.com/300?text=Jersey",
+                    price: Number(m.harga) || 0,
+                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "/images/mockup-jersey.jpg",
                     category: "Jersey",
                     status: m.status,
                     kuantitasKg: m.kuantitasKg,
@@ -36,13 +41,24 @@ export function ListCategoryDesktop() {
                     description: m.deskripsi || "Bahan jersey premium."
                 }));
                 setMaterials(mapped);
+            } else {
+                setMaterials([]);
             }
-        }).catch(console.error).finally(() => setLoading(false));
+        }).catch(err => {
+            console.error("Gagal memuat bahan baju:", err);
+            if (isMounted) setMaterials([]);
+        }).finally(() => {
+            if (isMounted) setLoading(false);
+        });
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const filteredProducts = materials.filter(p => {
         const matchesCategory = selectedCategory === "Semua" || p.category === selectedCategory;
-        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase().trim());
         return matchesCategory && matchesSearch;
     });
 
@@ -66,34 +82,34 @@ export function ListCategoryDesktop() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-100px)] bg-[#FAFAFA] p-6 md:p-8 font-['Inter'] flex flex-col gap-8 max-w-[1600px] mx-auto w-full">
+        <div className="min-h-[calc(100vh-100px)] bg-[#FAFAFA] p-6 md:p-8 font-['Inter'] flex flex-col gap-8 w-full">
             {/* Page Header */}
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-3xl font-black text-neutral-900 tracking-tighter italic uppercase">List Category</h1>
-                    <p className="text-neutral-500 text-sm font-medium mt-1">Sistem Point of Sale FCSV</p>
+                    <p className="text-neutral-500 text-sm font-medium mt-1">Katalog Bahan Jersey FCSV</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-neutral-100 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                         <span className="text-xs font-bold text-neutral-600">Terminal 01</span>
                     </div>
                 </div>
             </div>
 
-            <div className="flex items-start gap-8">
+            <div className="flex items-start gap-8 w-full">
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col gap-8">
+                <div className="flex-1 flex flex-col gap-8 min-w-0">
                     {/* Filters & Search */}
                     <div className="flex flex-col md:flex-row gap-4 items-center">
                         <div className="flex-1 relative w-full group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within:text-black transition-colors" />
                             <input 
                                 type="text"
-                                placeholder="Cari Koleksi Jersey..."
+                                placeholder="Cari Bahan Jersey..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-6 py-4 bg-white border border-neutral-100 rounded-2xl text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-200 transition-all placeholder:text-neutral-300"
+                                className="w-full pl-12 pr-6 py-4 bg-white border border-neutral-100 rounded-2xl text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-200 transition-all placeholder:text-neutral-400 text-neutral-900"
                             />
                         </div>
                         
@@ -101,12 +117,13 @@ export function ListCategoryDesktop() {
                             {categories.map(cat => (
                                 <button 
                                     key={cat}
+                                    type="button"
                                     onClick={() => setSelectedCategory(cat)}
                                     className={cn(
-                                        "px-6 py-2.5 rounded-xl text-xs font-bold transition-all uppercase tracking-wider",
+                                        "px-6 py-2.5 rounded-xl text-xs font-bold transition-all uppercase tracking-wider cursor-pointer",
                                         selectedCategory === cat 
                                             ? "bg-neutral-900 text-white shadow-md shadow-black/10" 
-                                            : "text-neutral-400 hover:text-neutral-900 hover:bg-neutral-50"
+                                            : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50"
                                     )}
                                 >
                                     {cat}
@@ -115,28 +132,29 @@ export function ListCategoryDesktop() {
                         </div>
                     </div>
 
-                    {/* Product Grid */}
+                    {/* Product Grid / Skeleton / Empty States */}
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-4">
-                            <Loader2 className="w-10 h-10 animate-spin text-neutral-300" />
-                            <p className="text-xs font-bold text-neutral-400">Memuat Koleksi Jersey...</p>
-                        </div>
+                        <CategoryProductGridSkeleton count={8} className="grid-cols-2 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6" />
+                    ) : materials.length === 0 ? (
+                        <CategoryEmptyState type="no-data" />
+                    ) : filteredProducts.length === 0 ? (
+                        <CategoryEmptyState 
+                            type="not-found" 
+                            searchQuery={searchQuery} 
+                            onReset={() => {
+                                setSearchQuery("");
+                                setSelectedCategory("Semua");
+                            }} 
+                        />
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                            {filteredProducts.length > 0 ? (
-                                filteredProducts.map(product => (
-                                    <CardProduct 
-                                        key={product.id} 
-                                        product={product} 
-                                        onAdd={addToCart} 
-                                    />
-                                ))
-                            ) : (
-                                <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-neutral-200 flex flex-col items-center justify-center gap-4">
-                                    <Filter className="w-12 h-12 text-neutral-200" />
-                                    <span className="text-neutral-400 font-medium">Koleksi tidak ditemukan</span>
-                                </div>
-                            )}
+                        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                            {filteredProducts.map(product => (
+                                <CardProduct 
+                                    key={product.id} 
+                                    product={product} 
+                                    onAdd={addToCart} 
+                                />
+                            ))}
                         </div>
                     )}
                 </div>
