@@ -28,7 +28,7 @@ export function FeaturedProductsSectionMobile() {
       id: String(p.id),
       title: p.title,
       price: `Rp ${p.price.toLocaleString("id-ID")}`,
-      image: p.image || "/images/jersey_hero.png",
+      image: p.image || "/images/jersey_hero.webp",
       categoryName: p.category || "Bahan Baju",
       categorySlug: (p.category || "").toLowerCase(),
       stockText: `${p.stock} kg`,

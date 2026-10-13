@@ -14,6 +14,7 @@ export default [
         route("/", "routes/landing/Home.tsx"),
         route("category", "routes/landing/ListCategory.tsx"),
         route("tracking", "./routes/customer/tracking-pesanan.tsx"),
+        route("customer-support", "routes/landing/customer-support.tsx"),
         route("product/:id", "routes/landing/ProductDetail.tsx"),
         route("about", "routes/landing/About.tsx"),
         route("visi-misi", "routes/landing/VisiMisi.tsx"),
@@ -87,5 +88,7 @@ export default [
         ]),
     ]),
    
+    // Catch-all for undefined routes
+    route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;
 

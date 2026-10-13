@@ -171,38 +171,61 @@ export function TrackingPesananDesktop() {
 
     return (
         <div className="min-h-screen bg-slate-50 font-geist pb-20">
-            {/* Hero Header */}
-            <div className="bg-slate-900 pt-24 pb-40 px-10 relative overflow-hidden">
-                <div className="w-full mx-auto relative z-10 text-center">
-                    <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white mb-4 leading-none">Lacak Pesanan Anda</h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.4em] text-xs mb-12 italic">Cek Progress Pembuatan Jersey Custom Secara Real-Time</p>
-                    
-                    <form onSubmit={handleSearch} className="relative w-full mx-auto">
-                        <input 
-                            type="text" 
-                            value={orderId}
-                            onChange={(e) => setOrderId(e.target.value.toUpperCase())}
-                            placeholder="Masukkan Tracking ID (Contoh: JK-XXXXXX)"
-                            className="w-full h-20 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2.5rem] px-10 text-white text-xl font-black placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#D25026] transition-all text-center uppercase tracking-widest"
-                        />
-                        <button 
-                            type="submit"
-                            disabled={loading}
-                            className="absolute right-3 top-3 bottom-3 bg-[#D25026] hover:bg-[#B34320] text-slate-900 px-8 rounded-[2rem] font-black italic uppercase tracking-widest text-xs transition-all shadow-lg flex items-center gap-3 active:scale-95"
-                        >
-                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search size={20} />}
-                            Lacak
-                        </button>
-                    </form>
-                </div>
-                {/* Decorative Background */}
-                <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border-[40px] border-white rounded-full"></div>
+            {/* Hero Header matching Reference */}
+            <div className="w-full bg-[#F4F6F8] border-b border-slate-200/80 pt-12 pb-14 px-8 lg:px-16 xl:px-24 relative overflow-hidden">
+                {/* Background decorative dots */}
+                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px] opacity-70 pointer-events-none"></div>
+
+                <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center relative z-10">
+                    {/* Left Column: Help Center + Title + Subtitle + Search */}
+                    <div className="lg:col-span-7 w-full min-w-0 space-y-5">
+                        <div className="inline-block bg-[#EFD33D] text-[#191C1F] text-xs font-black px-3.5 py-1.5 rounded uppercase tracking-wider shadow-xs">
+                            HELP CENTER
+                        </div>
+                        <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black text-[#191C1F] tracking-tight leading-tight">
+                            How we can help you!
+                        </h1>
+                        <p className="text-slate-600 font-medium text-sm lg:text-base leading-relaxed w-full">
+                            Lacak status progres produksi dan pengiriman jersey custom FCSV Anda secara real-time dengan memasukkan Tracking ID.
+                        </p>
+
+                        <form onSubmit={handleSearch} className="w-full pt-2">
+                            <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-2 flex items-center gap-3 w-full focus-within:ring-2 focus-within:ring-[#2DA5F3] focus-within:border-transparent transition-all">
+                                <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
+                                <input 
+                                    type="text" 
+                                    value={orderId}
+                                    onChange={(e) => setOrderId(e.target.value.toUpperCase())}
+                                    placeholder="Masukkan Tracking ID (Contoh: JK-XXXXXX)..."
+                                    className="flex-1 bg-transparent border-none text-slate-800 text-sm font-bold placeholder:text-slate-400 focus:outline-none focus:ring-0 px-2 uppercase tracking-wider"
+                                />
+                                <button 
+                                    type="submit"
+                                    disabled={loading}
+                                    className="bg-[#2DA5F3] hover:bg-[#1E94E0] active:scale-95 transition-all text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-wider shrink-0 flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-70"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>SEARCH</span>}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Right Column: FCSV_Jersey Image */}
+                    <div className="lg:col-span-5 w-full min-w-0 flex justify-center lg:justify-end items-center relative">
+                        <div className="relative w-full max-w-[500px]">
+                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-16 h-28 bg-[radial-gradient(#94a3b8_2px,transparent_2px)] [background-size:12px_12px] opacity-40 pointer-events-none hidden sm:block"></div>
+                            <img 
+                                src="/images/FCSV_Jersey.webp" 
+                                alt="FCSV Customer Support & Tracking" 
+                                className="w-full h-auto max-h-[380px] lg:max-h-[420px] object-contain drop-shadow-xl rounded-2xl"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className="w-full mx-auto -mt-20 px-10 relative z-20">
+            <div className="w-full pt-10 pb-20 px-8 lg:px-16 xl:px-24 relative z-20">
                 {error && (
                     <div className="bg-red-50 border border-red-100 p-6 rounded-[2rem] flex items-center gap-4 text-red-600 animate-in fade-in slide-in-from-top-4">
                         <AlertCircle size={24} />
@@ -780,8 +803,8 @@ export function TrackingPesananDesktop() {
 
                         {/* 6 Production Stages Card */}
                         <div className="bg-white p-10 md:p-12 rounded-[3rem] border border-slate-150 shadow-2xl shadow-slate-200/60">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-6 border-b border-slate-100 gap-6">
-                                <div className="shrink-0">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center mb-10 pb-6 border-b border-slate-100">
+                                <div className="md:col-span-7">
                                     <span className="text-[11px] font-black uppercase tracking-[0.3em] text-[#D25026] block mb-2">
                                         Alur Workshop FCSV
                                     </span>
@@ -789,9 +812,11 @@ export function TrackingPesananDesktop() {
                                         6 Tahap Produksi Jersey Custom
                                     </h2>
                                 </div>
-                                <p className="text-xs text-slate-500 font-medium leading-relaxed md:text-right shrink-0">
-                                    Setiap pesanan melewati standar operasional ketat untuk menjamin presisi warna, ukuran, dan kenyamanan kain saat digunakan bertanding.
-                                </p>
+                                <div className="md:col-span-5 md:text-right">
+                                    <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed">
+                                        Setiap pesanan melewati standar operasional ketat untuk menjamin presisi warna, ukuran, dan kenyamanan kain saat digunakan bertanding.
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

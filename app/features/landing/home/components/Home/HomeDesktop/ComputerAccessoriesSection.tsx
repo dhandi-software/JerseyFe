@@ -32,7 +32,7 @@ export function ComputerAccessoriesSection() {
       id: String(p.id),
       title: p.title,
       price: `Rp ${p.price.toLocaleString("id-ID")}`,
-      image: p.image || "/images/jersey_hero.png",
+      image: p.image || "/images/jersey_hero.webp",
       categoryName: p.category || "Bahan Baju",
       categorySlug: (p.category || "").toLowerCase(),
       stockText: `${p.stock} kg`,
@@ -120,7 +120,7 @@ export function ComputerAccessoriesSection() {
 
           <div className="my-auto py-4 flex items-center justify-center">
             <img
-              src={highlightProduct?.image || "/images/jersey_hero.png"}
+              src={highlightProduct?.image || "/images/jersey_hero.webp"}
               alt={highlightProduct?.title || "Kain Jersey"}
               className="max-h-48 object-contain drop-shadow-xl"
             />

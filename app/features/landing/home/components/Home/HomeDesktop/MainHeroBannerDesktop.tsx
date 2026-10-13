@@ -67,7 +67,7 @@ export function MainHeroBannerDesktop() {
 
             <div className="relative w-[340px] h-[320px] flex items-center justify-center shrink-0">
               <img
-                src={activeBanner?.image || premierProduct?.image || "/images/jersey_hero.png"}
+                src={activeBanner?.image || premierProduct?.image || "/images/jersey_hero.webp"}
                 alt={activeBanner?.title || premierProduct?.title || "Custom Jersey"}
                 className="w-full h-full object-contain drop-shadow-2xl scale-105"
                 onError={(e) => {

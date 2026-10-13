@@ -13,7 +13,7 @@ export const userApi = {
     ): Promise<ChangePasswordResponse> => {
         try {
             const response = await client.put<ChangePasswordResponse>(
-                "/user/change-password",
+                "/auth/change-password",
                 data,
             );
 

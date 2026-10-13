@@ -157,7 +157,7 @@ export function AboutSection() {
                                             onClick={() => navigate(currentItem?.id ? `/product/${currentItem.id}` : "/category")}
                                             key={currentItem?.id || currentIndex}
                                             className="relative z-10 w-full h-full object-contain drop-shadow-[0_30px_30px_rgba(0,0,0,0.5)] transform group-hover:scale-105 transition-transform duration-700 animate-in fade-in duration-500 cursor-pointer" 
-                                            src={currentItem?.imageUrl ? (currentItem.imageUrl.startsWith("http") || currentItem.imageUrl.startsWith("/") ? currentItem.imageUrl : `${UPLOADS_URL}${currentItem.imageUrl}`) : "/images/jersey_hero.png"} 
+                                            src={currentItem?.imageUrl ? (currentItem.imageUrl.startsWith("http") || currentItem.imageUrl.startsWith("/") ? currentItem.imageUrl : `${UPLOADS_URL}${currentItem.imageUrl}`) : "/images/jersey_hero.webp"} 
                                             alt={currentItem?.nama} 
                                         />
 

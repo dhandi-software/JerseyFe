@@ -19,6 +19,7 @@ export const UPLOADS_URL = baseUrl || "";
 
 export const client = axios.create({
     baseURL: API_URL,
+    timeout: 3500, // Timeout after 3.5s to prevent infinite loading/skeletons if backend is down
     headers: {
         "Content-Type": "application/json",
     },

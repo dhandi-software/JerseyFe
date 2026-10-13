@@ -22,7 +22,7 @@ export function CategorizedProductListsSectionMobile() {
       id: String(p.id),
       title: p.title,
       price: formattedPrice,
-      image: p.image || "/images/jersey_hero.png",
+      image: p.image || "/images/jersey_hero.webp",
     };
   });
 

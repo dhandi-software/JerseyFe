@@ -68,7 +68,7 @@ export function MainHeroBannerMobile() {
         {/* Dedicated Product Showcase Frame with Price Badge */}
         <div className="w-full my-3.5 h-48 bg-white/80 rounded-xl border border-zinc-200/70 p-2 relative flex items-center justify-center overflow-hidden shadow-xs">
           <img
-            src={premierProduct.image || "/images/jersey_hero.png"}
+            src={premierProduct.image || "/images/jersey_hero.webp"}
             alt={premierProduct.title}
             className="w-full h-full object-contain drop-shadow-md"
             onError={(e) => {

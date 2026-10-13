@@ -171,43 +171,57 @@ export function TrackingPesananMobile() {
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans pb-20 w-full overflow-x-hidden">
-            {/* Header */}
-            <div className="bg-slate-900 pt-7 pb-12 px-4 relative overflow-hidden w-full">
-                <div className="relative z-10 space-y-3 w-full text-center">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#D25026]">
-                        Live Tracking
-                    </span>
-                    <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-tight">
-                        Lacak Pesanan Jersey
+            {/* Header matching Reference */}
+            <div className="bg-[#F4F6F8] border-b border-slate-200/80 pt-6 pb-6 px-4 relative overflow-hidden w-full">
+                {/* Background decorative dots */}
+                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-70 pointer-events-none"></div>
+
+                <div className="relative z-10 space-y-3 w-full">
+                    <div className="inline-block bg-[#EFD33D] text-[#191C1F] text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-wider shadow-xs">
+                        HELP CENTER
+                    </div>
+                    <h1 className="text-2xl font-black text-[#191C1F] tracking-tight leading-tight">
+                        How we can help you!
                     </h1>
-                    <p className="text-xs text-slate-300 font-medium leading-relaxed px-2">
-                        Pantau progres produksi jersey custom FCSV secara real-time
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                        Lacak status pembuatan jersey custom FCSV secara real-time
                     </p>
 
-                    <form onSubmit={handleSearch} className="w-full pt-1 flex items-center gap-2">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <form onSubmit={handleSearch} className="w-full pt-1">
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-1.5 flex items-center gap-2 focus-within:ring-2 focus-within:ring-[#2DA5F3] focus-within:border-transparent transition-all">
+                            <Search className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
                             <input 
                                 type="text" 
                                 value={orderId}
                                 onChange={(e) => setOrderId(e.target.value.toUpperCase())}
-                                placeholder="Masukkan Kode (JK-XXXXXX)"
-                                className="w-full h-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl pl-10 pr-3 text-white text-xs font-bold placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#D25026] uppercase tracking-wider"
+                                placeholder="Masukkan Tracking ID (JK-XXXXXX)"
+                                className="flex-1 bg-transparent border-none text-slate-800 text-xs font-bold placeholder:text-slate-400 focus:outline-none focus:ring-0 px-1 uppercase tracking-wider"
+                            />
+                            <button 
+                                type="submit"
+                                disabled={loading}
+                                aria-label="Search"
+                                className="h-9 px-4 bg-[#2DA5F3] hover:bg-[#1E94E0] text-white rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center shrink-0 shadow-xs active:scale-95 cursor-pointer transition-all disabled:opacity-70"
+                            >
+                                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>SEARCH</span>}
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* FCSV_Jersey Image showcase */}
+                    <div className="pt-2 w-full">
+                        <div className="w-full rounded-2xl overflow-hidden border border-slate-200/80 bg-white shadow-xs">
+                            <img 
+                                src="/images/FCSV_Jersey.webp" 
+                                alt="FCSV Customer Support & Tracking" 
+                                className="w-full h-44 object-cover object-center"
                             />
                         </div>
-                        <button 
-                            type="submit"
-                            disabled={loading}
-                            aria-label="Cari Pesanan"
-                            className="h-12 px-5 bg-[#D25026] hover:bg-[#B3411A] text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center shrink-0 shadow-sm active:scale-95 cursor-pointer transition-all"
-                        >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Lacak</span>}
-                        </button>
-                    </form>
+                    </div>
                 </div>
             </div>
 
-            <div className="px-4 -mt-6 relative z-20 space-y-4 w-full">
+            <div className="px-4 pt-5 pb-16 relative z-20 space-y-4 w-full">
                 {error && (
                     <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600">
                         <AlertCircle size={18} />
