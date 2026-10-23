@@ -12,6 +12,8 @@ export interface RecentCustomer {
     [key: string]: any;
 }
 
+export type DashboardRecentCustomer = RecentCustomer;
+
 export interface RecentChat {
     id: number;
     senderName: string;
@@ -24,10 +26,23 @@ export interface RecentChat {
     [key: string]: any;
 }
 
+export type DashboardRecentChat = RecentChat;
+
 export interface TopBuyer {
     name: string;
     category: string;
     initial: string;
+    [key: string]: any;
+}
+
+export interface DashboardNewOrder {
+    name: string;
+    [key: string]: any;
+}
+
+export interface ChartDataPoint {
+    name: string;
+    pv: number;
     [key: string]: any;
 }
 
@@ -43,5 +58,5 @@ export interface DashboardStatsData {
     bestMonth: BestMonth;
     bestYear: BestYear;
     topBuyer: TopBuyer;
-    newOrders: any[];
+    newOrders: DashboardNewOrder[];
 }

@@ -1,163 +1,45 @@
-import { useState, useEffect, useMemo } from "react";
-import { Plus, Search, Filter, Monitor, Pencil, Trash2, Check, X, ChevronRight, MoreVertical, AlertTriangle } from "lucide-react";
-import { adminApi } from "~/api/admin";
+import { useState } from "react";
+import { Plus, Search, Monitor, Pencil, Trash2, X } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CreateAccountMobile } from "../create-account/CreateAccountMobile";
-import { useNavigate } from "react-router";
 import { Checkbox } from "~/components/ui/checkbox";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { ForceDeleteModal } from "~/components/ui/force-delete-modal";
-import { Toast, type ToastProps } from "~/components/ui/toast";
+import { Toast } from "~/components/ui/toast";
 import {
     Drawer,
     DrawerContent,
     DrawerTrigger,
 } from "~/components/ui/drawer";
-import { useSidebar } from "~/components/ui/sidebar";
-import { useAuth } from "~/hooks/useAuth";
+import { useUsers } from "~/hooks";
 
 export function UserListMobile() {
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"customer" | "internal">("customer");
-    const [users, setUsers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const {
+        navigate,
+        activeTab,
+        handleTabChange,
+        filteredUsers,
+        loading,
+        search,
+        setSearch,
+        selectedIds,
+        setSelectedIds,
+        handleToggleSelect,
+        handleSelectAll,
+        deleteModalOpen,
+        setDeleteModalOpen,
+        userToDelete,
+        setUserToDelete,
+        confirmDelete,
+        handleDelete,
+        forceDeleteModalOpen,
+        setForceDeleteModalOpen,
+        handleForceDelete,
+        blockingMessage,
+        toastProps
+    } = useUsers();
+
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [search, setSearch] = useState("");
-    
-    // Selection & Delete state
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
-    const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
-    const [blockingMessage, setBlockingMessage] = useState("");
-
-    // Toast State
-    const [toastProps, setToastProps] = useState<ToastProps | null>(null);
-    const showToast = (title: string, variant: "success" | "destructive" = "success") => {
-        setToastProps({ title, variant });
-        setTimeout(() => setToastProps(null), 5000);
-    };
-
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
-            if (activeTab === "internal") {
-                const resDesain = await adminApi.getUsersByRole("desain");
-                const resGudang = await adminApi.getUsersByRole("gudang");
-                setUsers([...(resDesain.data || []), ...(resGudang.data || [])]);
-            } else {
-                const res = await adminApi.getUsersByRole("customer");
-                setUsers(Array.isArray(res.data) ? res.data : []);
-            }
-        } catch (error) {
-            console.error("Failed to fetch users", error);
-            setUsers([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchUsers();
-        setSelectedIds([]);
-        setSearch("");
-    }, [activeTab]);
-
-    const filteredUsers = useMemo(() => {
-        const { user: currentUser } = useAuth();
-        return users.filter((user) => {
-            // Restriction: Admin cannot see/edit Managers
-            if (currentUser?.role === 'admin' && (user.user?.role === 'manager' || user.role === 'manager')) {
-                return false;
-            }
-
-            const searchLower = search.toLowerCase();
-            return (
-                user.nama?.toLowerCase().includes(searchLower) ||
-                user.email?.toLowerCase().includes(searchLower) ||
-                (user.customerId && user.customerId.toLowerCase().includes(searchLower)) ||
-                (user.staffId && user.staffId.toLowerCase().includes(searchLower))
-            );
-        });
-    }, [users, search]);
-
-    const handleToggleSelect = (id: number) => {
-        setSelectedIds(prev => 
-            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-        );
-    };
-
-    const handleSelectAll = () => {
-        if (selectedIds.length === filteredUsers.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(filteredUsers.map(u => u.user?.id || u.userId || u.id));
-        }
-    };
-
-    const handleDelete = async () => {
-        if (selectedIds.length > 0 && !userToDelete) {
-            try {
-                const res = await adminApi.deleteUsersBatch(selectedIds);
-                fetchUsers();
-                setDeleteModalOpen(false);
-                setSelectedIds([]);
-                showToast(res.message);
-            } catch (error: any) {
-                const msg = error.response?.data?.message || "Gagal menghapus beberapa user";
-                showToast(msg, "destructive");
-                setDeleteModalOpen(false);
-            }
-            return;
-        }
-
-        if (!userToDelete) return;
-        try {
-            const res = await adminApi.deleteUser(userToDelete.id);
-            fetchUsers();
-            setDeleteModalOpen(false);
-            setUserToDelete(null);
-            setSelectedIds(prev => prev.filter(id => id !== userToDelete.id));
-            showToast(res.message || "User berhasil dihapus");
-        } catch (error: any) {
-            const message = error.response?.data?.message || "";
-            
-            // If the failure is due to active data, offer force delete via modal
-            if (error.response?.status === 400 && message.includes("data aktif")) {
-                setBlockingMessage(message);
-                setDeleteModalOpen(false); // Close first modal
-                setTimeout(() => setForceDeleteModalOpen(true), 300); // Small delay for smooth transition
-                return;
-            } else {
-                const msg = error.response?.data?.message || "Gagal menghapus user";
-                showToast(msg, "destructive");
-                setDeleteModalOpen(false);
-            }
-        }
-    };
-
-    const handleForceDelete = async () => {
-        if (!userToDelete) return;
-        
-        try {
-            const res = await adminApi.deleteUser(userToDelete.id, true);
-            fetchUsers();
-            setForceDeleteModalOpen(false);
-            setUserToDelete(null);
-            setSelectedIds(prev => prev.filter(id => id !== userToDelete.id));
-            showToast(res.message || "User berhasil dihapus");
-        } catch (error: any) {
-            const msg = error.response?.data?.message || "Gagal menghapus user secara paksa";
-            showToast(msg, "destructive");
-            setForceDeleteModalOpen(false);
-        }
-    };
-
-    const confirmDelete = (user: any) => {
-        const id = user.user?.id || user.userId || user.id;
-        setUserToDelete({ id, name: user.nama });
-        setDeleteModalOpen(true);
-    };
 
     return (
         <div className="w-full min-h-screen bg-gray-50 pb-24 font-geist">
@@ -172,7 +54,7 @@ export function UserListMobile() {
 
             <ForceDeleteModal
                 isOpen={forceDeleteModalOpen}
-                onClose={() => { setForceDeleteModalOpen(false); setUserToDelete(null); }}
+                onClose={() => { setForceDeleteModalOpen(false); }}
                 onConfirm={handleForceDelete}
                 title="Hapus Paksa Akun"
                 itemName={userToDelete?.name || ""}
@@ -182,26 +64,23 @@ export function UserListMobile() {
             {/* Toast Notification */}
             {toastProps && (
                 <div className="fixed top-6 left-6 right-6 z-[100] animate-in slide-in-from-top-full">
-                    <Toast 
-                        {...toastProps} 
-                        onClose={() => setToastProps(null)} 
-                    />
+                    <Toast {...toastProps} />
                 </div>
             )}
 
-             <div className="bg-white px-5 py-6 sticky top-0 z-10 border-b border-gray-100 shadow-sm">
+            <div className="bg-white px-5 py-6 sticky top-0 z-10 border-b border-gray-100 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-xl font-bold text-gray-900">User Management</h1>
                     <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DrawerTrigger asChild>
-                             <button className="w-10 h-10 bg-[#D25026] text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform">
+                            <button className="w-10 h-10 bg-[#D25026] text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform cursor-pointer">
                                 <Plus size={20} />
                             </button>
                         </DrawerTrigger>
                         <DrawerContent className="h-[92vh]">
-                             <div className="h-full overflow-y-auto">
+                            <div className="h-full overflow-y-auto">
                                 <CreateAccountMobile />
-                             </div>
+                            </div>
                         </DrawerContent>
                     </Drawer>
                 </div>
@@ -211,9 +90,9 @@ export function UserListMobile() {
                     {(["customer", "internal"] as const).map((tab) => (
                         <button
                             key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => handleTabChange(tab)}
                             className={cn(
-                                "flex-1 py-2 text-sm font-semibold rounded-lg transition-all capitalize",
+                                "flex-1 py-2 text-sm font-semibold rounded-lg transition-all capitalize cursor-pointer",
                                 activeTab === tab
                                     ? "bg-white text-gray-900 shadow-sm"
                                     : "text-gray-500"
@@ -223,6 +102,7 @@ export function UserListMobile() {
                         </button>
                     ))}
                 </div>
+
                 {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -231,30 +111,30 @@ export function UserListMobile() {
                         placeholder={`Search ${activeTab}...`}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#D25026]/20 transition-all"
+                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-[#D25026]/20 transition-all outline-none"
                     />
                 </div>
             </div>
 
-            {/* Selection Toolbar (Floating at bottom but above navbar) */}
+            {/* Selection Toolbar */}
             {selectedIds.length > 0 && (
                 <div className="fixed bottom-20 left-4 right-4 bg-gray-900 text-white p-4 rounded-2xl shadow-xl z-30 flex justify-between items-center animate-in slide-in-from-bottom-5">
                     <div className="flex items-center gap-3">
-                         <button onClick={() => setSelectedIds([])} className="p-1 hover:bg-white/10 rounded-full">
+                        <button onClick={() => setSelectedIds([])} className="p-1 hover:bg-white/10 rounded-full cursor-pointer">
                             <X size={18} />
-                         </button>
-                         <span className="text-sm font-medium">{selectedIds.length} terpilih</span>
+                        </button>
+                        <span className="text-sm font-medium">{selectedIds.length} terpilih</span>
                     </div>
                     <div className="flex gap-2">
                         <button 
-                            onClick={handleSelectAll}
-                            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-medium transition-colors"
+                            onClick={() => handleSelectAll(selectedIds.length !== filteredUsers.length)}
+                            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                         >
                             {selectedIds.length === filteredUsers.length ? "Deselect All" : "Select All"}
                         </button>
                         <button 
                             onClick={() => { setUserToDelete(null); setDeleteModalOpen(true); }}
-                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                             <Trash2 size={14} /> Hapus
                         </button>
@@ -284,7 +164,7 @@ export function UserListMobile() {
                                 key={id}
                                 onClick={() => handleToggleSelect(id)}
                                 className={cn(
-                                    "bg-white p-4 rounded-2xl border transition-all flex items-center gap-4 active:scale-[0.98]",
+                                    "bg-white p-4 rounded-2xl border transition-all flex items-center gap-4 active:scale-[0.98] cursor-pointer",
                                     isSelected ? "border-[#D25026] ring-1 ring-[#D25026]/10" : "border-gray-100"
                                 )}
                             >
@@ -319,7 +199,7 @@ export function UserListMobile() {
                                                 e.stopPropagation();
                                                 navigate(`/admin/edit-account/${id}`);
                                             }}
-                                            className="p-2 text-gray-400 hover:text-blue-600 active:bg-blue-50 rounded-lg transition-colors"
+                                            className="p-2 text-gray-400 hover:text-blue-600 active:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                                         >
                                             <Pencil size={18} />
                                         </button>
@@ -328,7 +208,7 @@ export function UserListMobile() {
                                                 e.stopPropagation();
                                                 confirmDelete(user);
                                             }}
-                                            className="p-2 text-gray-400 hover:text-red-600 active:bg-red-50 rounded-lg transition-colors"
+                                            className="p-2 text-gray-400 hover:text-red-600 active:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -345,4 +225,3 @@ export function UserListMobile() {
         </div>
     );
 }
-

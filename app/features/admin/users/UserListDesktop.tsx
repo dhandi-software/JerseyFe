@@ -1,188 +1,44 @@
-import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, Filter, ChevronDown, Check, Download, AlertTriangle } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { userApi } from "~/api/userApi";
+import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Link } from "react-router";
 import { cn } from "~/lib/utils";
-import { Link, useSearchParams, useNavigate } from "react-router";
 import { DataTable, type Column } from "~/components/ui/table-user";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { ForceDeleteModal } from "~/components/ui/force-delete-modal";
-import { CustomSelect } from "~/components/ui/custom-select";
-import { useAuth } from "~/hooks/useAuth";
 import { Checkbox } from "~/components/ui/checkbox";
-import { Toast, type ToastProps } from "~/components/ui/toast";
+import { Toast } from "~/components/ui/toast";
+import { useUsers } from "~/hooks";
 
 export function UserListDesktop() {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") as "customer" | "internal") || "customer";
-
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [filterYear, setFilterYear] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
-  const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
-  const [blockingMessage, setBlockingMessage] = useState("");
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [toastProps, setToastProps] = useState<ToastProps | null>(null);
-
-  const showToast = (title: string, variant: "success" | "destructive" = "success") => {
-    setToastProps({ title, variant });
-    setTimeout(() => setToastProps(null), 5000);
-  };
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      if (activeTab === "internal") {
-          // Fetch multiple roles for internal
-          const roles = ["desain", "gudang", "manager", "admin"];
-          const results = await Promise.all(roles.map(r => userApi.getUsersByRole(r)));
-          const allStaff = results.flatMap(r => r.data || []);
-          setUsers(allStaff);
-      } else {
-          const res = await userApi.getUsersByRole("customer");
-          setUsers(Array.isArray(res.data) ? res.data : []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users", error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-    setCurrentPage(1);
-    setSearch("");
-    setFilterYear("");
-    setIsFilterOpen(false);
-    setSelectedIds([]);
-  }, [activeTab]);
-
-  const handleTabChange = (tab: "customer" | "internal") => {
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev);
-      newParams.set("tab", tab);
-      return newParams;
-    });
-  };
-
-  const confirmDelete = (user: any) => {
-      const id = user.user?.id || user.userId || user.id;
-      setUserToDelete({ id, name: user.nama });
-      setDeleteModalOpen(true);
-  };
-
-  const handleDelete = async () => {
-      if (selectedIds.length > 0 && !userToDelete) {
-          try {
-              await Promise.all(selectedIds.map(id => userApi.deleteUser(id.toString())));
-              fetchUsers();
-              setDeleteModalOpen(false);
-              setSelectedIds([]);
-              showToast("Selected users deleted successfully");
-          } catch (error: any) {
-              showToast("Failed to delete selected users", "destructive");
-          }
-          return;
-      }
-
-      if (!userToDelete) return;
-      
-      try {
-          await userApi.deleteUser(userToDelete.id.toString());
-          fetchUsers();
-          setDeleteModalOpen(false);
-          setUserToDelete(null);
-          showToast("User deleted successfully");
-      } catch (error: any) {
-          const message = error.response?.data?.message || "";
-          if (error.response?.status === 400) {
-              setBlockingMessage(message);
-              setDeleteModalOpen(false);
-              setTimeout(() => setForceDeleteModalOpen(true), 300);
-          } else {
-              showToast(message || "Failed to delete user", "destructive");
-              setDeleteModalOpen(false);
-          }
-      }
-  };
-
-  const handleForceDelete = async () => {
-      if (!userToDelete) return;
-      try {
-          await userApi.deleteUser(userToDelete.id.toString(), true);
-          fetchUsers();
-          setForceDeleteModalOpen(false);
-          setUserToDelete(null);
-          showToast("User deleted successfully (Force)");
-      } catch (error: any) {
-          showToast("Failed to force delete user", "destructive");
-      }
-  };
-
-  const handleToggleSelect = (id: number) => {
-      setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  };
-
-  const filteredUsers = useMemo(() => {
-    const { user: currentUser } = useAuth();
-    return users
-      .filter((user) => {
-        // Restriction: Admin cannot see/edit Managers
-        if (currentUser?.role === 'admin' && (user.user?.role === 'manager' || user.role === 'manager')) {
-            return false;
-        }
-
-        const searchLower = search.toLowerCase();
-        return (
-          user.nama?.toLowerCase().includes(searchLower) ||
-          user.email?.toLowerCase().includes(searchLower) ||
-          user.customerId?.toLowerCase().includes(searchLower) ||
-          user.staffId?.toLowerCase().includes(searchLower) ||
-          user.category?.toLowerCase().includes(searchLower) ||
-          user.position?.toLowerCase().includes(searchLower)
-        );
-      })
-      .sort((a, b) => {
-        const nameA = a.nama?.toLowerCase() || "";
-        const nameB = b.nama?.toLowerCase() || "";
-        return sortOrder === "asc" ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-      });
-  }, [users, search, sortOrder]);
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(start, start + itemsPerPage);
-  }, [filteredUsers, currentPage]);
-
-  const handleSelectAll = (checked: boolean) => {
-      if (checked) {
-          setSelectedIds(paginatedUsers.map(u => u.user?.id || u.userId || u.id));
-      } else {
-          setSelectedIds([]);
-      }
-  };
-
-  const isAllPageSelected = paginatedUsers.length > 0 && paginatedUsers.every(u => 
-      selectedIds.includes(u.user?.id || u.userId || u.id)
-  );
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
-  };
+  const {
+    navigate,
+    activeTab,
+    handleTabChange,
+    users,
+    paginatedUsers,
+    loading,
+    search,
+    setSearch,
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    deleteModalOpen,
+    setDeleteModalOpen,
+    userToDelete,
+    confirmDelete,
+    handleDelete,
+    forceDeleteModalOpen,
+    setForceDeleteModalOpen,
+    handleForceDelete,
+    blockingMessage,
+    selectedIds,
+    handleToggleSelect,
+    handleSelectAll,
+    isAllPageSelected,
+    toastProps,
+    handlePageChange,
+    handleExportPDF
+  } = useUsers();
 
   const columns: Column<any>[] = [
     {
@@ -199,7 +55,7 @@ export function UserListDesktop() {
             checked={selectedIds.includes(id)}
             onCheckedChange={() => handleToggleSelect(id)}
           />
-        )
+        );
       },
       width: "40px",
       stopRowClick: true,
@@ -256,10 +112,10 @@ export function UserListDesktop() {
       header: "Actions",
       cell: (user) => (
         <div className="flex justify-end gap-2">
-           <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-account/${user.user?.id || user.userId || user.id}`) }} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-[#D25026] transition-all">
+           <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/edit-account/${user.user?.id || user.userId || user.id}`) }} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-[#D25026] transition-all cursor-pointer">
                 <Pencil size={18} />
            </button>
-           <button onClick={(e) => { e.stopPropagation(); confirmDelete(user); }} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-all">
+           <button onClick={(e) => { e.stopPropagation(); confirmDelete(user); }} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-all cursor-pointer">
                 <Trash2 size={18} />
            </button>
         </div>
@@ -268,22 +124,6 @@ export function UserListDesktop() {
     },
   ];
 
-  const handleDownloadPDF = async () => {
-    const doc = new jsPDF();
-    const tableColumn = activeTab === "customer"
-        ? ["No", "Name", "Customer ID", "Email", "Category", "Since"]
-        : ["No", "Name", "Staff ID", "Email", "Position", "Role"];
-    const tableRows = users.map((u, index) => [
-        index + 1, u.nama, 
-        activeTab === "customer" ? u.customerId : u.staffId, 
-        u.email || u.user?.email || "-",
-        activeTab === "customer" ? u.category : u.position,
-        activeTab === "customer" ? (u.memberSince || "2026") : (u.user?.role || "-")
-    ]);
-    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
-    doc.save(`FCSV_${activeTab}_Data.pdf`);
-  };
-
   return (
     <div className="p-8 w-full font-geist">
       <DeleteConfirmationModal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} onConfirm={handleDelete} title="Hapus Akun" itemName={userToDelete?.name || ""} description="Apakah Anda yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan." />
@@ -291,7 +131,7 @@ export function UserListDesktop() {
       
       {toastProps && (
         <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right-full">
-            <Toast {...toastProps} onClose={() => setToastProps(null)} />
+            <Toast {...toastProps} />
         </div>
       )}
 
@@ -302,7 +142,7 @@ export function UserListDesktop() {
                  <p className="text-slate-500 font-medium mt-1">Kelola akun {activeTab === "customer" ? "Kustomer" : "Tim Internal"} FCSV Jersey.</p>
             </div>
              <div className="flex gap-3">
-                 <button onClick={handleDownloadPDF} className="px-5 py-2.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center gap-2">
+                 <button onClick={handleExportPDF} className="px-5 py-2.5 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer">
                     <Download size={18} /> Ekspor PDF
                  </button>
                  <Link to={`/admin/create-account?role=${activeTab}`} className="px-5 py-2.5 bg-[#D25026] text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-[#B9441F] transition-all shadow-lg shadow-[#D25026]/20 flex items-center gap-2">
@@ -314,7 +154,7 @@ export function UserListDesktop() {
         <div className="flex justify-between items-center bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
             <div className="flex gap-2">
                 {(["customer", "internal"] as const).map((tab) => (
-                <button key={tab} onClick={() => handleTabChange(tab)} className={cn("px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all", activeTab === tab ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50")}>
+                <button key={tab} onClick={() => handleTabChange(tab)} className={cn("px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer", activeTab === tab ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50")}>
                     {tab === 'internal' ? 'Team Internal' : tab}
                 </button>
                 ))}

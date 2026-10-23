@@ -1,31 +1,10 @@
-import { useAuth } from "~/context/AuthContext";
 import { LayoutDashboard, MessageCircle, User, ShoppingBag, Clock, CheckCircle, Package, Truck, Loader2, Bell } from "lucide-react";
 import { Link } from "react-router";
-import { useState, useEffect } from "react";
-import { orderService } from "~/services/orderService";
+import { useCustomerDashboard } from "~/hooks";
 import { cn } from "~/lib/utils";
 
 export function DashboardDesktop() {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user?.id) return;
-      try {
-        const data = await orderService.getCustomerOrders(user.id);
-        setOrders(data);
-      } catch (error) {
-        console.error("Failed to fetch orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-  }, [user]);
-
-  const activeOrders = orders.filter(o => o.status !== "SELESAI" && o.status !== "DITOLAK");
+  const { user, loading, activeOrders } = useCustomerDashboard();
 
   return (
     <div className="p-6 md:p-10 w-full mx-auto space-y-10 animate-in fade-in duration-500 font-geist">

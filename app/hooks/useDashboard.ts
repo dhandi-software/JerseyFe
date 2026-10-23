@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { adminApi } from "~/api/admin";
 import type { TimeView, DashboardStatsData } from "~/types";
 
@@ -8,6 +8,7 @@ export function useDashboard() {
     const [showWelcomeToast, setShowWelcomeToast] = useState(false);
     const [timeView, setTimeView] = useState<TimeView>('daily');
     const [showDropdown, setShowDropdown] = useState(false);
+    const chartScrollRef = useRef<HTMLDivElement>(null);
 
     const [statsData, setStatsData] = useState<DashboardStatsData>({
         totalCustomer: 0,
@@ -84,6 +85,14 @@ export function useDashboard() {
         return activeData.reduce((sum, item) => sum + (Number(item.pv) || 0), 0);
     }, [activeData]);
 
+    // Auto-scroll chart to the right when populated
+    useEffect(() => {
+        const isEmpty = currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
+        if (chartScrollRef.current && !isEmpty) {
+            chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+        }
+    }, [timeView, statsData, currentTotal, activeData]);
+
     const trend = useMemo(() => {
         let isDecrease = false;
         let percentChange = 0;
@@ -117,6 +126,7 @@ export function useDashboard() {
         activeData,
         currentTotal,
         trend,
+        chartScrollRef,
         fetchDashboardData
     };
 }
