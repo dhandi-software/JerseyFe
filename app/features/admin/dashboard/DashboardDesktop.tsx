@@ -1,106 +1,31 @@
 import {
     Users, UserCheck, Shield, ChevronDown, MessageCircle, Star, Pen, MoreVertical, Plus, ArrowUpRight, TrendingUp
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { adminApi } from "~/api/admin";
+import { useEffect, useRef } from "react";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
 } from 'recharts';
-
-
+import { useDashboard } from "~/hooks";
 
 export function DashboardDesktop() {
-    const [isMounted, setIsMounted] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [showWelcomeToast, setShowWelcomeToast] = useState(false);
-    const [timeView, setTimeView] = useState<'daily' | 'monthly' | 'yearly' | 'lifetime'>('daily');
-    const [showDropdown, setShowDropdown] = useState(false);
+    const {
+        isMounted,
+        loading,
+        showWelcomeToast,
+        timeView,
+        setTimeView,
+        showDropdown,
+        setShowDropdown,
+        statsData,
+        activeData,
+        currentTotal,
+        trend
+    } = useDashboard();
 
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    const [statsData, setStatsData] = useState({
-        totalCustomer: 0,
-        totalStaff: 0,
-        totalAdmin: 0,
-        totalRevenue: 0,
-        salesData: {
-            daily: [] as any[],
-            monthly: [] as any[],
-            yearly: [] as any[],
-            lifetime: [] as any[]
-        },
-        recentCustomers: [] as any[],
-        recentChats: [] as any[],
-        totalUnreadChat: 0,
-        bestMonth: { month: "-", year: "-", pv: 0 },
-        bestYear: { year: "-", totalRevenue: 0, totalQuantity: 0 },
-        topBuyer: { name: "-", category: "-", initial: "-" },
-        newOrders: [] as any[]
-    });
-
-    useEffect(() => {
-        const justLoggedIn = sessionStorage.getItem("justLoggedIn");
-        if (justLoggedIn === "true") {
-            setShowWelcomeToast(true);
-            sessionStorage.removeItem("justLoggedIn");
-        }
-    }, []);
-
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const statsRes = await adminApi.getDashboardStats();
-                const adminRes = await adminApi.getUserCountByRole("admin");
-
-                setStatsData(prev => ({
-                    ...prev,
-                    totalCustomer: Number(statsRes.data?.totalCustomer || 0),
-                    totalStaff: Number(statsRes.data?.totalStaff || 0),
-                    totalAdmin: Number(statsRes.data?.totalAdmin || adminRes.data?.count || 0),
-                    totalRevenue: Number(statsRes.data?.totalRevenue || 0),
-                    salesData: statsRes.data?.salesData || prev.salesData,
-                    recentCustomers: statsRes.data?.recentCustomers || [],
-                    recentChats: statsRes.data?.recentChats || [],
-                    totalUnreadChat: statsRes.data?.totalUnreadChat || 0,
-                    bestMonth: statsRes.data?.bestMonth || prev.bestMonth,
-                    bestYear: statsRes.data?.bestYear || prev.bestYear,
-                    topBuyer: statsRes.data?.topBuyer || prev.topBuyer,
-                    newOrders: statsRes.data?.newOrders || prev.newOrders
-                }));
-            } catch (error) {
-                console.error("Error fetching dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, []);
-
-    const activeData = statsData.salesData[timeView] || [];
-    const currentTotal = activeData.reduce((sum, item) => sum + (item.pv || 0), 0);
-
-    let isDecrease = false;
-    let percentChange = 0;
-    let absoluteChange = 0;
-    if (activeData.length >= 2) {
-        const latest = activeData[activeData.length - 1].pv;
-        const previous = activeData[activeData.length - 2].pv;
-        absoluteChange = latest - previous;
-        if (previous > 0) {
-            percentChange = (absoluteChange / previous) * 100;
-        } else if (latest > 0) {
-            percentChange = 100;
-        }
-        isDecrease = absoluteChange < 0;
-    }
-
+    const { isDecrease, percentChange, absoluteChange } = trend;
     const chartColor = isDecrease ? "#ef4444" : "#22c55e";
-
     const chartScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -108,7 +33,7 @@ export function DashboardDesktop() {
         if (chartScrollRef.current && !isEmpty) {
             chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
         }
-    }, [timeView, statsData, currentTotal]);
+    }, [timeView, statsData, currentTotal, activeData]);
 
     return (
         <div className="w-full min-h-[100vh] p-8 bg-[#F5F5F3] font-['Inter'] flex flex-col gap-6">

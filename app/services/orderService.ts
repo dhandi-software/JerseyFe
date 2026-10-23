@@ -25,8 +25,8 @@ export const orderService = {
         return response.data;
     },
 
-    async getOrders() {
-        const response = await client.get("/orders");
+    async getOrders(params?: { search?: string; status?: string }) {
+        const response = await client.get("/orders", { params });
         return (response.data || []).map(mapOrder);
     },
     

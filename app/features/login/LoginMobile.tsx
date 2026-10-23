@@ -63,14 +63,15 @@ export function LoginMobile() {
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-1.5">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 italic opacity-80">Email Address</label>
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 italic opacity-80">Username atau Email</label>
                             <div className="relative group">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
                                     <Mail className="w-4 h-4" />
                                 </div>
                                 <input 
-                                    type="email"
-                                    placeholder="your@email.com"
+                                    type="text"
+                                    autoComplete="username"
+                                    placeholder="Masukkan username atau email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className={cn(

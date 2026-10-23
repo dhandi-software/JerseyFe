@@ -398,54 +398,88 @@ export function CustomJerseyCheckoutDesktop({ title }: { title: string }) {
         const lines = pasteText.split('\n').filter(l => l.trim());
         if (!activeProduct) return;
 
+        const validSizes = ["5XL", "4XL", "3XL", "2XL", "XXXL", "XXL", "XL", "XS", "XXS", "S", "M", "L"];
+        const isSize = (val: string) => validSizes.includes(val.toUpperCase().trim());
+        const normalizeSize = (rawSize: string) => {
+            const s = rawSize.toUpperCase().trim();
+            if (s === "XXL") return "2XL";
+            if (s === "XXXL") return "3XL";
+            if (s === "XXXXL") return "4XL";
+            return s;
+        };
+        const isNumeric = (val: string) => /^\d+$/.test(val.trim());
+
         const newDetails = lines.map((line, idx) => {
             let tempLine = line.trim();
-            
+
             // 1. Detect Sleeve Length (Lengan)
             let sleeve = "Lengan Pendek";
-            const panjangRegex = /\b(panjang|pjg|long)\b/i;
-            const pendekRegex = /\b(pendek|pdk|short)\b/i;
-            
+            const panjangRegex = /\b(panjang|pjg|long|lengan\s*panjang)\b/i;
+            const pendekRegex = /\b(pendek|pdk|short|lengan\s*pendek)\b/i;
+
             if (panjangRegex.test(tempLine)) {
                 sleeve = "Lengan Panjang";
-                tempLine = tempLine.replace(panjangRegex, '');
+                tempLine = tempLine.replace(panjangRegex, ' ');
             } else if (pendekRegex.test(tempLine)) {
                 sleeve = "Lengan Pendek";
-                tempLine = tempLine.replace(pendekRegex, '');
+                tempLine = tempLine.replace(pendekRegex, ' ');
             }
 
-            // 2. Detect Size (Ukuran)
-            const sizeRegex = /\b(XXS|XS|S|M|L|XL|XXL|2XL|XXXL|4XL|5XL)\b/i;
-            const sizeMatch = tempLine.match(sizeRegex);
-            const size = sizeMatch ? sizeMatch[0].toUpperCase() : "L";
-            if (sizeMatch) {
-                tempLine = tempLine.replace(sizeMatch[0], "");
-            }
+            // 2. Strip leading numbering (e.g. "1.", "1)", "1 -", "10.", "10:", "[1]")
+            tempLine = tempLine.replace(/^\s*(?:no\.?|nomor)?\s*\d+\s*[\.\)\:\-]\s*/i, '');
 
-            // 3. Detect Numbers (Line Number vs Back Number)
-            const allNumbers = [...tempLine.matchAll(/\b\d+\b/g)].map(m => m[0]);
+            let name = "";
             let number = "";
-            
-            if (allNumbers.length >= 2) {
-                const firstNumber = allNumbers[0];
-                const leadingNumberRegex = new RegExp(`^${firstNumber}\\s*[\\.\\)\\-\\,]*\\s*`);
-                if (leadingNumberRegex.test(tempLine)) {
-                    tempLine = tempLine.replace(leadingNumberRegex, '');
-                    number = allNumbers[1];
-                    tempLine = tempLine.replace(new RegExp(`\\b${number}\\b`), '');
-                } else {
-                    number = firstNumber;
-                    tempLine = tempLine.replace(new RegExp(`\\b${number}\\b`), '');
+            let size = "L";
+
+            // 3. Check if line has clear delimiters (slashes '/', tabs '\t', pipes '|', semicolons ';', commas ',', or surrounded dashes ' - ')
+            const hasDelimiter = /[\/\t\|;,]|\s+-\s+/.test(tempLine);
+
+            if (hasDelimiter) {
+                const parts = tempLine
+                    .split(/(?:[\/\t\|;,]+|\s+-\s+)/)
+                    .map(p => p.trim())
+                    .filter(Boolean);
+
+                const nameParts: string[] = [];
+                let sizeFound = false;
+
+                for (const part of parts) {
+                    if (!sizeFound && isSize(part)) {
+                        size = normalizeSize(part);
+                        sizeFound = true;
+                    } else if (!number && isNumeric(part)) {
+                        number = part;
+                    } else {
+                        nameParts.push(part);
+                    }
                 }
-            } else if (allNumbers.length === 1) {
-                number = allNumbers[0];
-                tempLine = tempLine.replace(new RegExp(`\\b${number}\\b`), '');
+
+                name = nameParts.join(" ");
+            } else {
+                // Space-separated format fallback (e.g. "IRFAN S 27 M" or "AWAN L 24")
+                const tokens = tempLine.split(/\s+/).filter(Boolean);
+                let sizeFound = false;
+
+                for (let i = tokens.length - 1; i >= 0; i--) {
+                    const token = tokens[i];
+                    if (!sizeFound && isSize(token)) {
+                        size = normalizeSize(token);
+                        sizeFound = true;
+                        tokens.splice(i, 1);
+                    } else if (!number && isNumeric(token)) {
+                        number = token;
+                        tokens.splice(i, 1);
+                    }
+                }
+
+                name = tokens.join(" ");
             }
 
-            // 4. Clean up Name (Nama)
-            let name = tempLine
+            // 4. Clean up Name: ensure slashes, backslashes, pipes, and stray punctuation are removed
+            name = name
                 .replace(/["'\(\)\[\]\{\}]/g, '')
-                .replace(/[-–—,;|]/g, ' ')
+                .replace(/[\/\\|;,]/g, ' ')
                 .replace(/\s+/g, ' ')
                 .trim();
 

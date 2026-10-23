@@ -14,74 +14,99 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== "undefined") {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        try {
+          return JSON.parse(savedUser);
+        } catch (error) {
+          console.error("Failed to parse user from localStorage", error);
+        }
+      }
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const savedUser = localStorage.getItem("user");
-      
-      if (savedUser) {
-        try {
-            setUser(JSON.parse(savedUser));
-        } catch (error) {
-          console.error("Failed to parse user", error);
-          setUser(null);
-        }
+    // Keep user state in sync with localStorage on mount
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+      } catch (error) {
+        console.error("Failed to parse user", error);
+        setUser(null);
       }
-      setIsLoading(false);
-    };
-
-    initializeAuth();
+    }
   }, []);
 
   const login = async (data: LoginCredentials) => {
     setIsLoading(true);
     try {
-        const payload = {
-            username: data.email,
-            password: data.password
-        };
+      const payload = {
+        username: data.email || data.username,
+        password: data.password
+      };
 
       const response = await authService.login(payload);
 
-      if (response.user) {
-        const { user } = response;
+      if (response?.user) {
+        const token = response.token;
+        const userObj: User = {
+          ...response.user,
+          token: token || response.user.token
+        };
 
-        localStorage.setItem("user", JSON.stringify(user));
+        if (token) {
+          localStorage.setItem("jwt", token);
+        }
+        localStorage.setItem("user", JSON.stringify(userObj));
+        setUser(userObj);
 
-        setUser(user);
+        const role = (userObj.role || "").toLowerCase();
 
+        const getDashboardForRole = (r: string) => {
+          switch (r) {
+            case "customer":
+              return "/customer";
+            case "desain":
+              return "/desain";
+            case "gudang":
+              return "/gudang";
+            case "admin":
+              return "/admin";
+            case "manager":
+              return "/manager";
+            default:
+              console.warn("Unknown role, redirecting to home:", r);
+              return "/";
+          }
+        };
+
+        const defaultDashboard = getDashboardForRole(role);
         const from = (location.state as any)?.from?.pathname || null;
 
-        if (from) {
+        // Verify if `from` is a safe and role-authorized destination to prevent bouncing
+        const isFromAuthorized = () => {
+          if (!from || typeof from !== "string") return false;
+          if (from === "/login" || from === "/register" || from === "/") return false;
+          if (from.startsWith("/admin") && role !== "admin") return false;
+          if (from.startsWith("/customer") && role !== "customer") return false;
+          if (from.startsWith("/manager") && role !== "manager") return false;
+          if (from.startsWith("/desain") && role !== "desain") return false;
+          if (from.startsWith("/gudang") && role !== "gudang") return false;
+          return true;
+        };
+
+        if (isFromAuthorized()) {
           navigate(from, { replace: true });
         } else {
-            const role = user.role.toLowerCase();
-
-            switch (role) {
-
-                case 'customer':
-                    navigate("/customer");
-                    break;
-                case 'desain':
-                    navigate("/desain");
-                    break;
-                case 'gudang':
-                    navigate("/gudang");
-                    break;
-                case 'admin':
-                    navigate("/admin");
-                    break;
-                case 'manager':
-                    navigate("/manager");
-                    break;
-                default:
-                    console.warn("Unknown role, redirecting to home:", role);
-                    navigate("/");
-            }
+          navigate(defaultDashboard, { replace: true });
         }
       }
     } catch (error) {
@@ -94,12 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     localStorage.removeItem("user");
-    
-    try {
-      authService.logout().catch(e => console.error(e));
-    } catch(e) { console.error(e) }
+    localStorage.removeItem("jwt");
+    setUser(null);
 
-    window.location.href = "/login";
+    try {
+      await authService.logout();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+
+    navigate("/login", { replace: true });
   };
 
   const value = React.useMemo(() => ({

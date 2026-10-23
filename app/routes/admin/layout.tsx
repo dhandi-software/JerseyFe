@@ -256,7 +256,8 @@ export function AppSidebar() {
 
 export default function AdminLayout() {
   const location = useLocation();
-  const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
+  const rootData = useRouteLoaderData<ContextType>("root");
+  const isMobile = rootData?.isMobile ?? false;
   return (
     <ProtectedRoute>
       <RoleGuard allowedRoles={["admin"]}>

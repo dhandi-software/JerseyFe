@@ -1,16 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { ShoppingBag, CheckCircle, Clock, FileText, Eye, User, Image as ImageIcon, CreditCard, ChevronRight, Loader2, ChevronLeft, Copy, Truck, Download, Search, ChevronDown, AlertCircle, Printer, Upload } from "lucide-react";
+import { ShoppingBag, Loader2, Eye, ChevronRight, ChevronDown, Search, Users } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { orderService } from "~/services/orderService";
-import { chatService } from "~/services/chatService";
-import { UPLOADS_URL } from "~/api/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
-import { adminApi } from "~/api/admin";
 import { Toast } from "~/components/ui/toast";
-import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
-import { generateInvoicePDF } from "~/lib/pdfHelper";
 import { Button } from "~/components/ui/button";
-import { CustomSelect } from "~/components/ui/custom-select";
 import { Input } from "~/components/ui/input";
 import {
     Pagination,
@@ -21,1062 +12,101 @@ import {
     PaginationNext,
     PaginationEllipsis,
 } from "~/components/ui/pagination";
+import { useMonitoringPesanan } from "~/hooks";
+import { OrderDetailViewMobile } from "./components/OrderDetailViewMobile";
+import { getStatusStyle, parseSleeveAndSize } from "./utils";
+import type { MonitoringFilterTab, MonitoringSortOption } from "~/types";
 
 export function MonitoringPesananMobile() {
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-    const [designers, setDesigners] = useState<any[]>([]);
-    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-    const [selectedDesignerId, setSelectedDesignerId] = useState<number | "">("");
-    const [orderToAssign, setOrderToAssign] = useState<number | null>(null);
-    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
-    const [bahanList, setBahanList] = useState<any[]>([]);
-    const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
-    const [tempRecommendedIds, setTempRecommendedIds] = useState<number[]>([]);
-
-    useEffect(() => {
-        if (selectedOrder) {
-            setTempRecommendedIds(selectedOrder.recommendedBahanIds || []);
-        }
-    }, [selectedOrder]);
-
-    const [isPrinting, setIsPrinting] = useState(false);
-
-    const handlePrintInvoice = async () => {
-        if (!selectedOrder) return;
-        setIsPrinting(true);
-        try {
-            await generateInvoicePDF(selectedOrder);
-        } catch (error) {
-            console.error("Failed to generate PDF", error);
-            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
-        } finally {
-            setIsPrinting(false);
-        }
-    };
-
-    const [isUploadingProof, setIsUploadingProof] = useState(false);
-    const proofInputRef = useRef<HTMLInputElement>(null);
-
-    const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !selectedOrder) return;
-        
-        setIsUploadingProof(true);
-        try {
-            const res = await chatService.uploadFile(file);
-            const newPaymentUrl = res.url;
-            
-            // We use the new dedicated API endpoint for paymentUrl update
-            await orderService.updatePaymentUrl(selectedOrder.rawId, newPaymentUrl);
-            
-            setToast({ title: "Bukti pembayaran berhasil diunggah!", variant: "success" });
-            // Update local state
-            setSelectedOrder({ ...selectedOrder, paymentProofUrl: newPaymentUrl });
-            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, paymentProofUrl: newPaymentUrl } : o));
-            
-        } catch (error) {
-            console.error("Gagal mengunggah bukti pembayaran", error);
-            setToast({ title: "Gagal mengunggah bukti pembayaran", variant: "destructive" });
-        } finally {
-            setIsUploadingProof(false);
-            if (proofInputRef.current) proofInputRef.current.value = "";
-        }
-    };
-
-    // Search, Sort, and Pagination states
-    const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState("newest");
-
-    const [isUploadingPrint, setIsUploadingPrint] = useState(false);
-    const printInputRef = useRef<HTMLInputElement>(null);
-    const handleUploadPrint = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !selectedOrder) return;
-        
-        setIsUploadingPrint(true);
-        try {
-            const res = await orderService.uploadPrint(selectedOrder.rawId, file);
-            setToast({ title: "Foto progres Print berhasil diunggah!", variant: "success" });
-            setSelectedOrder({ ...selectedOrder, printUrl: res.printUrl });
-            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, printUrl: res.printUrl } : o));
-        } catch (error) {
-            console.error("Gagal mengunggah foto Print", error);
-            setToast({ title: "Gagal mengunggah foto Print", variant: "destructive" });
-        } finally {
-            setIsUploadingPrint(false);
-            if (printInputRef.current) printInputRef.current.value = "";
-        }
-    };
-
-    const [isUploadingFinishing, setIsUploadingFinishing] = useState(false);
-    const finishingInputRef = useRef<HTMLInputElement>(null);
-    const handleUploadFinishing = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !selectedOrder) return;
-        
-        setIsUploadingFinishing(true);
-        try {
-            const res = await orderService.uploadFinishing(selectedOrder.rawId, file);
-            setToast({ title: "Foto progres Finishing berhasil diunggah!", variant: "success" });
-            setSelectedOrder({ ...selectedOrder, finishingUrl: res.finishingUrl });
-            setOrders(orders.map(o => o.id === selectedOrder.id ? { ...o, finishingUrl: res.finishingUrl } : o));
-        } catch (error) {
-            console.error("Gagal mengunggah foto Finishing", error);
-            setToast({ title: "Gagal mengunggah foto Finishing", variant: "destructive" });
-        } finally {
-            setIsUploadingFinishing(false);
-            if (finishingInputRef.current) finishingInputRef.current.value = "";
-        }
-    };
-    const [filterTab, setFilterTab] = useState("MENUNGGU");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [showSortDropdown, setShowSortDropdown] = useState(false);
-    const itemsPerPage = 10;
-    const sortDropdownRef = useRef<HTMLDivElement>(null);
-
-    // Reset page on filter changes
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, sortBy, filterTab]);
-
-    // Click outside handler for dropdown
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
-                setShowSortDropdown(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const data = await orderService.getOrders();
-                const formattedOrders = data.map((o: any) => ({
-                    id: o.orderId,
-                    rawId: o.id,
-                    customer: o.customerName,
-                    designer: o.designerName || "Belum Ada",
-                    product: o.details.length > 0 ? o.details[0].productTitle : "Custom Jersey",
-                    productId: o.details.length > 0 ? o.details[0].productId : null,
-                    recommendedBahanIds: o.recommendedBahanIds || [],
-                    qty: o.details.length,
-                    status: o.status,
-                    queueNumber: o.queueNumber,
-                    isWorking: o.isWorking,
-                    date: new Date(o.createdAt).toISOString().split('T')[0],
-                    playerInfo: sortPlayersBySize(o.details.map((d: any) => ({
-                        name: d.playerName || "-",
-                        number: d.playerNumber || "-",
-                        size: d.playerSize || "-"
-                    }))),
-                    designNote: o.designNote,
-                    designUrl: o.designUrl,
-                    paymentProofUrl: o.paymentUrl,
-                    isAdminOrder: !!o.isAdminOrder,
-                    totalAmount: o.totalAmount,
-                    shippingMethod: o.shippingMethod,
-                    shippingAddress: o.shippingAddress,
-                    mockupUrl: o.mockupUrl,
-                    designStatus: o.designStatus,
-                    designFeedback: o.designFeedback,
-                    layoutUrl: o.layoutUrl,
-                    layoutStatus: o.layoutStatus,
-                    layoutFeedback: o.layoutFeedback,
-                    printUrl: o.printUrl,
-                    finishingUrl: o.finishingUrl,
-                    details: o.details,
-                    dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
-                        weekday: 'long', 
-                        day: 'numeric', 
-                        month: 'long', 
-                        year: 'numeric', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    })
-                }));
-                setOrders(formattedOrders);
-            } catch (error) {
-                console.error("Error fetching orders:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const fetchDesigners = async () => {
-            try {
-                const res = await adminApi.getDesigners();
-                if (res.data) setDesigners(res.data);
-            } catch (error) {
-                console.error("Error fetching designers:", error);
-            }
-        };
-
-        const fetchBahan = async () => {
-            try {
-                const res = await adminApi.getBahanBaju();
-                if (res.status === "success") {
-                    setBahanList(res.data);
-                }
-            } catch (error) {
-                console.error("Error fetching bahan:", error);
-            }
-        };
-
-        fetchOrders();
-        fetchDesigners();
-        fetchBahan();
-    }, []);
-
-    const handleSendRecommendations = async () => {
-        if (!selectedOrder) return;
-        try {
-            await orderService.recommendAlternatives(selectedOrder.rawId, tempRecommendedIds);
-            
-            // Update local state
-            setOrders(prev => prev.map(o => o.rawId === selectedOrder.rawId ? { ...o, recommendedBahanIds: tempRecommendedIds } : o));
-            setSelectedOrder((prev: any) => ({ ...prev, recommendedBahanIds: tempRecommendedIds }));
-            
-            setIsRecommendModalOpen(false);
-            setToast({ title: "Rekomendasi bahan alternatif berhasil dikirim", variant: "success" });
-        } catch (error) {
-            console.error("Error sending recommendations:", error);
-            setToast({ title: "Gagal mengirim rekomendasi", variant: "destructive" });
-        }
-    };
-
-    const handleUpdateStatus = async (id: number, newStatus: string, designerId?: number) => {
-        try {
-            await orderService.updateOrderStatus(id, newStatus, designerId);
-            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, status: newStatus } : o));
-            if (selectedOrder?.rawId === id) {
-                setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
-            }
-            
-            if (newStatus === "DESAIN") {
-                setToast({ title: "Pesanan berhasil diserahkan ke tim desain", variant: "success" });
-            } else {
-                setToast({ title: `Status pesanan diperbarui ke ${newStatus}`, variant: "success" });
-            }
-        } catch (error) {
-            console.error("Error updating status:", error);
-            setToast({ title: "Gagal memperbarui status", variant: "destructive" });
-        }
-    };
-
-    const handleApproveDesign = async (id: number) => {
-        try {
-            await orderService.approveDesign(id);
-            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, designStatus: "APPROVED" } : o));
-            if (selectedOrder?.rawId === id) {
-                setSelectedOrder((prev: any) => ({ ...prev, designStatus: "APPROVED" }));
-            }
-            setToast({ title: "Desain berhasil disetujui", variant: "success" });
-        } catch (error) {
-            console.error("Error approving design:", error);
-            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
-        }
-    };
-
-    const handleRevisiDesign = async (id: number, feedback: string) => {
-        try {
-            await orderService.revisiDesign(id, feedback);
-            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, designStatus: "REVISI", designFeedback: feedback } : o));
-            if (selectedOrder?.rawId === id) {
-                setSelectedOrder((prev: any) => ({ ...prev, designStatus: "REVISI", designFeedback: feedback }));
-            }
-            setToast({ title: "Revisi desain berhasil dikirim", variant: "success" });
-        } catch (error) {
-            console.error("Error requesting revision:", error);
-            setToast({ title: "Gagal mengirim revisi", variant: "destructive" });
-        }
-    };
-
-    const handleApproveLayout = async (id: number) => {
-        try {
-            await orderService.approveLayout(id);
-            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, layoutStatus: "APPROVED" } : o));
-            if (selectedOrder?.rawId === id) {
-                setSelectedOrder((prev: any) => ({ ...prev, layoutStatus: "APPROVED" }));
-            }
-            setToast({ title: "Layout berhasil disetujui", variant: "success" });
-        } catch (error) {
-            console.error("Error approving layout:", error);
-            setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
-        }
-    };
-
-    const handleRevisiLayout = async (id: number, feedback: string) => {
-        try {
-            await orderService.revisiLayout(id, feedback);
-            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, layoutStatus: "REVISI", layoutFeedback: feedback } : o));
-            if (selectedOrder?.rawId === id) {
-                setSelectedOrder((prev: any) => ({ ...prev, layoutStatus: "REVISI", layoutFeedback: feedback }));
-            }
-            setToast({ title: "Revisi layout berhasil dikirim", variant: "success" });
-        } catch (error) {
-            console.error("Error requesting revision:", error);
-            setToast({ title: "Gagal mengirim revisi", variant: "destructive" });
-        }
-    };
-
-    const getStatusStyle = (status: string) => {
-        switch (status) {
-            case "SELESAI": return "bg-emerald-50 text-emerald-700 border-emerald-200";
-            case "FINISHING": return "bg-blue-50 text-blue-700 border-blue-200";
-            case "PRINT": return "bg-cyan-50 text-cyan-700 border-cyan-200";
-            case "LAYOUT": return "bg-amber-50 text-amber-700 border-amber-200";
-            case "DESAIN": return "bg-purple-50 text-purple-700 border-purple-200";
-            case "DITOLAK": return "bg-red-50 text-red-700 border-red-200";
-            case "MENUNGGU": default: return "bg-slate-50 text-slate-700 border-slate-200";
-        }
-    };
-
-    // Search, Filter and Sort orders
-    const filteredAndSortedOrders = orders.filter(o => {
-        if (filterTab !== "ALL") {
-            const status = (o.status || "").toUpperCase();
-            if (filterTab === "MENUNGGU" && status !== "MENUNGGU" && status !== "MENUNGGU VERIFIKASI") {
-                return false;
-            } else if (filterTab !== "MENUNGGU" && status !== filterTab) {
-                return false;
-            }
-        }
-
-        const query = searchQuery.toLowerCase().trim();
-        if (!query) return true;
-        return (
-            (o.id && o.id.toLowerCase().includes(query)) ||
-            (o.customer && o.customer.toLowerCase().includes(query)) ||
-            (o.product && o.product.toLowerCase().includes(query))
-        );
-    }).sort((a, b) => {
-        if (sortBy === "newest") {
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
-        if (sortBy === "oldest") {
-            return new Date(a.date).getTime() - new Date(b.date).getTime();
-        }
-        if (sortBy === "name-asc") {
-            return (a.customer || "").localeCompare(b.customer || "");
-        }
-        if (sortBy === "name-desc") {
-            return (b.customer || "").localeCompare(a.customer || "");
-        }
-        if (sortBy === "price-highest") {
-            return (b.totalAmount || 0) - (a.totalAmount || 0);
-        }
-        if (sortBy === "price-lowest") {
-            return (a.totalAmount || 0) - (b.totalAmount || 0);
-        }
-        if (sortBy === "qty-highest") {
-            return (b.qty || 0) - (a.qty || 0);
-        }
-        if (sortBy === "qty-lowest") {
-            return (a.qty || 0) - (b.qty || 0);
-        }
-        return 0;
-    });
-
-    // Pagination calculations
-    const totalItems = filteredAndSortedOrders.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-    const paginatedOrders = filteredAndSortedOrders.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
-    const getPageNumbers = () => {
-        const pages: (number | "ellipsis")[] = [];
-        const maxVisiblePages = 5;
-        if (totalPages <= maxVisiblePages) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
-        } else {
-            if (currentPage <= 3) {
-                pages.push(1, 2, 3, 4, "ellipsis", totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pages.push(1, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-            } else {
-                pages.push(1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages);
-            }
-        }
-        return pages;
-    };
+    const {
+        orders,
+        loading,
+        selectedOrder,
+        setSelectedOrder,
+        designers,
+        bahanList,
+        toast,
+        setToast,
+        filterTab,
+        setFilterTab,
+        searchQuery,
+        setSearchQuery,
+        debouncedSearchQuery,
+        sortBy,
+        setSortBy,
+        showSortDropdown,
+        setShowSortDropdown,
+        sortDropdownRef,
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedOrders,
+        getPageNumbers,
+        stats,
+        expandedOrderRowId,
+        setExpandedOrderRowId,
+        subSearchQueries,
+        setSubSearch,
+        isPrinting,
+        isUploadingProof,
+        isUploadingPrint,
+        isUploadingFinishing,
+        isAssignModalOpen,
+        setIsAssignModalOpen,
+        selectedDesignerId,
+        setSelectedDesignerId,
+        orderToAssign,
+        setOrderToAssign,
+        isRecommendModalOpen,
+        setIsRecommendModalOpen,
+        tempRecommendedIds,
+        setTempRecommendedIds,
+        handlePrintInvoice,
+        handleUploadProof,
+        handleUploadPrint,
+        handleUploadFinishing,
+        handleUpdateStatus,
+        handleApproveDesign,
+        handleRevisiDesign,
+        handleApproveLayout,
+        handleRevisiLayout,
+        handleSendRecommendations
+    } = useMonitoringPesanan();
 
     if (selectedOrder) {
         return (
-            <div className="min-h-screen bg-white font-geist flex flex-col">
-                {toast && (
-                    <div className="fixed top-4 left-4 right-4 z-[9999]">
-                        <Toast title={toast.title} variant={toast.variant} onClose={() => setToast(null)} />
-                    </div>
-                )}
-                <div className="p-6 bg-white border-b border-slate-100 sticky top-0 z-50">
-                    <button 
-                        onClick={() => setSelectedOrder(null)}
-                        className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors font-bold text-xs uppercase tracking-widest italic mb-4"
-                    >
-                        <ChevronLeft size={16} /> Kembali
-                    </button>
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="space-y-2">
-                            <span className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border", getStatusStyle(selectedOrder.status))}>
-                                {selectedOrder.status}
-                            </span>
-                            <p className="text-[10px] font-black text-[#D25026] uppercase tracking-widest italic leading-tight bg-orange-50 p-2 rounded-lg border border-orange-100 w-fit">
-                                 Info: ID ini dikirim ke customer untuk melacak pesanan
-                             </p>
-                            <div className="flex items-center gap-2">
-                                <p className="text-[12px] font-bold text-slate-900 font-mono tracking-tighter bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
-                                    {selectedOrder.id}
-                                </p>
-                                <button 
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(selectedOrder.id);
-                                        alert("ID Berhasil disalin!");
-                                    }}
-                                    className="p-1 text-slate-400 active:text-[#D25026]"
-                                >
-                                    <Copy size={14} />
-                                </button>
-                                {selectedOrder.queueNumber && (
-                                    <span className="bg-[#D25026]/10 text-[#D25026] px-2 py-0.5 rounded-md text-[8px] font-black uppercase italic border border-[#D25026]/20">
-                                        Antrean: {selectedOrder.queueNumber}
-                                    </span>
-                                )}
-                            </div>
-                         </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Detail Pesanan</h1>
-                        <button 
-                            onClick={handlePrintInvoice}
-                            disabled={isPrinting}
-                            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50"
-                        >
-                            {isPrinting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Printer size={12} />}
-                            Cetak
-                        </button>
-                    </div>
-                    <div className="flex flex-col gap-1 mt-2">
-                        <p className="text-[10px] font-bold text-[#D25026] uppercase italic">{selectedOrder.customer}</p>
-                        {selectedOrder.isAdminOrder && (
-                            <span className="bg-[#D25026]/10 text-[#D25026] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 w-max mt-2">
-                                <User size={10} />
-                                Dibuat oleh: Admin
-                            </span>
-                        )}
-                    </div>
-                    {selectedOrder.status !== "MENUNGGU" && selectedOrder.status !== "DITOLAK" && (
-                        <p className="text-[10px] font-bold text-slate-600 mt-1">Dikerjakan oleh: <span className="text-purple-600">{selectedOrder.designer}</span></p>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-2 text-slate-400">
-                        <Clock size={10} />
-                        <span className="text-[8px] font-black uppercase tracking-widest italic">{selectedOrder.dateTime}</span>
-                    </div>
-                    <div className="mt-4 bg-[#D25026]/5 p-3 rounded-xl border border-[#D25026]/10 flex justify-between items-center">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Total Harga:</span>
-                        <span className="text-[#D25026] text-lg font-black italic uppercase">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</span>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50 pb-32">
-                    {(() => {
-                        const currentBahan = bahanList.find(b => b.id === selectedOrder.productId);
-                        const isBahanHabis = currentBahan?.status === "Habis";
-                        if (!isBahanHabis) return null;
-
-                        return (
-                            <div className="bg-red-50 border border-red-200 p-5 rounded-2xl flex flex-col gap-4 shadow-sm">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
-                                        <AlertCircle className="text-red-600 w-5 h-5" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-xs font-black uppercase tracking-wider text-red-900 leading-none mb-1">Bahan Terpilih Habis!</h4>
-                                        <p className="text-[10px] text-red-600 font-medium leading-relaxed">
-                                            Bahan "{currentBahan.nama}" saat ini habis/tidak tersedia. Berikan rekomendasi bahan alternatif agar customer dapat memilih bahan pengganti.
-                                        </p>
-                                        {selectedOrder.recommendedBahanIds && selectedOrder.recommendedBahanIds.length > 0 && (
-                                            <p className="text-[10px] text-slate-500 font-bold mt-2">
-                                                Rekomendasi saat ini: {selectedOrder.recommendedBahanIds.map((id: number) => bahanList.find(b => b.id === id)?.nama).filter(Boolean).join(", ")}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                <Dialog open={isRecommendModalOpen} onOpenChange={setIsRecommendModalOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full bg-slate-900 text-white rounded-xl h-12 font-black uppercase tracking-widest text-[10px] hover:bg-[#D25026] active:scale-95 transition-all shadow-md">
-                                            Rekomendasikan Alternatif
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-[90%] font-geist border-slate-100 shadow-xl rounded-3xl p-6 w-11/12 mx-auto bg-white">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-lg font-black uppercase italic tracking-tighter text-slate-900">Rekomendasi Bahan</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="py-4 space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar">
-                                            <p className="text-[10px] font-bold text-slate-500 italic uppercase">Pilih bahan pengganti:</p>
-                                            {bahanList.filter(b => b.status === "Tersedia").map(b => {
-                                                const isChecked = tempRecommendedIds.includes(b.id);
-                                                return (
-                                                    <label key={b.id} className="flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all">
-                                                        <input 
-                                                            type="checkbox"
-                                                            checked={isChecked}
-                                                            onChange={() => {
-                                                                if (isChecked) {
-                                                                    setTempRecommendedIds(prev => prev.filter(id => id !== b.id));
-                                                                } else {
-                                                                    setTempRecommendedIds(prev => [...prev, b.id]);
-                                                                }
-                                                            }}
-                                                            className="w-4 h-4 rounded border-slate-300 text-[#D25026] focus:ring-[#D25026]"
-                                                        />
-                                                        <div className="flex-1">
-                                                            <p className="text-xs font-black text-slate-900 uppercase">{b.nama}</p>
-                                                            <p className="text-[10px] font-bold text-[#D25026]">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(b.harga || 150000)}</p>
-                                                        </div>
-                                                    </label>
-                                                );
-                                            })}
-                                            {bahanList.filter(b => b.status === "Tersedia").length === 0 && (
-                                                <p className="text-xs font-medium text-slate-400 italic">Tidak ada bahan tersedia saat ini.</p>
-                                            )}
-                                        </div>
-                                        <div className="flex justify-end gap-2 mt-4">
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => setIsRecommendModalOpen(false)}
-                                                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-xs"
-                                            >
-                                                Batal
-                                            </Button>
-                                            <Button
-                                                onClick={handleSendRecommendations}
-                                                className="px-4 py-2 bg-[#D25026] text-white font-bold rounded-lg text-xs"
-                                            >
-                                                Kirim Rekomendasi
-                                            </Button>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        );
-                    })()}
-                    {/* Design Reference Section */}
-                    <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                            <ImageIcon className="text-[#D25026]" size={14} /> Referensi Desain
-                        </h3>
-                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                            {selectedOrder.designUrl ? (
-                                <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
-                                    {selectedOrder.designUrl.toLowerCase().endsWith('.pdf') ? (
-                                        <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
-                                            <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                            <a href={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
-                                                Buka Referensi (PDF)
-                                            </a>
-                                        </div>
-                                    ) : (
-                                        <img 
-                                            src={selectedOrder.designUrl.startsWith('http') ? selectedOrder.designUrl : `${UPLOADS_URL}${selectedOrder.designUrl.startsWith('/') ? '' : '/'}${selectedOrder.designUrl}`} 
-                                            className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
-                                        />
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
-                                    <p className="text-[8px] font-bold text-slate-300 italic uppercase">Tidak ada referensi</p>
-                                </div>
-                            )}
-                            <div className="bg-slate-50 p-4 rounded-xl">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Catatan:</p>
-                                <p className="text-[10px] text-slate-700 font-medium italic leading-relaxed">{selectedOrder.designNote || "Tidak ada catatan"}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Payment Proof Section */}
-                    <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                            <CreditCard className="text-[#D25026]" size={14} /> Bukti Pembayaran
-                        </h3>
-                        {selectedOrder.paymentProofUrl && selectedOrder.paymentProofUrl !== "MENUNGGU_PEMBAYARAN_ADMIN" ? (
-                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                                <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex flex-col items-center justify-center p-3 shadow-sm group">
-                                    {selectedOrder.paymentProofUrl.toLowerCase().endsWith('.pdf') ? (
-                                        <div className="w-full h-32 bg-emerald-50 flex flex-col items-center justify-center rounded-lg">
-                                            <FileText className="w-10 h-10 text-emerald-500 mb-2" />
-                                            <a href={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 underline">
-                                                Buka Bukti (PDF)
-                                            </a>
-                                        </div>
-                                    ) : (
-                                        <img 
-                                            src={selectedOrder.paymentProofUrl.startsWith('http') ? selectedOrder.paymentProofUrl : `${UPLOADS_URL}${selectedOrder.paymentProofUrl.startsWith('/') ? '' : '/'}${selectedOrder.paymentProofUrl}`} 
-                                            className="w-full h-auto max-h-[400px] object-contain mx-auto rounded-lg" 
-                                        />
-                                    )}
-                                    {selectedOrder.status === "MENUNGGU" && (
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-active:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                                            <label className={`w-full bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm shadow-xl flex items-center justify-center gap-2 transition-transform cursor-pointer ${isUploadingProof ? 'opacity-50' : 'hover:scale-105'}`}>
-                                                {isUploadingProof ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                                                Ubah Bukti Pembayaran
-                                                <input 
-                                                    type="file" 
-                                                    onChange={handleUploadProof} 
-                                                    accept="image/*,.pdf" 
-                                                    className="hidden" 
-                                                    disabled={isUploadingProof}
-                                                />
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="w-full min-h-[6rem] bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-100 p-4">
-                                {selectedOrder.paymentProofUrl === "MENUNGGU_PEMBAYARAN_ADMIN" ? (
-                                    <div className="flex flex-col items-center text-center">
-                                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mb-2">
-                                            <Clock className="w-5 h-5 text-amber-600" />
-                                        </div>
-                                        <p className="text-[8px] font-bold text-slate-600 italic uppercase tracking-widest mb-3">Menunggu Unggahan Admin</p>
-                                        <label className={`w-full bg-[#D25026] text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingProof ? 'opacity-50' : 'hover:bg-[#B34320]'}`}>
-                                            {isUploadingProof ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload size={14} />}
-                                            Unggah Bukti Transfer
-                                            <input 
-                                                type="file" 
-                                                onChange={handleUploadProof} 
-                                                accept="image/*,.pdf" 
-                                                className="hidden" 
-                                                disabled={isUploadingProof}
-                                            />
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada bukti bayar</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Mockup Hasil Desain Section (Mobile Admin Monitor) */}
-                    {selectedOrder.status !== "MENUNGGU" && (
-                        <div className="space-y-3">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                                <ImageIcon className="text-[#D25026]" size={14} /> Progress Mockup Desain
-                            </h3>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                {selectedOrder.mockupUrl ? (
-                                    <div className="space-y-3">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Persetujuan:</span>
-                                            {selectedOrder.designStatus === "SENT" && (
-                                                <span className="bg-amber-50 text-amber-700 border-amber-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Menunggu Persetujuan Customer
-                                                </span>
-                                            )}
-                                            {selectedOrder.designStatus === "APPROVED" && (
-                                                <span className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Disetujui
-                                                </span>
-                                            )}
-                                            {selectedOrder.designStatus === "REVISI" && (
-                                                <span className="bg-red-50 text-red-700 border-red-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Revisi Diminta
-                                                </span>
-                                            )}
-                                            {selectedOrder.designStatus === "PENDING" && (
-                                                <span className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Belum Diupload
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {selectedOrder.designStatus === "REVISI" && selectedOrder.designFeedback && (
-                                            <div className="bg-red-50/50 p-3 rounded-lg border border-red-100">
-                                                <p className="text-[7px] font-black text-red-600 uppercase tracking-widest italic mb-0.5">Catatan Revisi:</p>
-                                                <p className="text-[10px] text-red-700 font-bold leading-relaxed italic">"{selectedOrder.designFeedback}"</p>
-                                            </div>
-                                        )}
-
-                                        <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
-                                            {selectedOrder.mockupUrl.toLowerCase().endsWith('.pdf') ? (
-                                                <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
-                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                                    <a href={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
-                                                        Buka Mockup (PDF)
-                                                    </a>
-                                                </div>
-                                            ) : (
-                                                <img 
-                                                    src={selectedOrder.mockupUrl.startsWith('http') ? selectedOrder.mockupUrl : `${UPLOADS_URL}${selectedOrder.mockupUrl.startsWith('/') ? '' : '/'}${selectedOrder.mockupUrl}`} 
-                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
-                                                />
-                                            )}
-                                        </div>
-                                        {selectedOrder.isAdminOrder && selectedOrder.designStatus === "SENT" && (
-                                            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-                                                <Button 
-                                                    onClick={() => {
-                                                        const feedback = prompt("Masukkan catatan revisi desain:");
-                                                        if (feedback) handleRevisiDesign(selectedOrder.rawId, feedback);
-                                                    }}
-                                                    className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 px-2 py-2 rounded-lg text-[9px] font-bold transition-colors"
-                                                >
-                                                    Revisi (Admin)
-                                                </Button>
-                                                <Button 
-                                                    onClick={() => handleApproveDesign(selectedOrder.rawId)}
-                                                    className="flex-1 bg-[#D25026] text-white hover:bg-[#B34320] px-2 py-2 rounded-lg text-[9px] font-bold transition-colors"
-                                                >
-                                                    Setuju (Admin)
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
-                                        <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada mockup diupload</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Mockup Layout Pola Cetak Section (Mobile Admin Monitor) */}
-                    {(selectedOrder.status === "LAYOUT" || selectedOrder.layoutUrl) && (
-                        <div className="space-y-3">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                                <ImageIcon className="text-[#D25026]" size={14} /> Progress Layout Pola Cetak
-                            </h3>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                {selectedOrder.layoutUrl ? (
-                                    <div className="space-y-3">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Persetujuan Layout:</span>
-                                            {selectedOrder.layoutStatus === "SENT" && (
-                                                <span className="bg-amber-50 text-amber-700 border-amber-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Menunggu Persetujuan Customer
-                                                </span>
-                                            )}
-                                            {selectedOrder.layoutStatus === "APPROVED" && (
-                                                <span className="bg-emerald-50 text-emerald-700 border-emerald-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Disetujui
-                                                </span>
-                                            )}
-                                            {selectedOrder.layoutStatus === "REVISI" && (
-                                                <span className="bg-red-50 text-red-700 border-red-200 border px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Revisi Diminta
-                                                </span>
-                                            )}
-                                            {selectedOrder.layoutStatus === "PENDING" && (
-                                                <span className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[8px] font-black italic">
-                                                    Belum Diupload
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {selectedOrder.layoutStatus === "REVISI" && selectedOrder.layoutFeedback && (
-                                            <div className="bg-red-50/50 p-3 rounded-lg border border-red-100">
-                                                <p className="text-[7px] font-black text-red-600 uppercase tracking-widest italic mb-0.5">Catatan Revisi Layout:</p>
-                                                <p className="text-[10px] text-red-700 font-bold leading-relaxed italic">"{selectedOrder.layoutFeedback}"</p>
-                                            </div>
-                                        )}
-
-                                        <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
-                                            {selectedOrder.layoutUrl.toLowerCase().endsWith('.pdf') ? (
-                                                <div className="w-full h-32 bg-red-50 flex flex-col items-center justify-center rounded-lg">
-                                                    <FileText className="w-10 h-10 text-red-500 mb-2" />
-                                                    <a href={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} target="_blank" rel="noreferrer" className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 underline">
-                                                        Buka Layout (PDF)
-                                                    </a>
-                                                </div>
-                                            ) : (
-                                                <img 
-                                                    src={selectedOrder.layoutUrl.startsWith('http') ? selectedOrder.layoutUrl : `${UPLOADS_URL}${selectedOrder.layoutUrl.startsWith('/') ? '' : '/'}${selectedOrder.layoutUrl}`} 
-                                                    className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
-                                                />
-                                            )}
-                                        </div>
-                                        {selectedOrder.isAdminOrder && selectedOrder.layoutStatus === "SENT" && (
-                                            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-                                                <Button 
-                                                    onClick={() => {
-                                                        const feedback = prompt("Masukkan catatan revisi layout:");
-                                                        if (feedback) handleRevisiLayout(selectedOrder.rawId, feedback);
-                                                    }}
-                                                    className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 px-2 py-2 rounded-lg text-[9px] font-bold transition-colors"
-                                                >
-                                                    Revisi (Admin)
-                                                </Button>
-                                                <Button 
-                                                    onClick={() => handleApproveLayout(selectedOrder.rawId)}
-                                                    className="flex-1 bg-[#D25026] text-white hover:bg-[#B34320] px-2 py-2 rounded-lg text-[9px] font-bold transition-colors"
-                                                >
-                                                    Setuju (Admin)
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="w-full h-16 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-100">
-                                        <p className="text-[8px] font-bold text-slate-300 italic uppercase">Belum ada layout diupload</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Progress Print (Mobile Admin Monitor) */}
-                    {(["PRINT", "FINISHING", "SELESAI"].includes(selectedOrder.status) || selectedOrder.printUrl) && (
-                        <div className="space-y-3">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                                <Printer className="text-[#D25026]" size={14} /> Progress Cetak (Print)
-                            </h3>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                {selectedOrder.printUrl ? (
-                                    <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
-                                        <img 
-                                            src={selectedOrder.printUrl.startsWith('http') ? selectedOrder.printUrl : `${UPLOADS_URL}${selectedOrder.printUrl.startsWith('/') ? '' : '/'}${selectedOrder.printUrl}`} 
-                                            className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="w-full min-h-[6rem] bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-4">
-                                        <div className="flex flex-col items-center text-center">
-                                            <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center mb-2">
-                                                <Printer className="w-5 h-5 text-cyan-600" />
-                                            </div>
-                                            <p className="text-[10px] font-bold text-slate-600 italic uppercase tracking-widest mb-3">Menunggu Foto Print</p>
-                                            <label className={`bg-[#D25026] text-white px-4 py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest flex items-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingPrint ? 'opacity-50' : ''}`}>
-                                                {isUploadingPrint ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload size={12} />}
-                                                Unggah Foto Print
-                                                <input 
-                                                    type="file" 
-                                                    onChange={handleUploadPrint} 
-                                                    accept="image/*" 
-                                                    className="hidden" 
-                                                    disabled={isUploadingPrint}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Progress Finishing (Mobile Admin Monitor) */}
-                    {(["FINISHING", "SELESAI"].includes(selectedOrder.status) || selectedOrder.finishingUrl) && (
-                        <div className="space-y-3">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                                <CheckCircle className="text-[#D25026]" size={14} /> Progress Finishing
-                            </h3>
-                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                {selectedOrder.finishingUrl ? (
-                                    <div className="w-full bg-slate-50 rounded-xl overflow-hidden relative border border-slate-200 flex items-center justify-center p-3 shadow-sm">
-                                        <img 
-                                            src={selectedOrder.finishingUrl.startsWith('http') ? selectedOrder.finishingUrl : `${UPLOADS_URL}${selectedOrder.finishingUrl.startsWith('/') ? '' : '/'}${selectedOrder.finishingUrl}`} 
-                                            className="w-full h-auto max-h-[300px] object-contain mx-auto rounded-lg" 
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="w-full min-h-[6rem] bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 p-4">
-                                        <div className="flex flex-col items-center text-center">
-                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                                                <CheckCircle className="w-5 h-5 text-blue-600" />
-                                            </div>
-                                            <p className="text-[10px] font-bold text-slate-600 italic uppercase tracking-widest mb-3">Menunggu Foto Finishing</p>
-                                            <label className={`bg-[#D25026] text-white px-4 py-2 rounded-lg font-bold text-[9px] uppercase tracking-widest flex items-center gap-2 transition-all shadow-md cursor-pointer ${isUploadingFinishing ? 'opacity-50' : ''}`}>
-                                                {isUploadingFinishing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload size={12} />}
-                                                Unggah Foto Finishing
-                                                <input 
-                                                    type="file" 
-                                                    onChange={handleUploadFinishing} 
-                                                    accept="image/*" 
-                                                    className="hidden" 
-                                                    disabled={isUploadingFinishing}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Shipping Info Section Mobile */}
-                    <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                            <Truck className="text-[#D25026]" size={14} /> Informasi Pengiriman
-                        </h3>
-                        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                            <div>
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Metode Pengiriman:</p>
-                                <p className="text-xs font-black text-slate-900 uppercase italic">
-                                    {selectedOrder.shippingMethod === "COD" ? "COD (Penerima yang bayar)" : "Ambil di tempat"}
-                                </p>
-                            </div>
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">
-                                    {selectedOrder.shippingMethod === "COD" ? "Alamat Tujuan COD:" : "Alamat Toko (Kunjungi Toko):"}
-                                </p>
-                                <p className="text-[10px] text-slate-700 font-medium italic leading-relaxed font-mono">
-                                    {selectedOrder.shippingMethod === "COD" 
-                                        ? (selectedOrder.shippingAddress || "Alamat tidak diisi.")
-                                        : "Jalan raya cikande kopo. Kp padaharan, Ds Rancasumur rt 001 rw 001 kecamatan kopo. Kabupaten Serang. Provinsi Banten 42178"
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Player Info Section */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic">
-                                <User className="text-[#D25026]" size={14} /> Data Pemain ({selectedOrder.playerInfo.length})
-                            </h3>
-                            <Button 
-                                variant="outline"
-                                onClick={() => downloadPlayersPDF(selectedOrder)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-lg text-[7px] font-black uppercase tracking-widest italic shadow-sm cursor-pointer"
-                            >
-                                <FileText size={10} className="text-[#D25026]" />
-                                PDF
-                            </Button>
-                        </div>
-                        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                                <table className="w-full text-left relative">
-                                     <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-100 shadow-sm">
-                                         <tr>
-                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic">Nama</th>
-                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
-                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
-                                             <th className="px-4 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Lengan</th>
-                                         </tr>
-                                     </thead>
-                                     <tbody className="divide-y divide-slate-50 text-[10px] bg-white">
-                                         {selectedOrder.playerInfo.map((p: any, idx: number) => {
-                                             let sizeOnly = p.size || "-";
-                                             let sleeve = "-";
-                                             if (sizeOnly.includes("(")) {
-                                                 const parts = sizeOnly.split("(");
-                                                 sizeOnly = parts[0].trim();
-                                                 sleeve = parts[1].replace(")", "").trim();
-                                             } else if (sizeOnly.includes("-")) {
-                                                 const parts = sizeOnly.split("-");
-                                                 sizeOnly = parts[0].trim();
-                                                 sleeve = parts.slice(1).join("-").trim();
-                                             }
-                                             return (
-                                                 <tr key={idx}>
-                                                     <td className="px-4 py-3 font-bold text-slate-700 uppercase italic truncate max-w-[90px]">{p.name}</td>
-                                                     <td className="px-4 py-3 text-center font-black text-slate-900">{p.number}</td>
-                                                     <td className="px-4 py-3 text-center">
-                                                         <span className="bg-slate-50 px-2 py-1 rounded-md font-bold">{sizeOnly}</span>
-                                                     </td>
-                                                     <td className="px-4 py-3 text-center text-slate-600 truncate max-w-[80px]">
-                                                         {sleeve}
-                                                     </td>
-                                                 </tr>
-                                             );
-                                         })}
-                                     </tbody>
-                                </table>
-                            </div>
-                            <div className="bg-slate-50 border-t border-slate-100 font-black italic uppercase text-[8px] text-[#D25026] p-4 flex justify-between items-center">
-                                <span>Total Item: {selectedOrder.playerInfo.length}</span>
-                                <span className="text-xs">Rp {selectedOrder.totalAmount?.toLocaleString('id-ID')}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Action Buttons Footer */}
-                <div className="p-6 bg-white border-t border-slate-100 flex flex-col gap-3 fixed bottom-0 left-0 right-0 z-50">
-                    <div className="flex gap-2">
-                        {selectedOrder.status === "MENUNGGU" && (
-                            <>
-                                <Button 
-                                    variant="outline"
-                                    onClick={() => handleUpdateStatus(selectedOrder.rawId, "DITOLAK")}
-                                    className="flex-1 h-12 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest italic border border-red-100 cursor-pointer"
-                                >
-                                    Reject
-                                </Button>
-                                <Button 
-                                    onClick={() => {
-                                        setOrderToAssign(selectedOrder.rawId);
-                                        setIsAssignModalOpen(true);
-                                    }}
-                                    className="flex-[2] h-12 bg-[#D25026] text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#D25026]/20 cursor-pointer border-none"
-                                >
-                                    Terima & Serahkan
-                                </Button>
-                            </>
-                        )}
-                        {/* Status update flow removed from Admin */}
-                    </div>
-                </div>
-
-                {/* Handover Modal */}
-                <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
-                    <DialogContent className="sm:max-w-[500px] font-geist border-slate-100 shadow-xl rounded-3xl p-8 w-11/12 mx-auto">
-                        <DialogHeader>
-                            <DialogTitle className="text-lg font-black uppercase italic tracking-tighter text-slate-900 pr-10">Serahkan ke Desainer</DialogTitle>
-                        </DialogHeader>
-                        <div className="py-4">
-                            <label className="block text-xs font-bold text-slate-700 mb-2 italic">Pilih Tim Desain</label>
-                            <CustomSelect
-                                options={designers.map(d => ({
-                                    value: String(d.id),
-                                    label: `${d.nama} (${d.email})`
-                                }))}
-                                value={selectedDesignerId ? String(selectedDesignerId) : ""}
-                                onChange={(val) => setSelectedDesignerId(val ? Number(val) : "")}
-                                placeholder="-- Pilih Desainer --"
-                                searchPlaceholder="Cari desainer..."
-                                emptyMessage="Desainer tidak ditemukan."
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2 mt-2">
-                            <Button
-                                variant="ghost"
-                                onClick={() => setIsAssignModalOpen(false)}
-                                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg text-xs cursor-pointer"
-                            >
-                                Batal
-                            </Button>
-                            <Button
-                                onClick={async () => {
-                                    if (!selectedDesignerId || !orderToAssign) {
-                                        alert("Pilih desainer terlebih dahulu");
-                                        return;
-                                    }
-                                    await handleUpdateStatus(orderToAssign, "DESAIN", selectedDesignerId as number);
-                                    setIsAssignModalOpen(false);
-                                    setSelectedDesignerId("");
-                                }}
-                                disabled={!selectedDesignerId}
-                                className="px-4 py-2 bg-[#D25026] text-white font-bold rounded-lg text-xs disabled:opacity-50 cursor-pointer"
-                            >
-                                Konfirmasi
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            </div>
+            <OrderDetailViewMobile
+                selectedOrder={selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+                toast={toast}
+                onCloseToast={() => setToast(null)}
+                bahanList={bahanList}
+                designers={designers}
+                isRecommendModalOpen={isRecommendModalOpen}
+                setIsRecommendModalOpen={setIsRecommendModalOpen}
+                tempRecommendedIds={tempRecommendedIds}
+                setTempRecommendedIds={setTempRecommendedIds}
+                handleSendRecommendations={handleSendRecommendations}
+                isPrinting={isPrinting}
+                handlePrintInvoice={handlePrintInvoice}
+                isUploadingProof={isUploadingProof}
+                handleUploadProof={handleUploadProof}
+                isUploadingPrint={isUploadingPrint}
+                handleUploadPrint={handleUploadPrint}
+                isUploadingFinishing={isUploadingFinishing}
+                handleUploadFinishing={handleUploadFinishing}
+                handleUpdateStatus={handleUpdateStatus}
+                handleApproveDesign={handleApproveDesign}
+                handleRevisiDesign={handleRevisiDesign}
+                handleApproveLayout={handleApproveLayout}
+                handleRevisiLayout={handleRevisiLayout}
+                isAssignModalOpen={isAssignModalOpen}
+                setIsAssignModalOpen={setIsAssignModalOpen}
+                selectedDesignerId={selectedDesignerId}
+                setSelectedDesignerId={setSelectedDesignerId}
+                orderToAssign={orderToAssign}
+                setOrderToAssign={setOrderToAssign}
+            />
         );
     }
 
@@ -1103,19 +133,19 @@ export function MonitoringPesananMobile() {
             <div className="grid grid-cols-2 gap-3 p-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Menunggu</p>
-                    <p className="text-xl font-black text-slate-900 leading-none">{orders.filter(o => o.status === "MENUNGGU").length}</p>
+                    <p className="text-xl font-black text-slate-900 leading-none">{stats.menunggu}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Proses Desain</p>
-                    <p className="text-xl font-black text-purple-600 leading-none">{orders.filter(o => o.status === "DESAIN").length}</p>
+                    <p className="text-xl font-black text-purple-600 leading-none">{stats.desain}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Prod (Lay/Prnt/Fin)</p>
-                    <p className="text-xl font-black text-blue-600 leading-none">{orders.filter(o => ["LAYOUT", "PRINT", "FINISHING"].includes(o.status)).length}</p>
+                    <p className="text-xl font-black text-blue-600 leading-none">{stats.produksi}</p>
                 </div>
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Selesai</p>
-                    <p className="text-xl font-black text-emerald-600 leading-none">{orders.filter(o => o.status === "SELESAI").length}</p>
+                    <p className="text-xl font-black text-emerald-600 leading-none">{stats.selesai}</p>
                 </div>
             </div>
 
@@ -1142,9 +172,9 @@ export function MonitoringPesananMobile() {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setFilterTab(tab.id)}
+                            onClick={() => setFilterTab(tab.id as MonitoringFilterTab)}
                             className={cn(
-                                "flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest italic whitespace-nowrap transition-all",
+                                "flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest italic whitespace-nowrap transition-all cursor-pointer",
                                 filterTab === tab.id 
                                     ? "bg-[#D25026] text-white" 
                                     : "bg-white text-slate-500 hover:bg-slate-100 border border-slate-200"
@@ -1157,7 +187,7 @@ export function MonitoringPesananMobile() {
                                     filterTab === tab.id
                                         ? "bg-white/20 text-white"
                                         : "bg-slate-100 text-slate-500"
-                                )}>
+                                    )}>
                                     {count}
                                 </span>
                             )}
@@ -1172,7 +202,7 @@ export function MonitoringPesananMobile() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <Input
                         type="text"
-                        placeholder="Cari ID Pesanan, Customer, Produk..."
+                        placeholder="Cari nama di dalam pesanan..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 pr-4 py-2.5 bg-white border-slate-200 rounded-xl w-full text-xs font-medium focus:ring-1 focus:ring-[#D25026]"
@@ -1214,7 +244,7 @@ export function MonitoringPesananMobile() {
                                     <button
                                         key={opt.val}
                                         onClick={() => {
-                                            setSortBy(opt.val);
+                                            setSortBy(opt.val as MonitoringSortOption);
                                             setShowSortDropdown(false);
                                         }}
                                         className={cn(
@@ -1238,7 +268,7 @@ export function MonitoringPesananMobile() {
                         <Loader2 className="w-8 h-8 animate-spin text-[#D25026]" />
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Memuat Pesanan...</p>
                     </div>
-                ) : filteredAndSortedOrders.length === 0 ? (
+                ) : paginatedOrders.length === 0 ? (
                     <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 text-center space-y-3">
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
                             <ShoppingBag className="text-slate-200" size={32} />
@@ -1246,38 +276,177 @@ export function MonitoringPesananMobile() {
                         <p className="text-xs font-bold text-slate-400 italic uppercase tracking-widest">Pesanan tidak ditemukan</p>
                     </div>
                 ) : (
-                    paginatedOrders.map((order) => (
-                        <div 
-                            key={order.rawId}
-                            onClick={() => setSelectedOrder(order)}
-                            className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm active:scale-[0.98] transition-all flex items-center justify-between group cursor-pointer"
-                        >
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[9px] font-black text-slate-300 font-mono tracking-tighter">{order.id}</span>
-                                    {order.queueNumber && (
-                                        <span className="bg-[#D25026]/10 text-[#D25026] px-1.5 py-0.5 rounded text-[7px] font-black uppercase italic border border-[#D25026]/20">
-                                            Antrean: {order.queueNumber}
-                                        </span>
-                                    )}
-                                    <span className={cn("px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border", getStatusStyle(order.status))}>
-                                        {order.status}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-black text-slate-900 uppercase italic truncate max-w-[180px] leading-tight">{order.customer}</p>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <p className="text-[9px] font-bold text-slate-400 italic uppercase tracking-tight">{order.product} ({order.qty} Unit)</p>
-                                        <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
-                                        <p className="text-[9px] font-black text-[#D25026] italic">Rp {order.totalAmount?.toLocaleString('id-ID')}</p>
+                    paginatedOrders.map((order) => {
+                        const isExpanded = expandedOrderRowId === order.rawId;
+                        const q = debouncedSearchQuery.toLowerCase().trim();
+                        const matchedMembers = q ? (order.details || []).filter((d: any) => 
+                            d.playerName?.toLowerCase().includes(q) || d.playerNumber?.toString().toLowerCase().includes(q)
+                        ) : [];
+
+                        return (
+                            <div 
+                                key={order.rawId}
+                                className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm transition-all flex flex-col gap-3 group"
+                            >
+                                <div 
+                                    onClick={() => setSelectedOrder(order)}
+                                    className="flex items-center justify-between cursor-pointer"
+                                >
+                                    <div className="flex flex-col gap-1.5 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-[9px] font-black text-slate-300 font-mono tracking-tighter">{order.id}</span>
+                                            {order.queueNumber && (
+                                                <span className="bg-[#D25026]/10 text-[#D25026] px-1.5 py-0.5 rounded text-[7px] font-black uppercase italic border border-[#D25026]/20">
+                                                    Antrean: {order.queueNumber}
+                                                </span>
+                                            )}
+                                            <span className={cn("px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border", getStatusStyle(order.status))}>
+                                                {order.status}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-slate-900 uppercase italic truncate max-w-[220px] leading-tight">{order.customer}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-[9px] font-bold text-slate-400 italic uppercase tracking-tight">{order.product} ({order.qty} Unit)</p>
+                                                <div className="w-1 h-1 bg-slate-300 rounded-full" />
+                                                <p className="text-[9px] font-black text-[#D25026] italic">Rp {order.totalAmount?.toLocaleString('id-ID')}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-slate-50 p-2.5 rounded-xl group-hover:bg-[#D25026]/10 group-hover:text-[#D25026] transition-colors shrink-0 ml-2">
+                                        <ChevronRight size={18} className="text-slate-300 group-hover:text-[#D25026]" />
                                     </div>
                                 </div>
+
+                                {/* Matched member indicator on mobile */}
+                                {matchedMembers.length > 0 && (
+                                    <div className="text-[10px] font-bold text-[#D25026] bg-[#FFF0EB] px-2.5 py-1 rounded-lg border border-[#D25026]/20">
+                                        Cocok Anggota: {matchedMembers[0].playerName} {matchedMembers[0].playerNumber ? `(${matchedMembers[0].playerNumber})` : ""}
+                                    </div>
+                                )}
+
+                                {/* Mobile dropdown/accordion toggle for members */}
+                                {order.details && order.details.length > 0 && (
+                                    <div className="border-t border-slate-100 pt-2.5 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setExpandedOrderRowId(isExpanded ? null : order.rawId);
+                                                }}
+                                                className={cn(
+                                                    "flex-1 min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider italic transition-all border cursor-pointer",
+                                                    isExpanded 
+                                                        ? "bg-[#D25026] text-white border-[#D25026]" 
+                                                        : "bg-white text-slate-700 hover:bg-slate-50 border-slate-200"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Users className={cn("w-3.5 h-3.5", isExpanded ? "text-white" : "text-[#D25026]")} />
+                                                    <span>ANGGOTA ({order.details.length})</span>
+                                                </div>
+                                                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
+                                            </button>
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedOrder(order);
+                                                }}
+                                                className="min-h-[44px] inline-flex items-center justify-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all px-4 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-xs cursor-pointer"
+                                            >
+                                                <Eye size={13} /> Detail
+                                            </Button>
+                                        </div>
+
+                                        {isExpanded && (
+                                            <div className="space-y-2 pt-1 animate-in fade-in duration-150">
+                                                {order.details.length > 3 && (
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
+                                                        <input
+                                                            type="text"
+                                                            value={subSearchQueries[order.rawId] || ""}
+                                                            onChange={(e) => setSubSearch(order.rawId, e.target.value)}
+                                                            placeholder="Cari nama atau nomor..."
+                                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-[#D25026] text-slate-800"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-1.5 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
+                                                    {(() => {
+                                                        const subQ = (subSearchQueries[order.rawId] || q || "").toLowerCase().trim();
+                                                        const memberList = order.details.filter((m: any) => {
+                                                            if (!subQ) return true;
+                                                            return (m.playerName && m.playerName.toLowerCase().includes(subQ)) ||
+                                                                   (m.playerNumber && m.playerNumber.toString().toLowerCase().includes(subQ)) ||
+                                                                   (m.playerSize && m.playerSize.toLowerCase().includes(subQ));
+                                                        });
+
+                                                        if (memberList.length === 0) {
+                                                            return (
+                                                                <p className="text-center py-4 text-xs font-bold text-slate-400 italic uppercase">
+                                                                    Tidak ada anggota yang cocok
+                                                                </p>
+                                                            );
+                                                        }
+
+                                                        return memberList.map((m: any, idx: number) => {
+                                                            const { size, sleeve } = parseSleeveAndSize(m.playerSize);
+                                                            const isMemberMatched = subQ && (
+                                                                (m.playerName && m.playerName.toLowerCase().includes(subQ)) ||
+                                                                (m.playerNumber && m.playerNumber.toString().toLowerCase().includes(subQ))
+                                                            );
+                                                            return (
+                                                                <div 
+                                                                    key={m.id || idx}
+                                                                    className={cn(
+                                                                        "flex items-center justify-between p-2.5 rounded-xl text-xs border border-slate-150",
+                                                                        isMemberMatched ? "bg-[#FFF0EB]/70 border-[#D25026]/30" : "bg-slate-50/70"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        <span className="text-[11px] font-black text-slate-400 font-mono w-4 shrink-0">
+                                                                            {idx + 1}.
+                                                                        </span>
+                                                                        <div className="truncate">
+                                                                            <p className={cn(
+                                                                                "font-black uppercase italic truncate text-xs",
+                                                                                isMemberMatched ? "text-[#D25026]" : "text-slate-900"
+                                                                            )}>
+                                                                                {m.playerName || "Tanpa Nama"}
+                                                                            </p>
+                                                                            <p className="text-[10px] text-slate-400 font-medium">
+                                                                                {m.productTitle || order.product}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                                        <span className="font-mono font-black text-xs bg-slate-100 text-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 min-w-[32px] text-center shadow-2xs">
+                                                                            {m.playerNumber || "-"}
+                                                                        </span>
+                                                                        <span className="font-black text-xs bg-orange-50 text-[#D25026] px-2 py-1 rounded-lg uppercase border border-orange-100 min-w-[28px] text-center shadow-2xs">
+                                                                            {size}
+                                                                        </span>
+                                                                        <span className="font-black text-[9px] bg-slate-900 text-white px-2 py-1 rounded-lg uppercase tracking-tight shadow-2xs">
+                                                                            {sleeve}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        });
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                            <div className="bg-slate-50 p-2.5 rounded-xl group-hover:bg-[#D25026]/10 group-hover:text-[#D25026] transition-colors">
-                                <ChevronRight size={18} className="text-slate-300 group-hover:text-[#D25026]" />
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 

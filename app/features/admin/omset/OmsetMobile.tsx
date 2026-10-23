@@ -1,191 +1,65 @@
-import { useState, useEffect, useRef } from "react";
-import { adminApi } from "~/api/admin";
+import { useState } from "react";
 import { useSidebar } from "~/components/ui/sidebar";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip
 } from "recharts";
 import {
-    Calendar, TrendingUp, Coins, BarChart3, ChevronDown, Award, Menu, FileText
+    TrendingUp, BarChart3, ChevronDown, Menu, FileText
 } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { downloadOmsetPDF } from "~/lib/sizeUtils";
 import { FinancialReportModal } from "~/components/FinancialReportModal";
-
-const months = [
-    { value: 1, label: "Januari" },
-    { value: 2, label: "Februari" },
-    { value: 3, label: "Maret" },
-    { value: 4, label: "April" },
-    { value: 5, label: "Mei" },
-    { value: 6, label: "Juni" },
-    { value: 7, label: "Juli" },
-    { value: 8, label: "Agustus" },
-    { value: 9, label: "September" },
-    { value: 10, label: "Oktober" },
-    { value: 11, label: "November" },
-    { value: 12, label: "Desember" }
-];
+import { useOmset } from "~/hooks";
+import { TIME_VIEW_TABS, MONTHS } from "./constants";
+import type { TimeView } from "~/types";
 
 export function OmsetMobile() {
     const { setOpenMobile } = useSidebar();
-    const [loading, setLoading] = useState(true);
-    const [isMounted, setIsMounted] = useState(false);
-    const [timeView, setTimeView] = useState<'daily' | 'monthly' | 'yearly' | 'lifetime'>('monthly');
     const [showDropdown, setShowDropdown] = useState(false);
-    const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
-    const [selectedMonth, setSelectedMonth] = useState<number | undefined>(undefined);
-    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-    const [showYearDropdown, setShowYearDropdown] = useState(false);
-    const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+    const {
+        loading,
+        isMounted,
+        timeView,
+        setTimeView,
+        selectedYear,
+        setSelectedYear,
+        selectedMonth,
+        setSelectedMonth,
+        showYearDropdown,
+        setShowYearDropdown,
+        showMonthDropdown,
+        setShowMonthDropdown,
+        isReportModalOpen,
+        setIsReportModalOpen,
+        yearDropdownRef,
+        monthDropdownRef,
+        chartScrollRef,
+        statsData,
+        years,
+        activeData,
+        currentTotal,
+        filteredMonths,
+        exportOmsetPDF
+    } = useOmset();
 
-    const yearDropdownRef = useRef<HTMLDivElement>(null);
-    const monthDropdownRef = useRef<HTMLDivElement>(null);
-
-    const [statsData, setStatsData] = useState({
-        totalCustomer: 0,
-        totalStaff: 0,
-        totalAdmin: 0,
-        totalRevenue: 0,
-        salesData: {
-            daily: [] as any[],
-            monthly: [] as any[],
-            yearly: [] as any[],
-            lifetime: [] as any[]
-        },
-        bestMonth: { month: "-", year: "-", pv: 0 },
-        bestYear: { year: "-", totalRevenue: 0, totalQuantity: 0 }
-    });
-
-    useEffect(() => {
-        setIsMounted(true);
-        const fetchDashboardData = async () => {
-            setLoading(true);
-            try {
-                const params: { year?: number; month?: number } = {};
-                if (selectedYear) params.year = selectedYear;
-                if (selectedMonth) params.month = selectedMonth;
-
-                const statsRes = await adminApi.getDashboardStats(params);
-                if (statsRes.status === "success" && statsRes.data) {
-                    setStatsData(prev => ({
-                        ...prev,
-                        totalCustomer: Number(statsRes.data.totalCustomer || 0),
-                        totalStaff: Number(statsRes.data.totalStaff || 0),
-                        totalAdmin: Number(statsRes.data.totalAdmin || 0),
-                        totalRevenue: Number(statsRes.data.totalRevenue || 0),
-                        salesData: statsRes.data.salesData || prev.salesData,
-                        bestMonth: statsRes.data.bestMonth || prev.bestMonth,
-                        bestYear: statsRes.data.bestYear || prev.bestYear
-                    }));
-
-                    // Automatically switch view modes depending on filters
-                    if (selectedYear && selectedMonth) {
-                        setTimeView('daily');
-                    } else if (selectedYear) {
-                        setTimeView('monthly');
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching omset data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, [selectedYear, selectedMonth]);
-
-    useEffect(() => {
-        const curYear = new Date().getFullYear();
-        const curMonth = new Date().getMonth() + 1;
-        if (selectedYear === curYear && selectedMonth && selectedMonth > curMonth) {
-            setSelectedMonth(undefined);
-            setTimeView('monthly');
-        }
-    }, [selectedYear, selectedMonth]);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
-                setShowYearDropdown(false);
-            }
-            if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target as Node)) {
-                setShowMonthDropdown(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
-
-    const currentYear = new Date().getFullYear();
-    const startYear = 2022;
-    const years = [];
-    for (let y = currentYear; y >= startYear; y--) {
-        years.push(y);
-    }
-
-    const currentMonthVal = new Date().getMonth() + 1;
-    const currentDayVal = new Date().getDate();
-    
-    let activeData = statsData.salesData[timeView] || [];
-    const isCurrentYear = !selectedYear || selectedYear === currentYear;
-    const isCurrentMonth = !selectedMonth || selectedMonth === currentMonthVal;
-
-    if (timeView === 'monthly' && isCurrentYear) {
-        activeData = activeData.slice(0, currentMonthVal);
-    } else if (timeView === 'daily' && isCurrentYear && isCurrentMonth) {
-        activeData = activeData.filter((item: any) => {
-            const dayNum = parseInt(item.name);
-            return !isNaN(dayNum) && dayNum <= currentDayVal;
-        });
-    }
-
-    const currentTotal = activeData.reduce((sum, item) => sum + (item.pv || 0), 0);
-
-    const filteredMonths = selectedYear === currentYear
-        ? months.filter(m => m.value <= currentMonthVal)
-        : months;
-
-    const handleExportReport = () => {
-        let periodText = "Lifetime (Seluruh Waktu)";
-        if (selectedYear && selectedMonth) {
-            periodText = `Harian - ${months[selectedMonth - 1].label} ${selectedYear}`;
-        } else if (selectedYear) {
-            periodText = `Bulanan - Tahun ${selectedYear}`;
-        } else {
-            if (timeView === 'daily') {
-                periodText = "Harian (Bulan Ini)";
-            } else if (timeView === 'monthly') {
-                periodText = `Bulanan - Tahun ${new Date().getFullYear()}`;
-            } else if (timeView === 'yearly') {
-                periodText = "Tahunan";
-            }
-        }
-
-        downloadOmsetPDF(activeData, periodText, currentTotal);
-    };
-
-    const chartScrollRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const isEmpty = currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
-        if (chartScrollRef.current && !isEmpty) {
-            chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
-        }
-    }, [timeView, statsData, currentTotal]);
+    const timeViewLabel = timeView === 'daily' 
+        ? 'Harian' 
+        : timeView === 'monthly' 
+        ? 'Bulanan' 
+        : timeView === 'yearly' 
+        ? 'Tahunan' 
+        : 'Lifetime';
 
     return (
         <div className="w-full min-h-screen bg-[#F5F5F3] font-['Inter'] flex flex-col gap-4 p-4 pb-20">
-
             {/* Mobile Header */}
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                     <button
+                        type="button"
                         onClick={() => setOpenMobile(true)}
                         className="p-2 -ml-2 rounded-xl hover:bg-slate-200/50 transition-colors"
+                        aria-label="Buka menu"
                     >
                         <Menu className="w-6 h-6 text-slate-900" />
                     </button>
@@ -194,6 +68,7 @@ export function OmsetMobile() {
 
                 <div className="flex items-center gap-2">
                     <button
+                        type="button"
                         onClick={() => setIsReportModalOpen(true)}
                         className="flex items-center justify-center p-2.5 bg-[#D25026] hover:bg-[#b0401d] text-white rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
                         title="Cetak Laporan Keuangan"
@@ -201,7 +76,8 @@ export function OmsetMobile() {
                         <FileText className="w-5 h-5" />
                     </button>
                     <button
-                        onClick={handleExportReport}
+                        type="button"
+                        onClick={exportOmsetPDF}
                         className="flex items-center justify-center p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
                         title="Unduh Laporan Grafik PDF"
                     >
@@ -212,7 +88,9 @@ export function OmsetMobile() {
 
             {/* Total Revenue Card */}
             <div className="w-full bg-white rounded-2xl p-5 flex flex-col shadow-sm border border-transparent">
-                <div className="text-slate-500 text-xs font-bold uppercase tracking-wider block">Total Akumulasi Omset</div>
+                <div className="text-slate-500 text-xs font-bold uppercase tracking-wider block">
+                    Total Akumulasi Omset
+                </div>
                 <div className="text-slate-900 text-3xl font-black mt-1">
                     Rp {statsData.totalRevenue.toLocaleString('id-ID')}
                 </div>
@@ -226,33 +104,37 @@ export function OmsetMobile() {
             {/* Timeframe Dropdown Selector / Filter Indicator */}
             {!selectedYear && !selectedMonth ? (
                 <div className="flex justify-between items-center bg-white rounded-2xl p-4 shadow-sm">
-                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">Pilih Filter</span>
+                    <span className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                        Pilih Filter
+                    </span>
                     <div className="relative">
                         <button
+                            type="button"
                             onClick={() => setShowDropdown(!showDropdown)}
                             className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
                         >
                             <span className="text-slate-600 text-xs font-bold uppercase tracking-tight">
-                                {timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'}
+                                {timeViewLabel}
                             </span>
                             <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDropdown && "rotate-180")} />
                         </button>
 
                         {showDropdown && (
                             <div className="absolute right-0 mt-2 w-32 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
+                                {TIME_VIEW_TABS.map((tab) => (
                                     <button
-                                        key={view}
+                                        type="button"
+                                        key={tab.id}
                                         onClick={() => {
-                                            setTimeView(view);
+                                            setTimeView(tab.id);
                                             setShowDropdown(false);
                                         }}
                                         className={cn(
                                             "w-full text-left px-4 py-2.5 text-xs transition-colors",
-                                            timeView === view ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 active:bg-slate-50"
+                                            timeView === tab.id ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 active:bg-slate-50"
                                         )}
                                     >
-                                        {view === 'daily' ? 'Harian' : view === 'monthly' ? 'Bulanan' : view === 'yearly' ? 'Tahunan' : 'Lifetime'}
+                                        {tab.label}
                                     </button>
                                 ))}
                             </div>
@@ -263,7 +145,7 @@ export function OmsetMobile() {
                 <div className="bg-[#D25026]/10 text-[#D25026] px-4 py-3 rounded-2xl border border-[#D25026]/20 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#D25026] animate-pulse" />
                     <span className="text-xs font-bold uppercase tracking-wider">
-                        Terfilter: {selectedYear && `Tahun ${selectedYear}`} {selectedMonth && `- ${months[selectedMonth - 1].label}`}
+                        Terfilter: {selectedYear && `Tahun ${selectedYear}`} {selectedMonth && `- ${MONTHS[selectedMonth - 1]?.label}`}
                     </span>
                 </div>
             )}
@@ -271,18 +153,20 @@ export function OmsetMobile() {
             {/* Selected View Revenue Card */}
             <div className="w-full bg-white rounded-2xl p-5 flex flex-col shadow-sm border border-transparent">
                 <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">
-                    Omset Periode Terpilih ({timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'})
+                    Omset Periode Terpilih ({timeViewLabel})
                 </span>
                 <span className="text-xl font-extrabold text-[#119DA4] block mt-1">
                     Rp {currentTotal.toLocaleString('id-ID')}
                 </span>
             </div>
 
-            {/* Chart Container (Mobile layout handles scrollable area) */}
+            {/* Chart Container */}
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-transparent flex flex-col min-h-[220px] min-w-0 overflow-hidden">
                 <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Grafik Pergerakan</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                            Grafik Pergerakan
+                        </span>
                         {(selectedYear || selectedMonth) && (
                             <span className="text-[11px] font-extrabold text-[#D25026] mt-0.5">
                                 Rp {currentTotal.toLocaleString('id-ID')}
@@ -290,11 +174,12 @@ export function OmsetMobile() {
                         )}
                     </div>
 
-                    {/* Filters near graph for Mobile */}
+                    {/* Filters near graph */}
                     <div className="flex items-center gap-1.5 shrink-0">
                         {/* Filter Tahun */}
                         <div ref={yearDropdownRef} className="relative">
                             <button
+                                type="button"
                                 onClick={() => {
                                     setShowYearDropdown(!showYearDropdown);
                                     setShowMonthDropdown(false);
@@ -308,6 +193,7 @@ export function OmsetMobile() {
                             {showYearDropdown && (
                                 <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-150 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
                                     <button
+                                        type="button"
                                         onClick={() => {
                                             setSelectedYear(undefined);
                                             setSelectedMonth(undefined);
@@ -323,6 +209,7 @@ export function OmsetMobile() {
                                     </button>
                                     {years.map((y) => (
                                         <button
+                                            type="button"
                                             key={y}
                                             onClick={() => {
                                                 setSelectedYear(y);
@@ -343,6 +230,7 @@ export function OmsetMobile() {
                         {/* Filter Bulan */}
                         <div ref={monthDropdownRef} className={cn("relative", !selectedYear && "opacity-50 pointer-events-none")}>
                             <button
+                                type="button"
                                 onClick={() => {
                                     if (selectedYear) {
                                         setShowMonthDropdown(!showMonthDropdown);
@@ -352,13 +240,14 @@ export function OmsetMobile() {
                                 className="flex items-center justify-between gap-1 bg-slate-50 border border-slate-200/80 pl-2 pr-5 py-1.5 rounded-lg text-slate-700 text-[10px] font-bold min-w-[85px] text-left cursor-pointer"
                                 disabled={!selectedYear}
                             >
-                                <span>{selectedMonth ? months[selectedMonth - 1].label.substring(0, 3) : "Semua Bln"}</span>
+                                <span>{selectedMonth ? filteredMonths.find(m => m.value === selectedMonth)?.label || "Semua Bln" : "Semua Bln"}</span>
                                 <ChevronDown className={cn("w-3 h-3 text-slate-400 absolute right-1 transition-transform duration-200", showMonthDropdown && "rotate-180")} />
                             </button>
 
                             {showMonthDropdown && selectedYear && (
-                                <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-150 rounded-xl shadow-xl z-50 py-1 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
+                                <div className="absolute right-0 mt-1.5 w-36 bg-white border border-slate-150 rounded-xl shadow-xl z-50 py-1 max-h-48 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
                                     <button
+                                        type="button"
                                         onClick={() => {
                                             setSelectedMonth(undefined);
                                             setTimeView('monthly');
@@ -373,6 +262,7 @@ export function OmsetMobile() {
                                     </button>
                                     {filteredMonths.map((m) => (
                                         <button
+                                            type="button"
                                             key={m.value}
                                             onClick={() => {
                                                 setSelectedMonth(m.value);
@@ -394,7 +284,7 @@ export function OmsetMobile() {
 
                 {loading || !isMounted ? (
                     <div className="w-full h-[180px] flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                        <div className="w-8 h-8 rounded-full border-4 border-[#E85C2F] border-t-transparent animate-spin mb-2" />
+                        <div className="w-6 h-6 rounded-full border-2 border-[#D25026] border-t-transparent animate-spin mb-2" />
                         <span className="text-slate-400 text-xs font-semibold">Memuat Grafik...</span>
                     </div>
                 ) : activeData.length === 0 || currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0) ? (
@@ -517,7 +407,6 @@ export function OmsetMobile() {
                     )}
                 </div>
             </div>
-
         </div>
     );
 }

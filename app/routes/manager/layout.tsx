@@ -166,7 +166,8 @@ export function ManagerSidebar() {
 }
 
 export default function ManagerLayout() {
-  const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
+  const rootData = useRouteLoaderData<ContextType>("root");
+  const isMobile = rootData?.isMobile ?? false;
   return (
     <ProtectedRoute>
       <RoleGuard allowedRoles={["manager"]}>

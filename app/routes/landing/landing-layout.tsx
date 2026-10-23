@@ -5,7 +5,8 @@ import Footer from "~/components/template/footer";
 import Navbar from "~/components/template/navbar";
 
 export default function LandingLayout() {
-    const { isMobile } = useRouteLoaderData("root");
+    const rootData = useRouteLoaderData<ContextType>("root");
+    const isMobile = rootData?.isMobile ?? false;
     const location = useLocation();
 
     // Hide navbar on article detail pages

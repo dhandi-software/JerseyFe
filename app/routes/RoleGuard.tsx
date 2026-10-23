@@ -18,11 +18,17 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
     return <Navigate to="/login" replace />;
   }
 
-  const userRole = user.role.toLowerCase();
-  const allowed = allowedRoles.map(r => r.toLowerCase());
+  const userRole = (user.role || "").trim().toLowerCase();
+  const allowed = allowedRoles.map(r => r.trim().toLowerCase());
 
   if (!allowed.includes(userRole)) {
-    return <Navigate to="/" replace />;
+    const roleDashboard = 
+      userRole === "admin" ? "/admin" :
+      userRole === "customer" ? "/customer" :
+      userRole === "manager" ? "/manager" :
+      userRole === "desain" ? "/desain" :
+      userRole === "gudang" ? "/gudang" : "/";
+    return <Navigate to={roleDashboard} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;
