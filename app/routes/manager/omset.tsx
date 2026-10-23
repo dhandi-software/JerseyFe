@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router";
-import { OmsetDesktop, OmsetMobile } from "~/features/manager/omset";
+import { OmsetDesktop, OmsetMobile } from "~/features/admin/omset";
 
 export default function ManagerOmsetRoute() {
   const { isMobile } = useOutletContext<{ isMobile: boolean }>();
