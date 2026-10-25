@@ -1,99 +1,34 @@
-import { useState, useEffect, useRef } from "react";
 import { Button } from "~/components/ui/button";
-import { adminApi } from "~/api/admin";
 import { Plus, Edit, Trash2, History, Package, Loader2, Image as ImageIcon, ChevronUp, ChevronDown, ChevronsUpDown, X, Save, ImagePlus, Eye } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
-import { useNavigate } from "react-router";
 import { UPLOADS_URL } from "~/api/client";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { cn } from "~/lib/utils";
+import { useBahanBaju } from "~/hooks/useBahanBaju";
 
 export function BahanBajuDesktop() {
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"penyubliman" | "katalog" | "riwayat">("penyubliman");
-    const [bahanList, setBahanList] = useState<any[]>([]);
-    const [historyList, setHistoryList] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [bahanToDelete, setBahanToDelete] = useState<{ id: number; nama: string } | null>(null);
-    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const {
+        activeTab,
+        setActiveTab,
+        bahanList,
+        historyList,
+        sortedBahanList,
+        loading,
+        toast,
+        setToast,
+        isDeleteModalOpen,
+        setIsDeleteModalOpen,
+        bahanToDelete,
+        handleDeleteClick,
+        confirmDelete,
+        previewImage,
+        setPreviewImage,
+        sortColumn,
+        sortDirection,
+        toggleSort,
+        navigate,
+    } = useBahanBaju();
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const resBahan = await adminApi.getBahanBaju();
-            if (resBahan.status === "success") setBahanList(resBahan.data);
-
-            const resHistory = await adminApi.getBahanBajuHistory();
-            if (resHistory.status === "success") setHistoryList(resHistory.data);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const handleDeleteClick = (id: number, nama: string) => {
-        setBahanToDelete({ id, nama });
-        setIsDeleteModalOpen(true);
-    };
-
-    const confirmDelete = async () => {
-        if (!bahanToDelete) return;
-        try {
-            await adminApi.deleteBahanBaju(bahanToDelete.id);
-            setToast({ title: "Bahan berhasil dihapus", variant: "success" });
-            fetchData();
-        } catch (error) {
-            console.error(error);
-            setToast({ title: "Gagal menghapus data", variant: "destructive" });
-        } finally {
-            setIsDeleteModalOpen(false);
-            setBahanToDelete(null);
-        }
-    };
-
-    const [sortColumn, setSortColumn] = useState<"nama" | "stok" | "harga" | "tanggal" | null>(null);
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-
-    const sortedBahanList = [...bahanList].sort((a, b) => {
-        if (!sortColumn) return 0;
-        
-        let valA, valB;
-        if (sortColumn === "nama") {
-            valA = a.nama.toLowerCase();
-            valB = b.nama.toLowerCase();
-        } else if (sortColumn === "stok") {
-            valA = a.kuantitasKg;
-            valB = b.kuantitasKg;
-        } else if (sortColumn === "harga") {
-            valA = a.harga || 0;
-            valB = b.harga || 0;
-        } else if (sortColumn === "tanggal") {
-            valA = new Date(a.createdAt).getTime();
-            valB = new Date(b.createdAt).getTime();
-        } else {
-            return 0;
-        }
-
-        if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-        if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-    });
-
-    const toggleSort = (col: "nama" | "stok" | "harga" | "tanggal") => {
-        if (sortColumn === col) {
-            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-        } else {
-            setSortColumn(col);
-            setSortDirection("asc");
-        }
-    };
 
     return (
         <div className="w-full min-h-screen bg-[#F8FAFC] font-geist p-8 relative">

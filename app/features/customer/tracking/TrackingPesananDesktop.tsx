@@ -1,173 +1,37 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router";
 import { Search, Package, Clock, CheckCircle2, Truck, FileText, AlertCircle, Loader2, ChevronRight, MapPin, Printer, User, Scissors, Palette, Ruler, Eye, HelpCircle, MessageCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { orderService } from "~/services/orderService";
 import { sortPlayersBySize } from "~/lib/sizeUtils";
 import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
-import { generateInvoicePDF } from '~/lib/pdfHelper';
-import { adminApi } from "~/api/admin";
-
-const STAGES = [
-    { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek pembayaran" },
-    { id: "DESAIN", label: "Desain", icon: Palette, desc: "Mockup desain" },
-    { id: "LAYOUT", label: "Layout", icon: Ruler, desc: "Pola & Layout" },
-    { id: "PRINT", label: "Print", icon: Printer, desc: "Cetak kain" },
-    { id: "FINISHING", label: "Finishing", icon: Scissors, desc: "Jahit & QC" },
-    { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Selesai" }
-];
-
-const getDisplayStatus = (status: string, isWorking: boolean) => {
-    if (status === "MENUNGGU") return "Verifikasi Pembayaran";
-    if (status === "DESAIN") {
-        return isWorking ? "Pesanan Sedang Diproses" : "Pembayaran Diterima";
-    }
-    if (["LAYOUT", "PRINT", "FINISHING"].includes(status)) {
-        return "Pesanan Sedang Diproses";
-    }
-    if (status === "SELESAI") return "Selesai";
-    if (status === "DITOLAK") return "Ditolak";
-    return status;
-};
+import { useTrackingPesanan } from "~/hooks";
 
 export function TrackingPesananDesktop() {
-    const [searchParams] = useSearchParams();
-    const [orderId, setOrderId] = useState(searchParams.get("id") || "");
-    const [order, setOrder] = useState<any | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+    const {
+        orderId,
+        setOrderId,
+        order,
+        loading,
+        error,
+        feedbackInput,
+        setFeedbackInput,
+        showRevisiForm,
+        setShowRevisiForm,
+        submittingAction,
+        toast,
+        setToast,
+        bahanList,
+        isPrinting,
+        handlePrintInvoice,
+        handleApprove,
+        handleUnapproveDesign,
+        handleRevisi,
+        handleSelectAlternative,
+        handleSearch,
+        getCurrentStageIndex,
+        stages: STAGES,
+        getDisplayStatus,
+    } = useTrackingPesanan();
 
-    const [feedbackInput, setFeedbackInput] = useState("");
-    const [showRevisiForm, setShowRevisiForm] = useState(false);
-    const [submittingAction, setSubmittingAction] = useState(false);
-    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
-    const [bahanList, setBahanList] = useState<any[]>([]);
-
-    useEffect(() => {
-        const fetchBahan = async () => {
-            try {
-                const res = await adminApi.getBahanBaju();
-                if (res.status === "success") {
-                    setBahanList(res.data);
-                }
-            } catch (error) {
-                console.error("Error fetching bahan:", error);
-            }
-        };
-        fetchBahan();
-    }, []);
-
-    const [isPrinting, setIsPrinting] = useState(false);
-
-    const handlePrintInvoice = async () => {
-        if (!order) return;
-        setIsPrinting(true);
-        try {
-            await generateInvoicePDF(order);
-        } catch (error) {
-            console.error("Failed to generate PDF", error);
-            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
-        } finally {
-            setIsPrinting(false);
-        }
-    };
-
-    useEffect(() => {
-        const id = searchParams.get("id");
-        if (id) {
-            setOrderId(id);
-            executeSearch(id);
-        }
-    }, [searchParams]);
-
-    const executeSearch = async (idToSearch: string) => {
-        if (!idToSearch.trim()) return;
-
-        setLoading(true);
-        setError("");
-        try {
-            const data = await orderService.trackOrder(idToSearch.trim());
-            setOrder(data);
-        } catch (err: any) {
-            setError("ID Pesanan tidak ditemukan. Pastikan kode yang Anda masukkan benar.");
-            setOrder(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleApprove = async () => {
-        if (!order) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.approveDesign(order.id);
-            const updatedStatus = "APPROVED";
-            setOrder((prev: any) => ({
-                ...prev,
-                designStatus: updatedStatus,
-                designFeedback: null
-            }));
-            setToast({ title: "Desain berhasil disetujui!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal menyetujui desain:", error);
-            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleUnapproveDesign = async () => {
-        if (!order) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.unapproveDesign(order.id);
-            const updatedStatus = "SENT";
-            setOrder((prev: any) => ({
-                ...prev,
-                designStatus: updatedStatus
-            }));
-            setToast({ title: "Persetujuan desain dibatalkan!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal membatalkan persetujuan desain:", error);
-            setToast({ title: "Gagal membatalkan persetujuan desain", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleRevisi = async () => {
-        if (!order || !feedbackInput.trim()) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.revisiDesign(order.id, feedbackInput);
-            const updatedStatus = "REVISI";
-            const feedbackVal = feedbackInput;
-            setOrder((prev: any) => ({
-                ...prev,
-                designStatus: updatedStatus,
-                designFeedback: feedbackVal
-            }));
-            setShowRevisiForm(false);
-            setFeedbackInput("");
-            setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal mengajukan revisi:", error);
-            setToast({ title: "Gagal mengajukan revisi", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        executeSearch(orderId);
-    };
-
-    const getCurrentStageIndex = () => {
-        if (!order) return -1;
-        return STAGES.findIndex(s => s.id === order.status);
-    };
 
     return (
         <div className="min-h-screen bg-slate-50 font-geist pb-20">
@@ -270,16 +134,7 @@ export function TrackingPesananDesktop() {
                                                 </div>
                                             </div>
                                             <button 
-                                                onClick={async () => {
-                                                    try {
-                                                        await orderService.selectAlternative(order.id, b.id);
-                                                        setToast({ title: "Bahan berhasil diganti ke alternatif!", variant: "success" });
-                                                        executeSearch(order.orderId);
-                                                    } catch (error) {
-                                                        console.error("Gagal memilih bahan alternatif:", error);
-                                                        setToast({ title: "Gagal mengganti bahan", variant: "destructive" });
-                                                    }
-                                                }}
+                                                onClick={() => handleSelectAlternative(b.id)}
                                                 className="w-full bg-slate-900 text-white rounded-xl py-3 font-black text-[10px] uppercase tracking-widest hover:bg-[#D25026] transition-colors"
                                             >
                                                 Pilih Bahan Ini
@@ -626,6 +481,8 @@ export function TrackingPesananDesktop() {
                                                             <th className="px-4 py-3 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-center">No</th>
                                                             <th className="px-4 py-3 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-center">Size</th>
                                                             <th className="px-4 py-3 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-center">Lengan</th>
+                                                            <th className="px-4 py-3 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-center">Status Baju</th>
+                                                            <th className="px-4 py-3 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-center">Status Celana</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100 bg-slate-50">
@@ -650,6 +507,28 @@ export function TrackingPesananDesktop() {
                                                                     </td>
                                                                     <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-600">
                                                                         {sleeve}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center">
+                                                                        <span className={cn(
+                                                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                                                                            item.statusBaju
+                                                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                                                : "bg-slate-100 text-slate-400 border border-slate-200"
+                                                                        )}>
+                                                                            <span className={cn("w-1.5 h-1.5 rounded-full", item.statusBaju ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
+                                                                            {item.statusBaju ? "Ready" : "Belum"}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center">
+                                                                        <span className={cn(
+                                                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                                                                            item.statusCelana
+                                                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                                                                : "bg-slate-100 text-slate-400 border border-slate-200"
+                                                                        )}>
+                                                                            <span className={cn("w-1.5 h-1.5 rounded-full", item.statusCelana ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
+                                                                            {item.statusCelana ? "Ready" : "Belum"}
+                                                                        </span>
                                                                     </td>
                                                                 </tr>
                                                             );

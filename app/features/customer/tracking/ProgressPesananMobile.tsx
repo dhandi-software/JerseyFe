@@ -1,235 +1,42 @@
-import { useState, useEffect } from "react";
 import { Package, Clock, CheckCircle2, Truck, FileText, Loader2, ChevronLeft, ShoppingBag, ChevronRight, Eye, Printer, Scissors, Palette, Ruler, Layers, User } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
-import { useAuth } from "~/context/AuthContext";
 import { sortPlayersBySize } from "~/lib/sizeUtils";
 import { Link } from "react-router";
 import { Toast } from "~/components/ui/toast";
-import { generateInvoicePDF } from '~/lib/pdfHelper';
 import { InvoiceTemplate } from '~/components/template/Invoice/InvoiceTemplate';
-
-const STAGES = [
-    { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek bayar" },
-    { id: "DESAIN", label: "Desain", icon: Palette, desc: "Mockup" },
-    { id: "LAYOUT", label: "Layout", icon: Ruler, desc: "Pola" },
-    { id: "PRINT", label: "Print", icon: Printer, desc: "Cetak" },
-    { id: "FINISHING", label: "Finishing", icon: Scissors, desc: "Jahit & QC" },
-    { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Diterima" }
-];
-
-const getDisplayStatus = (status: string, isWorking: boolean) => {
-    if (status === "MENUNGGU") return "Verifikasi Pembayaran";
-    if (status === "DESAIN") {
-        return isWorking ? "Pesanan Sedang Diproses" : "Pembayaran Diterima";
-    }
-    if (["LAYOUT", "PRINT", "FINISHING"].includes(status)) {
-        return "Pesanan Sedang Diproses";
-    }
-    if (status === "SELESAI") return "Selesai";
-    if (status === "DITOLAK") return "Ditolak";
-    return status;
-};
+import { useProgressPesanan } from "~/hooks";
 
 export function ProgressPesananMobile() {
-    const { user } = useAuth();
-    const [orders, setOrders] = useState<any[]>([]);
-    const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-    const [loading, setLoading] = useState(true);
+    const {
+        orders,
+        selectedOrder,
+        setSelectedOrder,
+        loading,
+        feedbackInput,
+        setFeedbackInput,
+        showRevisiForm,
+        setShowRevisiForm,
+        showLayoutRevisiForm,
+        setShowLayoutRevisiForm,
+        layoutFeedbackInput,
+        setLayoutFeedbackInput,
+        submittingAction,
+        toast,
+        setToast,
+        isPrinting,
+        handlePrintInvoice,
+        handleApprove,
+        handleUnapproveDesign,
+        handleRevisi,
+        handleApproveLayout,
+        handleUnapproveLayout,
+        handleRevisiLayout,
+        getCurrentStageIndex,
+        stages: STAGES,
+        getDisplayStatus,
+    } = useProgressPesanan();
 
-    const [feedbackInput, setFeedbackInput] = useState("");
-    const [showRevisiForm, setShowRevisiForm] = useState(false);
-    const [showLayoutRevisiForm, setShowLayoutRevisiForm] = useState(false);
-    const [layoutFeedbackInput, setLayoutFeedbackInput] = useState("");
-    const [submittingAction, setSubmittingAction] = useState(false);
-    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
-
-    const [isPrinting, setIsPrinting] = useState(false);
-
-    const handlePrintInvoice = async () => {
-        if (!selectedOrder) return;
-        setIsPrinting(true);
-        try {
-            await generateInvoicePDF(selectedOrder);
-        } catch (error) {
-            console.error("Failed to generate PDF", error);
-            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
-        } finally {
-            setIsPrinting(false);
-        }
-    };
-
-    useEffect(() => {
-        const fetchOrders = async () => {
-            if (!user?.id) return;
-            try {
-                const data = await orderService.getCustomerOrders(user.id);
-                setOrders(data);
-            } catch (error) {
-                console.error("Failed to fetch orders:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchOrders();
-    }, [user]);
-
-    const handleApprove = async () => {
-        if (!selectedOrder) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.approveDesign(selectedOrder.id);
-            const updatedStatus = "APPROVED";
-            setSelectedOrder((prev: any) => ({
-                ...prev,
-                designStatus: updatedStatus,
-                designFeedback: null
-            }));
-            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
-                ...o,
-                designStatus: updatedStatus,
-                designFeedback: null
-            } : o));
-            setToast({ title: "Desain berhasil disetujui!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal menyetujui desain:", error);
-            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleUnapproveDesign = async () => {
-        if (!selectedOrder) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.unapproveDesign(selectedOrder.id);
-            const updatedStatus = "SENT";
-            setSelectedOrder((prev: any) => ({
-                ...prev,
-                designStatus: updatedStatus
-            }));
-            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
-                ...o,
-                designStatus: updatedStatus
-            } : o));
-            setToast({ title: "Persetujuan desain dibatalkan!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal membatalkan persetujuan desain:", error);
-            setToast({ title: "Gagal membatalkan persetujuan desain", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleRevisi = async () => {
-        if (!selectedOrder || !feedbackInput.trim()) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.revisiDesign(selectedOrder.id, feedbackInput);
-            const updatedStatus = "REVISI";
-            const feedbackVal = feedbackInput;
-            setSelectedOrder((prev: any) => ({
-                ...prev,
-                designStatus: updatedStatus,
-                designFeedback: feedbackVal
-            }));
-            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
-                ...o,
-                designStatus: updatedStatus,
-                designFeedback: feedbackVal
-            } : o));
-            setShowRevisiForm(false);
-            setFeedbackInput("");
-            setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal mengajukan revisi:", error);
-            setToast({ title: "Gagal mengajukan revisi", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleApproveLayout = async () => {
-        if (!selectedOrder) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.approveLayout(selectedOrder.id);
-            const updatedStatus = "APPROVED";
-            setSelectedOrder((prev: any) => ({
-                ...prev,
-                layoutStatus: updatedStatus,
-                layoutFeedback: null
-            }));
-            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
-                ...o,
-                layoutStatus: updatedStatus,
-                layoutFeedback: null
-            } : o));
-            setToast({ title: "Layout berhasil disetujui!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal menyetujui layout:", error);
-            setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleUnapproveLayout = async () => {
-        if (!selectedOrder) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.unapproveLayout(selectedOrder.id);
-            const updatedStatus = "SENT";
-            setSelectedOrder((prev: any) => ({
-                ...prev,
-                layoutStatus: updatedStatus
-            }));
-            setOrders(prev => prev.map((o: any) => o.id === selectedOrder.id ? {
-                ...o,
-                layoutStatus: updatedStatus
-            } : o));
-            setToast({ title: "Persetujuan layout dibatalkan!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal membatalkan persetujuan layout:", error);
-            setToast({ title: "Gagal membatalkan persetujuan layout", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleRevisiLayout = async () => {
-        if (!selectedOrder || !layoutFeedbackInput.trim()) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.revisiLayout(selectedOrder.id, layoutFeedbackInput);
-            const updatedStatus = "REVISI";
-            const feedbackVal = layoutFeedbackInput;
-            setSelectedOrder((prev: any) => ({
-                ...prev,
-                layoutStatus: updatedStatus,
-                layoutFeedback: feedbackVal
-            }));
-            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
-                ...o,
-                layoutStatus: updatedStatus,
-                layoutFeedback: feedbackVal
-            } : o));
-            setShowLayoutRevisiForm(false);
-            setLayoutFeedbackInput("");
-            setToast({ title: "Revisi layout berhasil diajukan!", variant: "success" });
-        } catch (error) {
-            console.error("Gagal mengajukan revisi layout:", error);
-            setToast({ title: "Gagal mengajukan revisi layout", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const getCurrentStageIndex = (status: string) => {
-        return STAGES.findIndex(s => s.id === status);
-    };
 
     if (selectedOrder) {
         return (
@@ -758,6 +565,8 @@ export function ProgressPesananMobile() {
                                             <th className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">No</th>
                                             <th className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Size</th>
                                             <th className="px-3 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Lengan</th>
+                                            <th className="px-2 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Baju</th>
+                                            <th className="px-2 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest italic text-center">Celana</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-slate-50">
@@ -779,6 +588,26 @@ export function ProgressPesananMobile() {
                                                     <td className="px-3 py-2 text-[10px] font-black text-[#D25026] text-center">{item.playerNumber || "-"}</td>
                                                     <td className="px-3 py-2 text-center text-[10px] font-black italic text-slate-500">{sizeOnly}</td>
                                                     <td className="px-3 py-2 text-center text-[10px] font-black italic text-slate-500">{sleeve}</td>
+                                                    <td className="px-2 py-2 text-center">
+                                                        <span className={cn(
+                                                            "inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                                            item.statusBaju
+                                                                ? "bg-emerald-100 text-emerald-700"
+                                                                : "bg-slate-200 text-slate-500"
+                                                        )}>
+                                                            {item.statusBaju ? "Ready" : "Belum"}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-2 py-2 text-center">
+                                                        <span className={cn(
+                                                            "inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider",
+                                                            item.statusCelana
+                                                                ? "bg-emerald-100 text-emerald-700"
+                                                                : "bg-slate-200 text-slate-500"
+                                                        )}>
+                                                            {item.statusCelana ? "Ready" : "Belum"}
+                                                        </span>
+                                                    </td>
                                                 </tr>
                                             );
                                         })}

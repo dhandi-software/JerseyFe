@@ -47,8 +47,13 @@ export const formatOrderData = (data: any[]): MonitoringOrder[] => {
             size: d.playerSize || "-"
         }))),
         designNote: o.designNote,
+        adminNote: o.adminNote,
         designUrl: o.designUrl,
+        videoUrl: o.videoUrl,
         paymentProofUrl: o.paymentUrl,
+        paymentType: o.paymentType || "FULL",
+        paidAmount: o.paidAmount !== undefined ? o.paidAmount : (o.paymentType === "DP" ? 0 : (o.totalAmount || 0)),
+        remainingAmount: o.remainingAmount !== undefined ? o.remainingAmount : (o.paymentType === "DP" ? (o.totalAmount || 0) : 0),
         isAdminOrder: !!o.isAdminOrder,
         totalAmount: o.totalAmount,
         shippingMethod: o.shippingMethod,
@@ -61,7 +66,16 @@ export const formatOrderData = (data: any[]): MonitoringOrder[] => {
         layoutFeedback: o.layoutFeedback,
         printUrl: o.printUrl,
         finishingUrl: o.finishingUrl,
-        details: o.details || [],
+        details: (o.details || []).map((d: any) => ({
+            id: d.id,
+            productId: d.productId,
+            productTitle: d.productTitle,
+            playerName: d.playerName,
+            playerNumber: d.playerNumber,
+            playerSize: d.playerSize,
+            statusBaju: Boolean(d.statusBaju),
+            statusCelana: Boolean(d.statusCelana)
+        })),
         dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
             weekday: 'long', 
             day: 'numeric', 

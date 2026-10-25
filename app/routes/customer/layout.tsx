@@ -76,12 +76,11 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   const _isMobile = rootData?.isMobile ?? isMobile;
   const active = pathToKey(location.pathname) ?? "dashboard";
-  const { user } = useAuth(); // Needed for ID
   const [unreadCount, setUnreadCount] = React.useState(0);
 
   React.useEffect(() => {

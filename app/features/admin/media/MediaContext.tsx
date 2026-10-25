@@ -1,38 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { mediaApi } from "~/api/mediaApi";
-import type { MediaItem as ApiMediaItem } from "~/api/types";
+import type { ApiMediaItem } from "~/api/types";
 
-export interface MediaItem {
-    id: string;
-    url: string;
-    name: string;
-    extension: string;
-    file?: File; // For temporary local items
-    isLoading?: boolean;
-}
 
-interface MediaContextType {
-    mediaItems: MediaItem[];
-    setMediaItems: React.Dispatch<React.SetStateAction<MediaItem[]>>;
-    addMediaItems: (files: File[]) => Promise<void>;
-    deleteMediaItems: (ids: string[]) => Promise<void>;
-    updateMediaItem: (itemId: string, newName: string) => Promise<void>;
-    refreshMedia: (filter?: {
-        search?: string;
-        page?: number;
-        limit?: number;
-        type?: string;
-    }) => Promise<void>;
-    pagination: {
-        page: number;
-        limit: number;
-        totalRows: number;
-        totalPages: number;
-    } | null;
-    isLoading: boolean;
-}
+import type { MediaItem, MediaContextType } from "~/types";
+export type { MediaItem, MediaContextType };
 
 const MediaContext = createContext<MediaContextType | undefined>(undefined);
+
 
 interface MediaProviderProps {
     children: React.ReactNode;

@@ -1,4 +1,4 @@
-import { Search, Users, X } from "lucide-react";
+import { Search, Users, X, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { parseSleeveAndSize } from "../utils";
 import type { MonitoringOrder } from "~/types";
@@ -9,6 +9,7 @@ interface OrderMembersSubTableProps {
     onSearchChange: (value: string) => void;
     debouncedQuery: string;
     onClose: () => void;
+    onToggleStatus?: (orderId: number, detailId: number, field: "statusBaju" | "statusCelana") => void;
 }
 
 export function OrderMembersSubTable({
@@ -16,7 +17,8 @@ export function OrderMembersSubTable({
     searchQuery,
     onSearchChange,
     debouncedQuery,
-    onClose
+    onClose,
+    onToggleStatus
 }: OrderMembersSubTableProps) {
     const activeQuery = (debouncedQuery || "").toLowerCase().trim();
     const members = (order.details || []).filter((m: any) => {
@@ -79,12 +81,14 @@ export function OrderMembersSubTable({
                                     <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic bg-[#FAFAFA]">NO. PUNGGUNG</th>
                                     <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic bg-[#FAFAFA]">SIZE</th>
                                     <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic bg-[#FAFAFA]">LENGAN</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic bg-[#FAFAFA]">STATUS BAJU</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic bg-[#FAFAFA]">STATUS CELANA</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 text-sm">
                                 {members.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-xs font-bold uppercase italic">
+                                        <td colSpan={7} className="px-6 py-8 text-center text-slate-400 text-xs font-bold uppercase italic">
                                             Tidak ada anggota atau pemain yang cocok
                                         </td>
                                     </tr>
@@ -118,6 +122,56 @@ export function OrderMembersSubTable({
                                                     <span className="bg-slate-900 text-white px-3.5 py-1.5 rounded-xl font-black text-xs tracking-wider uppercase inline-block shadow-2xs">
                                                         {sleeve}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onToggleStatus && m.id && onToggleStatus(order.rawId, m.id, "statusBaju")}
+                                                        className={cn(
+                                                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-2xs active:scale-95",
+                                                            m.statusBaju
+                                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                                                                : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700"
+                                                        )}
+                                                        title="Klik untuk ubah status kesiapan baju"
+                                                    >
+                                                        {m.statusBaju ? (
+                                                            <>
+                                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                                <span>READY</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                                <span>BELUM</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onToggleStatus && m.id && onToggleStatus(order.rawId, m.id, "statusCelana")}
+                                                        className={cn(
+                                                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-2xs active:scale-95",
+                                                            m.statusCelana
+                                                                ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                                                                : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700"
+                                                        )}
+                                                        title="Klik untuk ubah status kesiapan celana"
+                                                    >
+                                                        {m.statusCelana ? (
+                                                            <>
+                                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                                <span>READY</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                                <span>BELUM</span>
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );

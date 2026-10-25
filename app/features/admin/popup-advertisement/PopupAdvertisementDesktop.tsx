@@ -1,136 +1,34 @@
-import { useState, useRef, useEffect } from "react";
 import { Image as ImageIcon, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { TextField } from "~/components/ui/TextField";
 import { cn } from "~/lib/utils";
-
-interface MediaItem {
-    id: string;
-    file: File;
-    url: string;
-    name: string;
-    extension: string;
-}
-
-interface PopupAdvertisementDesktopProps {
-    onClose: () => void;
-    onImageSelect: (mediaItem: MediaItem) => void;
-}
+import { usePopupAdvertisement } from "~/hooks/usePopupAdvertisement";
+import type { PopupAdvertisementProps } from "~/types";
 
 export default function PopupAdvertisementDesktop({
     onClose,
     onImageSelect,
-}: PopupAdvertisementDesktopProps) {
-    const [title, setTitle] = useState("");
-    const [link, setLink] = useState("");
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [position, setPosition] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [errors, setErrors] = useState({
-        image: false,
-        title: false,
-        link: false,
-    });
-    const popupRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+}: PopupAdvertisementProps) {
+    const {
+        title,
+        setTitle,
+        link,
+        setLink,
+        selectedFile,
+        setSelectedFile,
+        previewUrl,
+        setPreviewUrl,
+        position,
+        errors,
+        setErrors,
+        popupRef,
+        fileInputRef,
+        handleAddImage,
+        handleFileSelect,
+        handleInsertImage,
+        handleMouseDown,
+    } = usePopupAdvertisement({ onClose, onImageSelect });
 
-    // Center popup on mount
-    useEffect(() => {
-        if (popupRef.current) {
-            const popupWidth = popupRef.current.offsetWidth;
-            const popupHeight = popupRef.current.offsetHeight;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-
-            setPosition({
-                x: (windowWidth - popupWidth) / 2,
-                y: (windowHeight - popupHeight) / 2,
-            });
-        }
-    }, []);
-
-    const handleAddImage = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-            setErrors(prev => ({ ...prev, image: false }));
-        }
-    };
-
-    const validateForm = () => {
-        const newErrors = {
-            image: !selectedFile,
-            title: !title.trim(),
-            link: !link.trim(),
-        };
-        setErrors(newErrors);
-        return !Object.values(newErrors).some(Boolean);
-    };
-
-    const handleInsertImage = () => {
-        if (!validateForm()) {
-            return;
-        }
-
-        if (selectedFile) {
-            const mediaItem: MediaItem = {
-                id: Date.now().toString(),
-                file: selectedFile,
-                url: previewUrl || URL.createObjectURL(selectedFile),
-                name: selectedFile.name,
-                extension: selectedFile.name.split(".").pop() || "",
-            };
-            onImageSelect(mediaItem);
-            onClose();
-        }
-    };
-
-    // Drag and drop handlers
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (popupRef.current) {
-            setIsDragging(true);
-            const rect = popupRef.current.getBoundingClientRect();
-            setDragOffset({
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top,
-            });
-        }
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-        if (isDragging) {
-            setPosition({
-                x: e.clientX - dragOffset.x,
-                y: e.clientY - dragOffset.y,
-            });
-        }
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-    };
-
-    useEffect(() => {
-        if (isDragging) {
-            document.addEventListener("mousemove", handleMouseMove);
-            document.addEventListener("mouseup", handleMouseUp);
-        } else {
-            document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseup", handleMouseUp);
-        }
-
-        return () => {
-            document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseup", handleMouseUp);
-        };
-    }, [isDragging, dragOffset]);
 
     return (
         <div

@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, ShoppingCart, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ShoppingCart, Check, ChevronLeft, ChevronRight, Heart, Eye } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { useCart } from "~/context/CartContext";
+import { useWishlist } from "~/hooks/useWishlist";
 import { useProducts } from "~/hooks/useProducts";
 import { CatalogProductsMobileSkeleton } from "~/features/landing/home/components/Home/HomeProductSkeletons";
 import { HomeProductEmptyState } from "~/features/landing/home/components/Home/HomeProductEmptyState";
 
 export function ComputerAccessoriesSectionMobile() {
   const { addToCart } = useCart();
+  const { addToWishlist, isInWishlist } = useWishlist();
   const { products, loading } = useProducts();
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,6 +32,7 @@ export function ComputerAccessoriesSectionMobile() {
       id: String(p.id),
       title: p.title,
       price: `Rp ${p.price.toLocaleString("id-ID")}`,
+      rawPrice: p.price,
       image: p.image || "/images/jersey_hero.webp",
       categoryName: p.category || "Bahan Baju",
       categorySlug: (p.category || "").toLowerCase(),
@@ -63,6 +66,19 @@ export function ComputerAccessoriesSectionMobile() {
     setTimeout(() => {
       setAddedIds((prev) => ({ ...prev, [product.id]: false }));
     }, 1500);
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent, product: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToWishlist({
+      id: product.id,
+      name: product.title,
+      price: product.rawPrice ?? product.price,
+      image: product.image,
+      stockStatus: "IN STOCK",
+      category: product.categoryName,
+    });
   };
 
   const filteredProducts = activeTab === "all"
@@ -140,13 +156,14 @@ export function ComputerAccessoriesSectionMobile() {
         <div className="grid grid-cols-2 gap-3">
           {paginatedProducts.map((product) => {
             const isAdded = addedIds[product.id];
+            const isWished = isInWishlist(product.id);
             return (
               <div
                 key={product.id}
-                className="bg-white border border-zinc-200 rounded-xl p-3 flex flex-col justify-between shadow-2xs relative"
+                className="bg-white border border-zinc-200 rounded-2xl p-3 flex flex-col justify-between shadow-2xs relative"
               >
                 <div className="space-y-2">
-                  <div className="relative w-full aspect-square flex items-center justify-center p-2 rounded-lg bg-zinc-50 overflow-hidden">
+                  <div className="relative w-full aspect-square flex items-center justify-center p-2 rounded-xl bg-zinc-50 overflow-hidden">
                     {product.badge && (
                       <span className={cn(
                         "absolute top-1.5 left-1.5 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-xs uppercase tracking-wider z-10",
@@ -155,36 +172,54 @@ export function ComputerAccessoriesSectionMobile() {
                         {product.badge.text}
                       </span>
                     )}
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className="max-h-full max-w-full object-contain"
-                    />
+
+                    {/* Floating Wishlist Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleWishlist(e, product)}
+                      className={cn(
+                        "absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center shadow-xs transition-colors cursor-pointer z-10",
+                        isWished ? "text-rose-600 bg-rose-50" : "text-zinc-500 hover:text-rose-600"
+                      )}
+                      aria-label="Simpan ke Wishlist"
+                    >
+                      <Heart className={cn("w-4 h-4", isWished && "fill-current text-rose-600")} />
+                    </button>
+
+                    <Link to={`/product/${product.id}`} className="w-full h-full flex items-center justify-center">
+                      <img
+                        src={product.image}
+                        alt={product.title}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </Link>
                   </div>
 
                   <div className="space-y-1">
                     <span className="text-[10px] text-zinc-500 block truncate font-medium">
                       {product.categoryName} • Stok {product.stockText}
                     </span>
-                    <h4 className="text-[11px] font-semibold text-zinc-900 line-clamp-2 leading-tight">
-                      {product.title}
-                    </h4>
+                    <Link to={`/product/${product.id}`} className="block">
+                      <h4 className="text-[11px] font-semibold text-zinc-900 line-clamp-2 leading-tight">
+                        {product.title}
+                      </h4>
+                    </Link>
                     <div className="flex items-baseline gap-1 pt-0.5">
-                      <span className="text-xs font-extrabold text-[#2DA5F3]">
+                      <span className="text-xs font-extrabold text-[#D25026]">
                         {product.price}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 grid grid-cols-[1fr_auto] gap-2">
                   <button
                     type="button"
                     onClick={(e) => handleAddToCart(e, product)}
                     className={cn(
-                      "w-full h-11 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
+                      "h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer px-2",
                       isAdded
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-emerald-600 text-white"
                         : "bg-zinc-100 hover:bg-[#FA8232] text-zinc-700 hover:text-white"
                     )}
                   >
@@ -200,6 +235,15 @@ export function ComputerAccessoriesSectionMobile() {
                       </>
                     )}
                   </button>
+
+                  <Link
+                    to={`/product/${product.id}`}
+                    className="w-11 h-11 rounded-xl bg-zinc-100 hover:bg-zinc-900 hover:text-white text-zinc-600 flex items-center justify-center transition-colors shrink-0"
+                    title="Lihat Detail Produk"
+                    aria-label="Lihat Detail"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Link>
                 </div>
               </div>
             );

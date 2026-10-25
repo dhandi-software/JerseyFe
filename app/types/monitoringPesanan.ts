@@ -1,9 +1,12 @@
 export interface OrderMember {
     id?: number;
+    productId?: number;
+    productTitle?: string;
     playerName?: string;
     playerNumber?: string | number;
     playerSize?: string;
-    productTitle?: string;
+    statusBaju?: boolean;
+    statusCelana?: boolean;
 }
 
 export interface PlayerInfoItem {
@@ -27,8 +30,13 @@ export interface MonitoringOrder {
     date: string;
     playerInfo: PlayerInfoItem[];
     designNote?: string;
+    adminNote?: string;
     designUrl?: string;
+    videoUrl?: string;
     paymentProofUrl?: string;
+    paymentType?: "FULL" | "DP" | string;
+    paidAmount?: number;
+    remainingAmount?: number;
     isAdminOrder: boolean;
     totalAmount: number;
     shippingMethod?: string;

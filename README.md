@@ -63,44 +63,66 @@ Aplikasi FCSV dirancang dengan arsitektur rendering terisolasi untuk menjamin pe
 
 ## 🏛️ Arsitektur Sentralisasi (Clean Code Architecture)
 
-Untuk menjaga konsistensi kode dan kemudahan *maintenance*, seluruh hooks dan types telah disentralisasi:
+Untuk menjaga konsistensi kode dan kemudahan *maintenance*, seluruh hooks dan types telah disentralisasi di seluruh modul (Customer, Admin, Gudang, Desain, dan Landing). Dokumentasi lengkap dapat dilihat di [REFACTORING_DOCUMENTATION.md](./REFACTORING_DOCUMENTATION.md).
 
 ### 1. Sentralisasi Types (`app/types/`)
 Seluruh interface TypeScript, contract data, dan enum diekspor melalui satu pintu masuk:
 ```text
 app/types/
 ├── index.ts               # Barrel re-export untuk seluruh types
+├── customJersey.ts        # Contract custom jersey, checkout, surcharge, steps
+├── tracking.ts            # Contract tracking pesanan & progres invoice
+├── bahanBaju.ts           # Type inventaris kain & mutasi stok
+├── buatPesanan.ts         # Type formulir pesanan manual admin & data pemain
+├── returBarang.ts         # Type pencatatan barang retur
 ├── monitoringPesanan.ts   # Contract data pesanan, status, filter tab, modal
 ├── omset.ts               # Contract data laporan omset, card stats, chart
 ├── dashboard.ts           # Type ringkasan dashboard & log aktivitas
-├── user.ts                # Contract pengguna, role, dan profil
-├── bahanBaju.ts           # Type inventaris kain & mutasi stok
-└── order.ts               # Type pesanan jersey & detail anggota
+├── gudang.ts & packing.ts # Type stok gudang & antrean pengemasan
+├── desain.ts              # Type antrean tugas tim desain
+├── listCategory.ts        # Type katalog kategori & filter
+├── productDetail.ts       # Type detail produk & varian
+└── account.ts             # Contract pengguna, role, dan profil
 ```
 *Penggunaan dalam komponen:*
 ```tsx
-import type { MonitoringOrder, MonitoringFilterTab, OmsetStats } from "~/types";
+import type { MonitoringOrder, CustomJerseyDetailItem, BahanBajuItem } from "~/types";
 ```
 
 ### 2. Sentralisasi Custom Hooks (`app/hooks/`)
 Seluruh logika bisnis, pemanggilan API, perhitungan state, dan handler event dipisahkan dari tampilan UI:
 ```text
 app/hooks/
-├── index.ts               # Barrel re-export untuk seluruh hooks
-├── useMonitoringPesanan.ts# State manajemen alur produksi, modal, filter, PDF
-├── useOmset.ts            # State manajemen chart, filter tahun/bulan, laporan
-├── useDashboard.ts        # State metrik dashboard dan statistik
-├── useAuth.ts             # Auth session, login, logout, user profile state
-└── useSidebar.ts          # State navigasi sidebar desktop & mobile
+├── index.ts                   # Barrel re-export untuk seluruh hooks
+├── useCustomJerseyCheckout.ts # Logic multi-step checkout, PDF parser, DP/upload
+├── useCustomJerseyDetail.ts   # Logic detail bahan baju, batasan kg/pcs
+├── useCustomJersey.ts         # Logic listing katalog jersey
+├── useTrackingPesanan.ts      # Logic pelacakan pesanan publik
+├── useProgressPesanan.ts      # Logic progres pesanan customer terautentikasi
+├── useMonitoringPesanan.ts    # State alur produksi 7 tahap, modal, filter, PDF
+├── useDashboardGudang.ts      # State inventaris stok gudang & alert
+├── usePacking.ts              # State antrean packing & konfirmasi kirim
+├── useDashboardDesain.ts      # State antrean pesanan desain & catatan
+├── useBahanBaju*.ts           # CRUD lengkap bahan baku kain
+├── useBuatPesanan.ts          # State formulir pesanan manual admin
+├── useReturBarang.ts          # State manajemen barang retur
+├── usePopupAdvertisement.ts   # State banner iklan popup
+├── useListCategory.ts         # State filter katalog & paginasi
+├── useProductDetail.ts        # State varian produk & wishlist
+├── useOmset.ts                # State chart omset, filter periode, laporan
+├── useDashboard.ts            # State metrik dashboard dan statistik
+├── useAuth.ts                 # Auth session, login, logout
+└── useProfileLogic.ts         # State profil, ganti password, data pribadi
 ```
 *Penggunaan dalam komponen:*
 ```tsx
-import { useMonitoringPesanan, useOmset, useDashboard } from "~/hooks";
+import { useCustomJerseyCheckout, useMonitoringPesanan, useDashboardGudang } from "~/hooks";
 ```
 
 ### 3. Pemisahan Strict UI vs Logic
 - File komponen Desktop (`*Desktop.tsx`) dan Mobile (`*Mobile.tsx`) bertindak murni sebagai **Presentation Layer**.
 - Tidak ada duplikasi logika `useState`/`useEffect` antar platform; kedua varian mengonsumsi custom hook yang sama secara konsisten.
+- Detail pemetaan komponen ke hook dapat dipelajari di [REFACTORING_DOCUMENTATION.md](./REFACTORING_DOCUMENTATION.md).
 
 ---
 

@@ -1,43 +1,17 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import { Search, Filter, ShoppingBag } from "lucide-react";
 import { CardProduct } from "~/components/template/CardProduct";
-import { adminApi } from "~/api/admin";
-import { UPLOADS_URL } from "~/api/client";
+import { useCustomJersey } from "~/hooks";
 
 export function CustomJerseyDesktop({ title }: { title: string }) {
-    const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState("");
-    const [jerseyProducts, setJerseyProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const {
+        loading,
+        searchQuery,
+        setSearchQuery,
+        filteredProducts,
+        handlePreview,
+        handleCustomize,
+    } = useCustomJersey();
 
-    useEffect(() => {
-        adminApi.getBahanBaju().then(res => {
-            if (res.status === "success") {
-                const mapped = res.data.map((bahan: any) => ({
-                    id: bahan.id,
-                    title: bahan.nama,
-                    category: "Jersey",
-                    price: bahan.harga || 150000,
-                    status: bahan.status,
-                    image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image"
-                }));
-                setJerseyProducts(mapped);
-            }
-        }).catch(console.error).finally(() => setLoading(false));
-    }, []);
-    
-    const filteredProducts = jerseyProducts.filter(p => {
-        return p.title.toLowerCase().includes(searchQuery.toLowerCase());
-    });
-
-    const handlePreview = (product: any) => {
-        navigate(`/customer/custom-jersey/detail/${product.id}`);
-    };
-
-    const handleCustomize = (product: any) => {
-        navigate(`/customer/custom-jersey/checkout?productId=${product.id}`);
-    };
 
     return (
         <div className="min-h-screen bg-[#FAFAFA] p-8 md:p-12 font-geist flex flex-col gap-12 max-w-[1600px] mx-auto w-full">

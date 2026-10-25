@@ -118,6 +118,19 @@ export const userApi = {
     },
 
     /**
+     * Update user role
+     */
+    updateUserRole: async (id: string, role: string): Promise<any> => {
+        try {
+            const response = await client.put(`/admin/users/${id}`, { role });
+            return response.data;
+        } catch (error: any) {
+            console.error("❌ Update user role error:", error);
+            throw error;
+        }
+    },
+
+    /**
      * Delete user
      */
     deleteUser: async (id: string, force: boolean = false): Promise<any> => {

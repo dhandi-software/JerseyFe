@@ -6,16 +6,15 @@ import { useState, useEffect } from "react";
 import { products } from "~/data/catalog";
 import { useCart } from "~/context/CartContext";
 import { useAuth } from "~/context/AuthContext";
-import { adminApi } from "~/api/admin";
-import { UPLOADS_URL } from "~/api/client";
+import { useWishlist } from "~/hooks/useWishlist";
 
 export default function HeaderMobile() {
     const { totalCount, cart, subtotal } = useCart();
     const { user, isAuthenticated } = useAuth();
+    const { items: wishlist, removeItem: removeWishlistItem, wishlistCount } = useWishlist();
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [wishlist, setWishlist] = useState<any[]>([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -45,45 +44,6 @@ export default function HeaderMobile() {
             document.body.style.overflow = "unset";
         };
     }, [isMenuOpen, isSearchOpen, isWishlistOpen, isCartOpen]);
-
-    useEffect(() => {
-        const loadWishlist = async () => {
-            let allProducts = [...products];
-            try {
-                const res = await adminApi.getBahanBaju();
-                if (res.status === "success" && Array.isArray(res.data)) {
-                    const dynamicMapped = res.data.map((bahan: any) => ({
-                        id: bahan.id,
-                        title: bahan.nama,
-                        price: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bahan.harga || 0),
-                        image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "/images/mockup-jersey.jpg"
-                    }));
-                    allProducts = [...allProducts, ...dynamicMapped];
-                }
-            } catch (err) {
-                console.error("Failed to fetch dynamic materials for wishlist", err);
-            }
-
-            const stored = localStorage.getItem("wishlist_ids");
-            if (stored) {
-                try {
-                    const ids = JSON.parse(stored);
-                    const favoriteProducts = ids.map((id: number) => allProducts.find(p => p.id === id)).filter(Boolean);
-                    setWishlist(favoriteProducts);
-                } catch (e) {
-                    console.error("Failed to load wishlist in HeaderMobile", e);
-                }
-            }
-        };
-
-        loadWishlist();
-
-        const handleWishlistUpdate = (e: any) => {
-            setWishlist(e.detail);
-        };
-        window.addEventListener('wishlist_update', handleWishlistUpdate);
-        return () => window.removeEventListener('wishlist_update', handleWishlistUpdate);
-    }, []);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -346,24 +306,46 @@ export default function HeaderMobile() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="px-5 py-4 border-b border-neutral-100 flex justify-between items-center bg-neutral-900 text-white">
-                            <span className="text-xs font-bold uppercase tracking-wider">Wishlist ({wishlist.length})</span>
-                            <button onClick={() => setIsWishlistOpen(false)} className="text-white/70 hover:text-white p-1">
+                            <span className="text-xs font-bold uppercase tracking-wider">Wishlist ({wishlistCount})</span>
+                            <button onClick={() => setIsWishlistOpen(false)} className="text-white/70 hover:text-white p-1" aria-label="Tutup Wishlist">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
                         <div className="p-4 overflow-y-auto divide-y divide-neutral-100 flex-1">
                             {wishlist.length > 0 ? (
-                                wishlist.map((item) => (
-                                    <div key={item.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                                        <div className="w-14 h-14 rounded-xl bg-neutral-100 overflow-hidden shrink-0">
-                                            <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                wishlist.map((item) => {
+                                    const displayTitle = item.name || (item as any).title || "Produk Jersey";
+                                    const displayPrice = typeof item.price === "number" ? formatRupiah(item.price) : item.price;
+                                    return (
+                                        <div key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                                            <Link
+                                                to={`/product/${item.id}`}
+                                                onClick={() => setIsWishlistOpen(false)}
+                                                className="flex items-center gap-3 flex-1 min-w-0"
+                                            >
+                                                <div className="w-14 h-14 rounded-xl bg-neutral-100 overflow-hidden shrink-0 border border-neutral-100">
+                                                    <img src={item.image} alt={displayTitle} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-neutral-900 text-xs font-bold truncate leading-tight">{displayTitle}</div>
+                                                    <div className="text-[#D25026] text-xs font-bold mt-0.5">{displayPrice}</div>
+                                                </div>
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    removeWishlistItem(item.id);
+                                                }}
+                                                className="w-11 h-11 flex items-center justify-center text-neutral-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                title="Hapus dari Wishlist"
+                                                aria-label="Hapus dari Wishlist"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-neutral-900 text-xs font-bold truncate leading-tight">{item.title}</div>
-                                            <div className="text-[#D25026] text-xs font-bold mt-0.5">{item.price}</div>
-                                        </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <div className="py-12 text-center text-neutral-400 text-xs">Wishlist Anda masih kosong</div>
                             )}

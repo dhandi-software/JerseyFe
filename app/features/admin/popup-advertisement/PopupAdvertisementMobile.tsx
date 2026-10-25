@@ -1,76 +1,29 @@
-import { useState, useRef } from "react";
 import { Image as ImageIcon, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-
-interface MediaItem {
-    id: string;
-    file: File;
-    url: string;
-    name: string;
-    extension: string;
-}
-
-interface PopupAdvertisementMobileProps {
-    onClose: () => void;
-    onImageSelect: (mediaItem: MediaItem) => void;
-}
+import { usePopupAdvertisement } from "~/hooks/usePopupAdvertisement";
+import type { PopupAdvertisementProps } from "~/types";
 
 export default function PopupAdvertisementMobile({
     onClose,
     onImageSelect,
-}: PopupAdvertisementMobileProps) {
-    const [title, setTitle] = useState("");
-    const [link, setLink] = useState("");
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [errors, setErrors] = useState({
-        image: false,
-        title: false,
-        link: false,
-    });
-    const fileInputRef = useRef<HTMLInputElement>(null);
+}: PopupAdvertisementProps) {
+    const {
+        title,
+        setTitle,
+        link,
+        setLink,
+        setSelectedFile,
+        previewUrl,
+        setPreviewUrl,
+        errors,
+        setErrors,
+        fileInputRef,
+        handleAddImage,
+        handleFileSelect,
+        handleInsertImage,
+    } = usePopupAdvertisement({ onClose, onImageSelect });
 
-    const handleAddImage = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-            setErrors(prev => ({ ...prev, image: false }));
-        }
-    };
-
-    const validateForm = () => {
-        const newErrors = {
-            image: !selectedFile,
-            title: !title.trim(),
-            link: !link.trim(),
-        };
-        setErrors(newErrors);
-        return !Object.values(newErrors).some(Boolean);
-    };
-
-    const handleInsertImage = () => {
-        if (!validateForm()) {
-            return;
-        }
-
-        if (selectedFile) {
-            const mediaItem: MediaItem = {
-                id: Date.now().toString(),
-                file: selectedFile,
-                url: previewUrl || URL.createObjectURL(selectedFile),
-                name: selectedFile.name,
-                extension: selectedFile.name.split(".").pop() || "",
-            };
-            onImageSelect(mediaItem);
-            onClose();
-        }
-    };
 
     return (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">

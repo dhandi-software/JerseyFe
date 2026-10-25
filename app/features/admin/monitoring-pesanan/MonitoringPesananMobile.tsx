@@ -1,4 +1,4 @@
-import { ShoppingBag, Loader2, Eye, ChevronRight, ChevronDown, Search, Users } from "lucide-react";
+import { ShoppingBag, Loader2, Eye, ChevronRight, ChevronDown, Search, Users, Video, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Toast } from "~/components/ui/toast";
 import { Button } from "~/components/ui/button";
@@ -70,7 +70,13 @@ export function MonitoringPesananMobile() {
         handleRevisiDesign,
         handleApproveLayout,
         handleRevisiLayout,
-        handleSendRecommendations
+        handleSendRecommendations,
+        handleToggleMemberStatus,
+        handleUpdateNotesAndVideo,
+        handleAddMember,
+        handleEditMember,
+        handleDeleteMember,
+        handleUpdatePaymentDetails
     } = useMonitoringPesanan();
 
     if (selectedOrder) {
@@ -100,6 +106,12 @@ export function MonitoringPesananMobile() {
                 handleRevisiDesign={handleRevisiDesign}
                 handleApproveLayout={handleApproveLayout}
                 handleRevisiLayout={handleRevisiLayout}
+                handleUpdateNotesAndVideo={handleUpdateNotesAndVideo}
+                handleToggleMemberStatus={handleToggleMemberStatus}
+                handleAddMember={handleAddMember}
+                handleEditMember={handleEditMember}
+                handleDeleteMember={handleDeleteMember}
+                handleUpdatePaymentDetails={handleUpdatePaymentDetails}
                 isAssignModalOpen={isAssignModalOpen}
                 setIsAssignModalOpen={setIsAssignModalOpen}
                 selectedDesignerId={selectedDesignerId}
@@ -300,6 +312,19 @@ export function MonitoringPesananMobile() {
                                                     Antrean: {order.queueNumber}
                                                 </span>
                                             )}
+                                            {order.videoUrl && (
+                                                <a
+                                                    href={order.videoUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    title="Buka Link Video"
+                                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 text-[8px] font-black uppercase tracking-tight shadow-2xs"
+                                                >
+                                                    <Video size={9} className="text-purple-600" />
+                                                    <span>Video</span>
+                                                </a>
+                                            )}
                                             <span className={cn("px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border", getStatusStyle(order.status))}>
                                                 {order.status}
                                             </span>
@@ -404,36 +429,96 @@ export function MonitoringPesananMobile() {
                                                                 <div 
                                                                     key={m.id || idx}
                                                                     className={cn(
-                                                                        "flex items-center justify-between p-2.5 rounded-xl text-xs border border-slate-150",
+                                                                        "p-2.5 rounded-xl text-xs border border-slate-150 space-y-2",
                                                                         isMemberMatched ? "bg-[#FFF0EB]/70 border-[#D25026]/30" : "bg-slate-50/70"
                                                                     )}
                                                                 >
-                                                                    <div className="flex items-center gap-2 min-w-0">
-                                                                        <span className="text-[11px] font-black text-slate-400 font-mono w-4 shrink-0">
-                                                                            {idx + 1}.
-                                                                        </span>
-                                                                        <div className="truncate">
-                                                                            <p className={cn(
-                                                                                "font-black uppercase italic truncate text-xs",
-                                                                                isMemberMatched ? "text-[#D25026]" : "text-slate-900"
-                                                                            )}>
-                                                                                {m.playerName || "Tanpa Nama"}
-                                                                            </p>
-                                                                            <p className="text-[10px] text-slate-400 font-medium">
-                                                                                {m.productTitle || order.product}
-                                                                            </p>
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2 min-w-0">
+                                                                            <span className="text-[11px] font-black text-slate-400 font-mono w-4 shrink-0">
+                                                                                {idx + 1}.
+                                                                            </span>
+                                                                            <div className="truncate">
+                                                                                <p className={cn(
+                                                                                    "font-black uppercase italic truncate text-xs",
+                                                                                    isMemberMatched ? "text-[#D25026]" : "text-slate-900"
+                                                                                )}>
+                                                                                    {m.playerName || "Tanpa Nama"}
+                                                                                </p>
+                                                                                <p className="text-[10px] text-slate-400 font-medium">
+                                                                                    {m.productTitle || order.product}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                                            <span className="font-mono font-black text-xs bg-slate-100 text-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 min-w-[32px] text-center shadow-2xs">
+                                                                                {m.playerNumber || "-"}
+                                                                            </span>
+                                                                            <span className="font-black text-xs bg-orange-50 text-[#D25026] px-2 py-1 rounded-lg uppercase border border-orange-100 min-w-[28px] text-center shadow-2xs">
+                                                                                {size}
+                                                                            </span>
+                                                                            <span className="font-black text-[9px] bg-slate-900 text-white px-2 py-1 rounded-lg uppercase tracking-tight shadow-2xs">
+                                                                                {sleeve}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                        <span className="font-mono font-black text-xs bg-slate-100 text-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 min-w-[32px] text-center shadow-2xs">
-                                                                            {m.playerNumber || "-"}
-                                                                        </span>
-                                                                        <span className="font-black text-xs bg-orange-50 text-[#D25026] px-2 py-1 rounded-lg uppercase border border-orange-100 min-w-[28px] text-center shadow-2xs">
-                                                                            {size}
-                                                                        </span>
-                                                                        <span className="font-black text-[9px] bg-slate-900 text-white px-2 py-1 rounded-lg uppercase tracking-tight shadow-2xs">
-                                                                            {sleeve}
-                                                                        </span>
+
+                                                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/60 justify-end">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (m.id) handleToggleMemberStatus(order.rawId, m.id, "statusBaju");
+                                                                            }}
+                                                                            className={cn(
+                                                                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border shadow-2xs active:scale-95",
+                                                                                m.statusBaju
+                                                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                                                                    : "bg-white text-slate-500 border-slate-200"
+                                                                            )}
+                                                                            title="Ubah status baju"
+                                                                        >
+                                                                            <span className="text-slate-400 font-semibold lowercase">baju:</span>
+                                                                            {m.statusBaju ? (
+                                                                                <>
+                                                                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                                                                    <span>READY</span>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Clock className="w-3 h-3 text-slate-400" />
+                                                                                    <span>BELUM</span>
+                                                                                </>
+                                                                            )}
+                                                                        </button>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (m.id) handleToggleMemberStatus(order.rawId, m.id, "statusCelana");
+                                                                            }}
+                                                                            className={cn(
+                                                                                "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border shadow-2xs active:scale-95",
+                                                                                m.statusCelana
+                                                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                                                                    : "bg-white text-slate-500 border-slate-200"
+                                                                            )}
+                                                                            title="Ubah status celana"
+                                                                        >
+                                                                            <span className="text-slate-400 font-semibold lowercase">celana:</span>
+                                                                            {m.statusCelana ? (
+                                                                                <>
+                                                                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                                                                    <span>READY</span>
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <Clock className="w-3 h-3 text-slate-400" />
+                                                                                    <span>BELUM</span>
+                                                                                </>
+                                                                            )}
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                             );

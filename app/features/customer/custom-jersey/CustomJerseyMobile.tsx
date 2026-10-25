@@ -1,39 +1,18 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
 import { Search, ShoppingBag, CreditCard, Eye } from "lucide-react";
-import { adminApi } from "~/api/admin";
-import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
+import { useCustomJersey } from "~/hooks";
 
 export function CustomJerseyMobile({ title }: { title: string }) {
-    const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState("");
-    const [jerseyProducts, setJerseyProducts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const {
+        loading,
+        searchQuery,
+        setSearchQuery,
+        filteredProducts,
+        handlePreview,
+        handleCustomize,
+        formatRupiah,
+    } = useCustomJersey();
 
-    useEffect(() => {
-        adminApi.getBahanBaju().then(res => {
-            if (res.status === "success") {
-                const mapped = res.data.map((bahan: any) => ({
-                    id: bahan.id,
-                    title: bahan.nama,
-                    category: "Jersey",
-                    price: bahan.harga || 150000,
-                    status: bahan.status,
-                    image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image"
-                }));
-                setJerseyProducts(mapped);
-            }
-        }).catch(console.error).finally(() => setLoading(false));
-    }, []);
-
-    const filteredProducts = jerseyProducts.filter(p => {
-        return p.title.toLowerCase().includes(searchQuery.toLowerCase());
-    });
-
-    const formatRupiah = (number: number) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-    };
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] pb-32 font-geist">
@@ -89,14 +68,14 @@ export function CustomJerseyMobile({ title }: { title: string }) {
                                 
                                 <div className="flex gap-3">
                                     <button 
-                                        onClick={() => navigate(`/customer/custom-jersey/checkout?productId=${product.id}`)}
+                                        onClick={() => handleCustomize(product)}
                                         className="flex-1 h-14 bg-[#D25026] text-white rounded-2xl font-black uppercase italic tracking-widest text-xs flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg shadow-[#D25026]/10"
                                     >
                                         <CreditCard className="w-4 h-4" />
                                         Order Now
                                     </button>
                                     <button 
-                                        onClick={() => navigate(`/customer/custom-jersey/detail/${product.id}`)}
+                                        onClick={() => handlePreview(product)}
                                         className="w-14 h-14 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center active:scale-95 transition-all border border-slate-100"
                                     >
                                         <Eye className="w-5 h-5" />

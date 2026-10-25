@@ -10,8 +10,17 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
     if (!order) return null;
 
     const totalUnit = order.details?.length || 0;
-    const basePrice = 150000; // Asumsi harga satuan
-    const subtotal = totalUnit * basePrice;
+    const finalTotal = order.totalAmount || (totalUnit * 150000);
+    const basePrice = totalUnit > 0 ? Math.round(finalTotal / totalUnit) : 150000;
+    const subtotal = finalTotal;
+
+    const isDP = order.paymentType === "DP" || (order.paidAmount > 0 && order.paidAmount < finalTotal);
+    const paidAmount = order.paidAmount !== undefined 
+        ? order.paidAmount 
+        : (isDP ? Math.round(finalTotal * 0.5) : finalTotal);
+    const remainingAmount = order.remainingAmount !== undefined 
+        ? order.remainingAmount 
+        : Math.max(0, finalTotal - paidAmount);
     
     return (
         <div 
@@ -55,14 +64,20 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Tagihan Kepada:</div>
                     <div className="text-slate-900 text-lg font-bold">{order.customerName}</div>
                     <div className="text-slate-500 text-sm mt-1 max-w-[250px]">
-                        {order.shippingAddress || "Alamat belum diatur"}
+                        {order.shippingAddress || "Ambil di tempat (Self-Pickup)"}
                     </div>
                 </div>
                 <div className="text-right">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Status Pembayaran:</div>
-                    <div className="inline-flex px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold uppercase tracking-wider">
-                        LUNAS
-                    </div>
+                    {isDP ? (
+                        <div className="inline-flex px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold uppercase tracking-wider">
+                            {remainingAmount > 0 ? "DP Diterima (Belum Lunas)" : "Lunas (Pelunasan DP)"}
+                        </div>
+                    ) : (
+                        <div className="inline-flex px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider">
+                            {order.status !== "MENUNGGU" && order.status !== "DITOLAK" ? "Lunas (Full Cash)" : "Menunggu Pembayaran"}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -98,16 +113,28 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
 
             {/* Total Calculation */}
             <div className="self-stretch flex justify-end items-start mb-auto">
-                <div className="w-[300px] flex-col justify-start items-start flex gap-4">
-                    <div className="self-stretch flex justify-between items-center">
-                        <div className="text-slate-500 text-sm font-medium">Subtotal ({totalUnit} item)</div>
-                        <div className="text-slate-900 text-sm font-bold">Rp {subtotal.toLocaleString('id-ID')}</div>
+                <div className="w-[320px] flex-col justify-start items-start flex gap-3">
+                    <div className="self-stretch flex justify-between items-center text-sm">
+                        <div className="text-slate-500 font-medium">Subtotal ({totalUnit} item)</div>
+                        <div className="text-slate-900 font-bold">Rp {subtotal.toLocaleString('id-ID')}</div>
                     </div>
-                    {/* Diskon atau biaya lain bisa ditaruh sini jika ada, kita asumsikan totalAmount yang sudah pas */}
-                    <div className="self-stretch flex justify-between items-center pt-4 border-t-2 border-slate-900">
-                        <div className="text-slate-900 text-lg font-black uppercase tracking-widest italic">Total</div>
-                        <div className="text-[#D25026] text-xl font-black">Rp {(order.totalAmount || subtotal).toLocaleString('id-ID')}</div>
+                    <div className="self-stretch flex justify-between items-center pt-3 border-t-2 border-slate-900">
+                        <div className="text-slate-900 text-base font-black uppercase tracking-widest italic">Total Tagihan</div>
+                        <div className="text-[#D25026] text-lg font-black">Rp {finalTotal.toLocaleString('id-ID')}</div>
                     </div>
+
+                    {isDP && (
+                        <>
+                            <div className="self-stretch flex justify-between items-center text-sm pt-2 border-t border-slate-100">
+                                <div className="text-slate-600 font-medium">Dibayar (DP):</div>
+                                <div className="text-slate-900 font-bold">Rp {paidAmount.toLocaleString('id-ID')}</div>
+                            </div>
+                            <div className="self-stretch flex justify-between items-center text-sm pt-2 border-t border-rose-100 bg-rose-50/50 p-2 rounded-lg">
+                                <div className="text-rose-700 font-bold uppercase tracking-wider text-xs">Sisa Kekurangan:</div>
+                                <div className="text-rose-600 font-black text-base">Rp {remainingAmount.toLocaleString('id-ID')}</div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 

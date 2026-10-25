@@ -1,61 +1,20 @@
 import { Link } from "react-router";
-import { Search, Heart, User, ShoppingCart } from "lucide-react";
+import { Search, Heart, User, ShoppingCart, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "~/components/ui/button";
-import { products } from "~/data/catalog";
 import { useCart } from "~/context/CartContext";
-import { cn } from "~/lib/utils";
-import { adminApi } from "~/api/admin";
-import { UPLOADS_URL } from "~/api/client";
+import { useWishlist } from "~/hooks/useWishlist";
+import { cn, formatRupiah } from "~/lib/utils";
 
 export default function HeaderDesktop() {
     const { totalCount, cart, subtotal } = useCart();
-    const [wishlist, setWishlist] = useState<any[]>([]);
+    const { items: wishlist, removeItem: removeWishlistItem, wishlistCount } = useWishlist();
     const [isWishlistOpen, setIsWishlistOpen] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const wishlistRef = useRef<HTMLDivElement>(null);
     const cartRef = useRef<HTMLDivElement>(null);
 
-    const formatRupiah = (number: number) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-    };
-
     useEffect(() => {
-        const loadWishlist = async () => {
-            let allProducts = [...products];
-            try {
-                const res = await adminApi.getBahanBaju();
-                if (res.status === "success") {
-                    const dynamicMapped = res.data.map((bahan: any) => ({
-                        id: bahan.id,
-                        title: bahan.nama,
-                        price: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(bahan.harga || 150000),
-                        image: bahan.imageUrl ? `${UPLOADS_URL}${bahan.imageUrl}` : "https://via.placeholder.com/300?text=No+Image"
-                    }));
-                    allProducts = [...allProducts, ...dynamicMapped];
-                }
-            } catch (err) {
-                console.error("Failed to fetch dynamic materials for wishlist", err);
-            }
-
-            const stored = localStorage.getItem("wishlist_ids");
-            if (stored) {
-                try {
-                    const ids = JSON.parse(stored);
-                    const favoriteProducts = ids.map((id: number) => allProducts.find(p => p.id === id)).filter(Boolean);
-                    setWishlist(favoriteProducts);
-                } catch (e) {
-                    console.error("Failed to load wishlist in HeaderDesktop", e);
-                }
-            }
-        };
-
-        loadWishlist();
-
-        const handleWishlistUpdate = (e: any) => {
-            setWishlist(e.detail);
-        };
-
         const handleClickOutside = (event: MouseEvent) => {
             if (wishlistRef.current && !wishlistRef.current.contains(event.target as Node)) {
                 setIsWishlistOpen(false);
@@ -65,13 +24,8 @@ export default function HeaderDesktop() {
             }
         };
 
-        window.addEventListener('wishlist_update', handleWishlistUpdate);
-        document.addEventListener('mousedown', handleClickOutside);
-        
-        return () => {
-            window.removeEventListener('wishlist_update', handleWishlistUpdate);
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     return (
@@ -108,14 +62,15 @@ export default function HeaderDesktop() {
                     <button 
                         onClick={() => setIsWishlistOpen(!isWishlistOpen)}
                         className={cn(
-                            "p-3 rounded-full transition-all hover:bg-neutral-50",
+                            "p-3 rounded-full transition-all hover:bg-neutral-50 cursor-pointer",
                             isWishlistOpen ? "bg-neutral-50 text-red-500" : "text-neutral-600"
                         )}
+                        aria-label="Wishlist Favorit"
                     >
                         <Heart className={cn("w-5 h-5", isWishlistOpen && "fill-current")} />
-                        {wishlist.length > 0 && (
+                        {wishlistCount > 0 && (
                             <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white">
-                                {wishlist.length}
+                                {wishlistCount}
                             </span>
                         )}
                     </button>
@@ -123,22 +78,44 @@ export default function HeaderDesktop() {
                     {isWishlistOpen && (
                         <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-neutral-100 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                             <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-100 flex justify-between items-center">
-                                <span className="text-neutral-900 text-xs font-bold uppercase tracking-wider">Wishlist ({wishlist.length})</span>
-                                <Link to="/wishlist" className="text-[10px] font-bold text-[#D25026] hover:underline">LIHAT SEMUA</Link>
+                                <span className="text-neutral-900 text-xs font-bold uppercase tracking-wider">Wishlist ({wishlistCount})</span>
+                                <span className="text-[10px] font-bold text-[#D25026]">PRODUK FAVORIT</span>
                             </div>
                             <div className="max-h-80 overflow-y-auto">
                                 {wishlist.length > 0 ? (
-                                    wishlist.map((item) => (
-                                        <div key={item.id} className="flex items-center gap-3 p-4 hover:bg-neutral-50 transition-colors border-b border-neutral-50 last:border-none">
-                                            <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-100">
-                                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                    wishlist.map((item) => {
+                                        const displayTitle = item.name || (item as any).title || "Produk Jersey";
+                                        const displayPrice = typeof item.price === "number" ? formatRupiah(item.price) : item.price;
+                                        return (
+                                            <div key={item.id} className="flex items-center justify-between gap-3 p-3 hover:bg-neutral-50 transition-colors border-b border-neutral-50 last:border-none group">
+                                                <Link 
+                                                    to={`/product/${item.id}`} 
+                                                    onClick={() => setIsWishlistOpen(false)} 
+                                                    className="flex items-center gap-3 flex-1 min-w-0"
+                                                >
+                                                    <div className="w-12 h-12 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-100">
+                                                        <img src={item.image} alt={displayTitle} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-neutral-900 text-xs font-bold truncate leading-tight group-hover:text-[#D25026] transition-colors">{displayTitle}</div>
+                                                        <div className="text-neutral-500 text-[10px] font-medium mt-1">{displayPrice}</div>
+                                                    </div>
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        removeWishlistItem(item.id);
+                                                    }}
+                                                    className="text-neutral-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+                                                    title="Hapus dari Wishlist"
+                                                    aria-label="Hapus dari Wishlist"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-neutral-900 text-xs font-bold truncate leading-tight">{item.title}</div>
-                                                <div className="text-neutral-500 text-[10px] font-medium mt-1">{item.price}</div>
-                                            </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 ) : (
                                     <div className="p-8 text-center text-neutral-400 text-xs italic">Belum ada item favorit</div>
                                 )}

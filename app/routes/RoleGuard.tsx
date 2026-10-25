@@ -8,7 +8,11 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isLoggingOut } = useAuth();
+
+  if (isLoggingOut) {
+    return null;
+  }
 
   if (isLoading) {
     return <div>Loading...</div>;

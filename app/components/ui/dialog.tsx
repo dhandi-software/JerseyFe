@@ -104,13 +104,22 @@ function DialogClose({
 
 function DialogOverlay({
   className,
+  style,
   ...props
 }: React.ComponentProps<typeof Overlay>) {
   return (
     <Overlay
       data-slot="dialog-overlay"
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backdropFilter: "blur(2px)",
+        zIndex: 9998,
+        ...style
+      }}
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200",
         className
       )}
       {...props}
@@ -124,6 +133,7 @@ function DialogContent({
   showCloseButton = true,
   footer,
   overlayClassName,
+  style,
   ...props
 }: React.ComponentProps<typeof Content> & {
   showCloseButton?: boolean
@@ -135,8 +145,20 @@ function DialogContent({
       <DialogOverlay className={overlayClassName} />
       <Content
         data-slot="dialog-content"
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(92vw, 540px)",
+          maxWidth: "540px",
+          minWidth: "320px",
+          boxSizing: "border-box",
+          zIndex: 9999,
+          ...style
+        }}
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] rounded-md border-subtle p-xl shadow-lg duration-200 gap-xs",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 bg-white rounded-3xl p-6 sm:p-8 shadow-2xl duration-200 outline-none max-h-[90vh] overflow-y-auto custom-scrollbar flex flex-col",
           className
         )}
         {...props}
@@ -145,12 +167,15 @@ function DialogContent({
         {showCloseButton && (
           <Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-lg right-lg rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            asChild
           >
-            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full h-8 w-8 flex items-center justify-center p-0">
-              <XIcon className="size-md" />
-              <span className="sr-only">Close</span>
-            </Button>
+            <button
+              type="button"
+              className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-all cursor-pointer z-20"
+              aria-label="Tutup"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
           </Close>
         )}
 

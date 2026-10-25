@@ -79,6 +79,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export type ContextType = { isMobile: boolean | false };
 
 import { CartProvider } from "~/context/CartContext";
+import { WishlistProvider } from "~/context/WishlistContext";
 
 export default function App() {
     const { isMobile, locale } = useLoaderData<typeof loader>();
@@ -88,7 +89,9 @@ export default function App() {
         <AuthProvider>
             <PasswordProvider>
                 <CartProvider>
-                    <Outlet context={{ isMobile } satisfies ContextType} />
+                    <WishlistProvider>
+                        <Outlet context={{ isMobile } satisfies ContextType} />
+                    </WishlistProvider>
                 </CartProvider>
             </PasswordProvider>
         </AuthProvider>
@@ -97,29 +100,65 @@ export default function App() {
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     let message = "Oops!";
-    let details = "An unexpected error occurred.";
+    let details = "Terjadi kesalahan yang tidak terduga.";
     let stack: string | undefined;
 
     if (isRouteErrorResponse(error)) {
         message = error.status === 404 ? "404" : "Error";
         details =
             error.status === 404
-                ? "The requested page could not be found."
+                ? "Halaman yang Anda tuju tidak ditemukan."
                 : error.statusText || details;
-    } else if (import.meta.env.DEV && error && error instanceof Error) {
+    } else if (error && error instanceof Error) {
         details = error.message;
-        stack = error.stack;
+        if (import.meta.env.DEV) {
+            stack = error.stack;
+        }
     }
 
     return (
-        <main className="pt-16 p-4 container mx-auto">
-            <h1>{message}</h1>
-            <p>{details}</p>
-            {stack && (
-                <pre className="w-full p-4 overflow-x-auto">
-                    <code>{stack}</code>
-                </pre>
-            )}
+        <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-neutral-50 text-center">
+            <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-neutral-100 shadow-xl space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-red-50 text-red-500 flex items-center justify-center font-black text-xl">
+                    !
+                </div>
+                <h1 className="text-2xl font-black text-neutral-900">{message}</h1>
+                <p className="text-neutral-600 text-sm leading-relaxed">{details}</p>
+                <div className="pt-2 flex gap-3 justify-center">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (typeof window !== "undefined") {
+                                window.location.href = "/";
+                            }
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800 transition-colors cursor-pointer"
+                    >
+                        Ke Beranda
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (typeof window !== "undefined") {
+                                window.location.href = "/login";
+                            }
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-neutral-100 text-neutral-700 text-xs font-bold hover:bg-neutral-200 transition-colors cursor-pointer"
+                    >
+                        Halaman Login
+                    </button>
+                </div>
+                {stack && (
+                    <details className="text-left mt-4 pt-4 border-t border-neutral-100">
+                        <summary className="text-[11px] text-neutral-400 font-mono cursor-pointer hover:underline">
+                            Detail Debug
+                        </summary>
+                        <pre className="mt-2 text-[10px] p-3 bg-neutral-900 text-red-300 rounded-xl overflow-x-auto font-mono">
+                            <code>{stack}</code>
+                        </pre>
+                    </details>
+                )}
+            </div>
         </main>
     );
 }

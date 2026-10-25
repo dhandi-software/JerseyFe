@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { Loader2, Eye, ChevronDown, Search } from "lucide-react";
+import { Loader2, Eye, ChevronDown, Search, Video } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Toast } from "~/components/ui/toast";
 import { Button } from "~/components/ui/button";
@@ -50,6 +50,11 @@ export function MonitoringPesananDesktop() {
         subSearchQueries,
         debouncedSubSearchQueries,
         setSubSearch,
+        handleToggleMemberStatus,
+        handleUpdateNotesAndVideo,
+        handleAddMember,
+        handleEditMember,
+        handleDeleteMember,
         isPrinting,
         isUploadingProof,
         isUploadingPrint,
@@ -73,7 +78,8 @@ export function MonitoringPesananDesktop() {
         handleRevisiDesign,
         handleApproveLayout,
         handleRevisiLayout,
-        handleSendRecommendations
+        handleSendRecommendations,
+        handleUpdatePaymentDetails
     } = useMonitoringPesanan();
 
     if (selectedOrder) {
@@ -103,6 +109,12 @@ export function MonitoringPesananDesktop() {
                 handleRevisiDesign={handleRevisiDesign}
                 handleApproveLayout={handleApproveLayout}
                 handleRevisiLayout={handleRevisiLayout}
+                handleUpdateNotesAndVideo={handleUpdateNotesAndVideo}
+                handleToggleMemberStatus={handleToggleMemberStatus}
+                handleAddMember={handleAddMember}
+                handleEditMember={handleEditMember}
+                handleDeleteMember={handleDeleteMember}
+                handleUpdatePaymentDetails={handleUpdatePaymentDetails}
                 isAssignModalOpen={isAssignModalOpen}
                 setIsAssignModalOpen={setIsAssignModalOpen}
                 selectedDesignerId={selectedDesignerId}
@@ -298,12 +310,27 @@ export function MonitoringPesananDesktop() {
                                         <Fragment key={order.rawId}>
                                             <tr className="hover:bg-slate-50 transition-colors">
                                                 <td className="px-6 py-5 font-bold text-slate-600 font-mono text-sm">
-                                                    {order.id}
-                                                    {order.queueNumber && (
-                                                        <span className="ml-2 bg-[#D25026]/10 text-[#D25026] px-2 py-0.5 rounded text-[9px] font-black uppercase italic border border-[#D25026]/20">
-                                                            {order.queueNumber}
-                                                        </span>
-                                                    )}
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span>{order.id}</span>
+                                                        {order.queueNumber && (
+                                                            <span className="bg-[#D25026]/10 text-[#D25026] px-2 py-0.5 rounded text-[9px] font-black uppercase italic border border-[#D25026]/20">
+                                                                {order.queueNumber}
+                                                            </span>
+                                                        )}
+                                                        {order.videoUrl && (
+                                                            <a
+                                                                href={order.videoUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                title="Buka Link Video"
+                                                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 text-[10px] font-black uppercase tracking-tight shadow-2xs transition-colors"
+                                                            >
+                                                                <Video size={11} className="text-purple-600" />
+                                                                <span>Video</span>
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-5 font-black text-slate-900 uppercase italic text-base">{order.customer}</td>
                                                 <td className="px-6 py-5 text-slate-600 font-medium italic text-sm">{order.product}</td>
@@ -347,6 +374,7 @@ export function MonitoringPesananDesktop() {
                                                     onSearchChange={(val) => setSubSearch(order.rawId, val)}
                                                     debouncedQuery={debouncedSubSearchQueries[order.rawId] || debouncedSearchQuery}
                                                     onClose={() => setExpandedOrderRowId(null)}
+                                                    onToggleStatus={handleToggleMemberStatus}
                                                 />
                                             )}
                                         </Fragment>

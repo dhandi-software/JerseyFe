@@ -3,6 +3,7 @@ import { orderService } from "~/services/orderService";
 import { chatService } from "~/services/chatService";
 import { adminApi } from "~/api/admin";
 import { generateInvoicePDF } from "~/lib/pdfHelper";
+import { sortPlayersBySize } from "~/lib/sizeUtils";
 import { formatOrderData } from "~/features/admin/monitoring-pesanan/utils";
 import type { 
     MonitoringOrder, 
@@ -403,6 +404,345 @@ export function useMonitoringPesanan() {
         setSubSearchQueries(prev => ({ ...prev, [orderId]: query }));
     };
 
+    const handleToggleMemberStatus = async (orderId: number, detailId: number, field: "statusBaju" | "statusCelana") => {
+        let currentValue = false;
+        const targetOrder = orders.find(o => o.rawId === orderId);
+        if (targetOrder) {
+            const member = (targetOrder.details || []).find((m: any) => m.id === detailId);
+            if (member) {
+                currentValue = Boolean(member[field]);
+            }
+        }
+        const nextValue = !currentValue;
+
+        // Optimistic update
+        setOrders(prevOrders => prevOrders.map(order => {
+            if (order.rawId !== orderId) return order;
+            return {
+                ...order,
+                details: (order.details || []).map((m: any) => {
+                    if (m.id === detailId) {
+                        return { ...m, [field]: nextValue };
+                    }
+                    return m;
+                })
+            };
+        }));
+
+        if (selectedOrder && selectedOrder.rawId === orderId) {
+            setSelectedOrder(prev => prev ? ({
+                ...prev,
+                details: (prev.details || []).map((m: any) => {
+                    if (m.id === detailId) {
+                        return { ...m, [field]: nextValue };
+                    }
+                    return m;
+                })
+            }) : null);
+        }
+
+        try {
+            await orderService.updateMemberItemStatus(detailId, { [field]: nextValue });
+            setToast({
+                title: `Status ${field === 'statusBaju' ? 'Baju' : 'Celana'} ${nextValue ? 'READY' : 'BELUM READY'}`,
+                variant: "success"
+            });
+        } catch (error) {
+            console.error("Failed to toggle member status:", error);
+            // Revert on error
+            setOrders(prevOrders => prevOrders.map(order => {
+                if (order.rawId !== orderId) return order;
+                return {
+                    ...order,
+                    details: (order.details || []).map((m: any) => {
+                        if (m.id === detailId) {
+                            return { ...m, [field]: currentValue };
+                        }
+                        return m;
+                    })
+                };
+            }));
+            if (selectedOrder && selectedOrder.rawId === orderId) {
+                setSelectedOrder(prev => prev ? ({
+                    ...prev,
+                    details: (prev.details || []).map((m: any) => {
+                        if (m.id === detailId) {
+                            return { ...m, [field]: currentValue };
+                        }
+                        return m;
+                    })
+                }) : null);
+            }
+            setToast({
+                title: "Gagal memperbarui status anggota",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const handleUpdateNotesAndVideo = async (orderId: number, payload: { videoUrl?: string; adminNote?: string; designNote?: string }) => {
+        try {
+            const updated = await orderService.updateOrderNotesAndVideo(orderId, payload);
+            setOrders(prev => prev.map(o => o.rawId === orderId ? {
+                ...o,
+                videoUrl: updated.videoUrl,
+                adminNote: updated.adminNote,
+                designNote: updated.designNote ?? o.designNote
+            } : o));
+
+            if (selectedOrder && selectedOrder.rawId === orderId) {
+                setSelectedOrder(prev => prev ? ({
+                    ...prev,
+                    videoUrl: updated.videoUrl,
+                    adminNote: updated.adminNote,
+                    designNote: updated.designNote ?? prev.designNote
+                }) : null);
+            }
+
+            setToast({
+                title: "Catatan & tautan video berhasil disimpan",
+                variant: "success"
+            });
+            return true;
+        } catch (error) {
+            console.error("Failed to update notes & video:", error);
+            setToast({
+                title: "Gagal menyimpan catatan atau link video",
+                variant: "destructive"
+            });
+            return false;
+        }
+    };
+
+    const handleAddMember = async (orderId: number, memberData: { playerName: string; playerNumber?: string; playerSize: string; statusBaju?: boolean; statusCelana?: boolean }) => {
+        try {
+            const newDetail = await orderService.addOrderMember(orderId, memberData);
+            const targetOrder = orders.find(o => o.rawId === orderId) || (selectedOrder?.rawId === orderId ? selectedOrder : null);
+            const unitPrice = (newDetail as any).unitPrice || (targetOrder && targetOrder.qty > 0 ? Math.round(targetOrder.totalAmount / targetOrder.qty) : 150000);
+            const calculatedTotal = (newDetail as any).newTotalAmount || ((targetOrder?.totalAmount || 0) + unitPrice);
+
+            setOrders(prev => prev.map(o => {
+                if (o.rawId !== orderId) return o;
+                const nextDetails = [...(o.details || []), {
+                    id: newDetail.id,
+                    productId: newDetail.productId,
+                    productTitle: newDetail.productTitle,
+                    playerName: newDetail.playerName,
+                    playerNumber: newDetail.playerNumber,
+                    playerSize: newDetail.playerSize,
+                    statusBaju: Boolean(newDetail.statusBaju),
+                    statusCelana: Boolean(newDetail.statusCelana)
+                }];
+                const nextRemaining = (newDetail as any)?.remainingAmount !== undefined
+                    ? (newDetail as any).remainingAmount
+                    : (o.paymentType === "DP" ? Math.max(0, calculatedTotal - (o.paidAmount || 0)) : o.remainingAmount);
+                return {
+                    ...o,
+                    qty: nextDetails.length,
+                    totalAmount: calculatedTotal,
+                    remainingAmount: nextRemaining,
+                    details: nextDetails,
+                    playerInfo: sortPlayersBySize(nextDetails.map((d: any) => ({
+                        name: d.playerName || "-",
+                        number: d.playerNumber || "-",
+                        size: d.playerSize || "-"
+                    })))
+                };
+            }));
+
+            if (selectedOrder && selectedOrder.rawId === orderId) {
+                setSelectedOrder(prev => {
+                    if (!prev) return null;
+                    const nextDetails = [...(prev.details || []), {
+                        id: newDetail.id,
+                        productId: newDetail.productId,
+                        productTitle: newDetail.productTitle,
+                        playerName: newDetail.playerName,
+                        playerNumber: newDetail.playerNumber,
+                        playerSize: newDetail.playerSize,
+                        statusBaju: Boolean(newDetail.statusBaju),
+                        statusCelana: Boolean(newDetail.statusCelana)
+                    }];
+                    const nextRemaining = (newDetail as any)?.remainingAmount !== undefined
+                        ? (newDetail as any).remainingAmount
+                        : (prev.paymentType === "DP" ? Math.max(0, calculatedTotal - (prev.paidAmount || 0)) : prev.remainingAmount);
+                    return {
+                        ...prev,
+                        qty: nextDetails.length,
+                        totalAmount: calculatedTotal,
+                        remainingAmount: nextRemaining,
+                        details: nextDetails,
+                        playerInfo: sortPlayersBySize(nextDetails.map((d: any) => ({
+                            name: d.playerName || "-",
+                            number: d.playerNumber || "-",
+                            size: d.playerSize || "-"
+                        })))
+                    };
+                });
+            }
+
+            setToast({ title: "Anggota baru berhasil ditambahkan!", variant: "success" });
+            return true;
+        } catch (error) {
+            console.error("Gagal menambahkan anggota:", error);
+            setToast({ title: "Gagal menambahkan anggota", variant: "destructive" });
+            return false;
+        }
+    };
+
+    const handleEditMember = async (orderId: number, detailId: number, memberData: { playerName?: string; playerNumber?: string; playerSize?: string; statusBaju?: boolean; statusCelana?: boolean }) => {
+        try {
+            const updated = await orderService.updateOrderMember(detailId, memberData);
+            setOrders(prev => prev.map(o => {
+                if (o.rawId !== orderId) return o;
+                const nextDetails = (o.details || []).map((m: any) => m.id === detailId ? {
+                    ...m,
+                    ...updated,
+                    statusBaju: Boolean(updated.statusBaju !== undefined ? updated.statusBaju : m.statusBaju),
+                    statusCelana: Boolean(updated.statusCelana !== undefined ? updated.statusCelana : m.statusCelana)
+                } : m);
+                return {
+                    ...o,
+                    details: nextDetails,
+                    playerInfo: sortPlayersBySize(nextDetails.map((d: any) => ({
+                        name: d.playerName || "-",
+                        number: d.playerNumber || "-",
+                        size: d.playerSize || "-"
+                    })))
+                };
+            }));
+
+            if (selectedOrder && selectedOrder.rawId === orderId) {
+                setSelectedOrder(prev => {
+                    if (!prev) return null;
+                    const nextDetails = (prev.details || []).map((m: any) => m.id === detailId ? {
+                        ...m,
+                        ...updated,
+                        statusBaju: Boolean(updated.statusBaju !== undefined ? updated.statusBaju : m.statusBaju),
+                        statusCelana: Boolean(updated.statusCelana !== undefined ? updated.statusCelana : m.statusCelana)
+                    } : m);
+                    return {
+                        ...prev,
+                        details: nextDetails,
+                        playerInfo: sortPlayersBySize(nextDetails.map((d: any) => ({
+                            name: d.playerName || "-",
+                            number: d.playerNumber || "-",
+                            size: d.playerSize || "-"
+                        })))
+                    };
+                });
+            }
+
+            setToast({ title: "Data anggota berhasil diperbarui!", variant: "success" });
+            return true;
+        } catch (error) {
+            console.error("Gagal mengubah data anggota:", error);
+            setToast({ title: "Gagal mengubah data anggota", variant: "destructive" });
+            return false;
+        }
+    };
+
+    const handleDeleteMember = async (orderId: number, detailId: number) => {
+        try {
+            const deletedRes = await orderService.deleteOrderMember(detailId);
+            const targetOrder = orders.find(o => o.rawId === orderId) || (selectedOrder?.rawId === orderId ? selectedOrder : null);
+            const unitPrice = targetOrder && targetOrder.qty > 0 ? Math.round(targetOrder.totalAmount / targetOrder.qty) : 0;
+            const calculatedTotal = Math.max(0, (targetOrder?.totalAmount || 0) - unitPrice);
+
+            setOrders(prev => prev.map(o => {
+                if (o.rawId !== orderId) return o;
+                const nextDetails = (o.details || []).filter((m: any) => m.id !== detailId);
+                const nextRemaining = (deletedRes as any)?.remainingAmount !== undefined
+                    ? (deletedRes as any).remainingAmount
+                    : (o.paymentType === "DP" ? Math.max(0, calculatedTotal - (o.paidAmount || 0)) : o.remainingAmount);
+                return {
+                    ...o,
+                    qty: nextDetails.length,
+                    totalAmount: calculatedTotal,
+                    remainingAmount: nextRemaining,
+                    details: nextDetails,
+                    playerInfo: sortPlayersBySize(nextDetails.map((d: any) => ({
+                        name: d.playerName || "-",
+                        number: d.playerNumber || "-",
+                        size: d.playerSize || "-"
+                    })))
+                };
+            }));
+
+            if (selectedOrder && selectedOrder.rawId === orderId) {
+                setSelectedOrder(prev => {
+                    if (!prev) return null;
+                    const nextDetails = (prev.details || []).filter((m: any) => m.id !== detailId);
+                    const nextRemaining = (deletedRes as any)?.remainingAmount !== undefined
+                        ? (deletedRes as any).remainingAmount
+                        : (prev.paymentType === "DP" ? Math.max(0, calculatedTotal - (prev.paidAmount || 0)) : prev.remainingAmount);
+                    return {
+                        ...prev,
+                        qty: nextDetails.length,
+                        totalAmount: calculatedTotal,
+                        remainingAmount: nextRemaining,
+                        details: nextDetails,
+                        playerInfo: sortPlayersBySize(nextDetails.map((d: any) => ({
+                            name: d.playerName || "-",
+                            number: d.playerNumber || "-",
+                            size: d.playerSize || "-"
+                        })))
+                    };
+                });
+            }
+
+            setToast({ title: "Anggota berhasil dihapus dari pesanan", variant: "success" });
+            return true;
+        } catch (error) {
+            console.error("Gagal menghapus anggota:", error);
+            setToast({ title: "Gagal menghapus anggota", variant: "destructive" });
+            return false;
+        }
+    };
+
+    const handleUpdatePaymentDetails = async (
+        orderId: number,
+        data: { paymentType?: string; paidAmount?: number; remainingAmount?: number }
+    ) => {
+        try {
+            await orderService.updatePaymentDetails(orderId, data);
+            setOrders(prev => prev.map(o => {
+                if (o.rawId !== orderId) return o;
+                const pType = data.paymentType !== undefined ? data.paymentType : o.paymentType;
+                const paid = data.paidAmount !== undefined ? data.paidAmount : o.paidAmount;
+                const rem = data.remainingAmount !== undefined ? data.remainingAmount : (pType === "DP" ? Math.max(0, (o.totalAmount || 0) - (paid || 0)) : 0);
+                return {
+                    ...o,
+                    paymentType: pType,
+                    paidAmount: paid,
+                    remainingAmount: rem
+                };
+            }));
+
+            if (selectedOrder && selectedOrder.rawId === orderId) {
+                setSelectedOrder(prev => {
+                    if (!prev) return null;
+                    const pType = data.paymentType !== undefined ? data.paymentType : prev.paymentType;
+                    const paid = data.paidAmount !== undefined ? data.paidAmount : prev.paidAmount;
+                    const rem = data.remainingAmount !== undefined ? data.remainingAmount : (pType === "DP" ? Math.max(0, (prev.totalAmount || 0) - (paid || 0)) : 0);
+                    return {
+                        ...prev,
+                        paymentType: pType,
+                        paidAmount: paid,
+                        remainingAmount: rem
+                    };
+                });
+            }
+
+            setToast({ title: "Status pembayaran berhasil diperbarui", variant: "success" });
+            return true;
+        } catch (error) {
+            console.error("Gagal memperbarui status pembayaran:", error);
+            setToast({ title: "Gagal memperbarui status pembayaran", variant: "destructive" });
+            return false;
+        }
+    };
+
     return {
         orders,
         loading,
@@ -438,6 +778,11 @@ export function useMonitoringPesanan() {
         subSearchQueries,
         debouncedSubSearchQueries,
         setSubSearch,
+        handleToggleMemberStatus,
+        handleUpdateNotesAndVideo,
+        handleAddMember,
+        handleEditMember,
+        handleDeleteMember,
 
         // Upload refs
         proofInputRef,
@@ -471,6 +816,7 @@ export function useMonitoringPesanan() {
         handleApproveLayout,
         handleRevisiLayout,
         handleSendRecommendations,
+        handleUpdatePaymentDetails,
         fetchOrders
     };
 }

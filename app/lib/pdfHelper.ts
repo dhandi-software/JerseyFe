@@ -110,11 +110,20 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("BAHRUDIN YUSUF", 140, 82);
 
     // Table Summary Data
-    const totalUnit = order.details?.length || 0;
+    const memberItems = (order.details && order.details.length > 0)
+        ? order.details
+        : (order.playerInfo || []).map((p: any) => ({
+            playerName: p.name || p.playerName,
+            playerNumber: p.number || p.playerNumber,
+            playerSize: p.size || p.playerSize,
+            statusBaju: p.statusBaju,
+            statusCelana: p.statusCelana
+        }));
+    const totalUnit = memberItems.length;
     const totalAmount = order.totalAmount || (totalUnit * 150000);
     const subtotal = totalAmount;
     const basePrice = totalUnit > 0 ? Math.round(subtotal / totalUnit) : 150000;
-    const productName = order.details?.[0]?.productTitle || "Jersey Custom Full Printing";
+    const productName = order.details?.[0]?.productTitle || order.product || "Jersey Custom Full Printing";
 
     const summaryBody = [
         [productName, totalUnit.toString(), `Rp ${basePrice.toLocaleString('id-ID')}`, `Rp ${subtotal.toLocaleString('id-ID')}`]
@@ -144,21 +153,39 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("KETERANGAN", 14, finalY + 15);
 
     const isPaid = order.status !== "MENUNGGU" && order.status !== "DITOLAK";
+    const isDP = order.paymentType === "DP" || (order.paidAmount > 0 && order.paidAmount < totalAmount);
+    const paidAmount = order.paidAmount !== undefined 
+        ? order.paidAmount 
+        : (isDP ? Math.round(totalAmount * 0.5) : (isPaid ? totalAmount : 0));
+    const remainingAmount = order.remainingAmount !== undefined 
+        ? order.remainingAmount 
+        : Math.max(0, totalAmount - paidAmount);
 
-    // Badge "Pembayaran diterima" atau "Pembayaran belum diterima"
-    doc.setFillColor(isPaid ? 236 : 254, isPaid ? 253 : 242, isPaid ? 245 : 242); // emerald-50 or red-50
-    doc.setDrawColor(isPaid ? 16 : 239, isPaid ? 185 : 68, isPaid ? 129 : 68); // emerald-500 or red-500
-    doc.roundedRect(14, finalY + 20, 55, 8, 1, 1, 'FD');
-    doc.setFillColor(isPaid ? 16 : 239, isPaid ? 185 : 68, isPaid ? 129 : 68);
-    doc.circle(18, finalY + 24, 1.5, 'F');
-    doc.setFontSize(8);
-    doc.setTextColor(isPaid ? 6 : 153, isPaid ? 95 : 27, isPaid ? 70 : 27); // emerald-800 or red-800
-    doc.text(isPaid ? "Pembayaran diterima" : "Pembayaran belum diterima", 22, finalY + 26);
+    // Payment Status Badge
+    if (isDP) {
+        doc.setFillColor(254, 243, 199); // amber-100
+        doc.setDrawColor(245, 158, 11);  // amber-500
+        doc.roundedRect(14, finalY + 20, 68, 8, 1, 1, 'FD');
+        doc.setFillColor(217, 119, 6);   // amber-600
+        doc.circle(18, finalY + 24, 1.5, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(180, 83, 9);    // amber-800
+        doc.text(remainingAmount > 0 ? "DP Diterima (Belum Lunas)" : "Lunas (Pelunasan DP)", 22, finalY + 25.5);
+    } else {
+        doc.setFillColor(isPaid ? 236 : 254, isPaid ? 253 : 242, isPaid ? 245 : 242);
+        doc.setDrawColor(isPaid ? 16 : 239, isPaid ? 185 : 68, isPaid ? 129 : 68);
+        doc.roundedRect(14, finalY + 20, 60, 8, 1, 1, 'FD');
+        doc.setFillColor(isPaid ? 16 : 239, isPaid ? 185 : 68, isPaid ? 129 : 68);
+        doc.circle(18, finalY + 24, 1.5, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(isPaid ? 6 : 153, isPaid ? 95 : 27, isPaid ? 70 : 27);
+        doc.text(isPaid ? "Lunas (Full Cash)" : "Menunggu Pembayaran", 22, finalY + 25.5);
+    }
 
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
-    doc.text("Metode: Transfer Bank BCA", 14, finalY + 36);
+    doc.text(`Metode: Transfer BCA (${isDP ? "DP / Uang Muka" : "Full Cash"})`, 14, finalY + 36);
     doc.text(`Tanggal bayar: ${new Date(order.createdAt || Date.now()).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}`, 14, finalY + 41);
 
     // Total Area
@@ -170,19 +197,50 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("Subtotal", 110, finalY + 22);
     doc.text(`Rp ${subtotal.toLocaleString('id-ID')}`, 195, finalY + 22, { align: 'right' });
 
-    doc.setDrawColor(15, 23, 42); // dark line for total
+    doc.setDrawColor(15, 23, 42);
     doc.setLineWidth(0.5);
-    doc.line(110, finalY + 27, 195, finalY + 27);
+    doc.line(110, finalY + 26, 195, finalY + 26);
 
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
     doc.setFont("helvetica", "bold");
-    doc.text("Total", 110, finalY + 35);
-    doc.setFontSize(14);
-    doc.setTextColor(79, 70, 229); // indigo-600
-    doc.text(`Rp ${totalAmount.toLocaleString('id-ID')}`, 195, finalY + 35, { align: 'right' });
+    doc.text("Total Tagihan", 110, finalY + 33);
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Rp ${totalAmount.toLocaleString('id-ID')}`, 195, finalY + 33, { align: 'right' });
 
-    finalY = finalY + 50;
+    if (isDP) {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        doc.text("Dibayar (DP):", 110, finalY + 41);
+        doc.setTextColor(15, 23, 42);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Rp ${paidAmount.toLocaleString('id-ID')}`, 195, finalY + 41, { align: 'right' });
+
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        doc.line(110, finalY + 45, 195, finalY + 45);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(225, 29, 72); // rose-600
+        doc.text("Sisa Kekurangan:", 110, finalY + 52);
+        doc.setFontSize(12);
+        doc.text(`Rp ${remainingAmount.toLocaleString('id-ID')}`, 195, finalY + 52, { align: 'right' });
+
+        finalY = finalY + 68;
+    } else {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 100, 100);
+        doc.text("Status:", 110, finalY + 41);
+        doc.setTextColor(isPaid ? 6 : 153, isPaid ? 95 : 27, isPaid ? 70 : 27);
+        doc.setFont("helvetica", "bold");
+        doc.text(isPaid ? "LUNAS (100%)" : "BELUM LUNAS", 195, finalY + 41, { align: 'right' });
+
+        finalY = finalY + 56;
+    }
 
     // Data Pemain Table
     doc.setFontSize(9);
@@ -190,7 +248,7 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setFont("helvetica", "bold");
     doc.text("RINCIAN DATA PEMAIN", 14, finalY);
 
-    const dataPemainBody = (order.details || []).map((item: any, idx: number) => {
+    const dataPemainBody = memberItems.map((item: any, idx: number) => {
         let sizeOnly = item.playerSize || "-";
         let sleeve = "-";
         // Handle "L (Lengan Pendek)" or "L - Lengan Pendek"
@@ -237,13 +295,14 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setFontSize(8);
     doc.setTextColor(100, 100, 100);
     doc.setFont("helvetica", "normal");
-    doc.text(
-        isPaid 
-            ? "Terima kasih sudah mempercayakan pesanan jersey kepada FCSV! Pesanan telah LUNAS dan sedang diproses." 
-            : "Terima kasih sudah mempercayakan pesanan jersey kepada FCSV! Pesanan menunggu konfirmasi pembayaran dari admin.", 
-        14, 
-        finalY + 5
-    );
+    const catatanText = isDP
+        ? (remainingAmount > 0
+            ? `Pembayaran DP sebesar Rp ${paidAmount.toLocaleString('id-ID')} telah dicatat. Sisa kekurangan tagihan sebesar Rp ${remainingAmount.toLocaleString('id-ID')} wajib dilunasi sebelum pesanan dikirim atau diambil.`
+            : `Pembayaran DP dan sisa tagihan telah LUNAS. Pesanan sedang diproses.`)
+        : (isPaid
+            ? "Terima kasih sudah mempercayakan pesanan jersey kepada FCSV! Pesanan telah LUNAS (Full Cash) dan sedang diproses."
+            : "Terima kasih sudah mempercayakan pesanan jersey kepada FCSV! Pesanan menunggu konfirmasi pembayaran dari admin.");
+    doc.text(catatanText, 14, finalY + 5);
 
     // Watermark Footer
     doc.setFontSize(8);

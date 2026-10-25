@@ -25,6 +25,11 @@ export const orderService = {
         return response.data;
     },
 
+    async updatePaymentDetails(id: number, data: { paymentUrl?: string; paymentType?: string; paidAmount?: number; remainingAmount?: number }) {
+        const response = await client.patch(`/orders/${id}/payment`, data);
+        return mapOrder(response.data);
+    },
+
     async getOrders(params?: { search?: string; status?: string }) {
         const response = await client.get("/orders", { params });
         return (response.data || []).map(mapOrder);
@@ -160,5 +165,30 @@ export const orderService = {
     async updateDamageReport(historyId: number, data: { pcs: number, keterangan?: string, actor?: string }) {
         const response = await client.put(`/orders/damage/${historyId}`, data);
         return response.data;
+    },
+
+    async updateMemberItemStatus(detailId: number, data: { statusBaju?: boolean; statusCelana?: boolean }) {
+        const response = await client.patch(`/orders/detail/${detailId}/status`, data);
+        return response.data;
+    },
+
+    async updateOrderMember(detailId: number, data: { playerName?: string; playerNumber?: string; playerSize?: string; statusBaju?: boolean; statusCelana?: boolean }) {
+        const response = await client.patch(`/orders/detail/${detailId}`, data);
+        return response.data;
+    },
+
+    async addOrderMember(orderId: number, data: { playerName: string; playerNumber?: string; playerSize: string; statusBaju?: boolean; statusCelana?: boolean }) {
+        const response = await client.post(`/orders/${orderId}/detail`, data);
+        return response.data;
+    },
+
+    async deleteOrderMember(detailId: number) {
+        const response = await client.delete(`/orders/detail/${detailId}`);
+        return response.data;
+    },
+
+    async updateOrderNotesAndVideo(id: number, data: { videoUrl?: string; adminNote?: string; designNote?: string }) {
+        const response = await client.patch(`/orders/${id}/notes-video`, data);
+        return mapOrder(response.data);
     }
 };

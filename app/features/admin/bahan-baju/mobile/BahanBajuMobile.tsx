@@ -1,61 +1,28 @@
-import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
-import { adminApi } from "~/api/admin";
 import { Plus, Edit, Trash2, History, Package, Loader2, Info, Image as ImageIcon, Eye } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
-import { useNavigate } from "react-router";
 import { UPLOADS_URL } from "~/api/client";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { cn } from "~/lib/utils";
+import { useBahanBaju } from "~/hooks/useBahanBaju";
 
 export function BahanBajuMobile() {
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"penyubliman" | "katalog" | "riwayat">("penyubliman");
-    const [bahanList, setBahanList] = useState<any[]>([]);
-    const [historyList, setHistoryList] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" } | null>(null);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [bahanToDelete, setBahanToDelete] = useState<{ id: number; nama: string } | null>(null);
+    const {
+        activeTab,
+        setActiveTab,
+        bahanList,
+        historyList,
+        loading,
+        toast,
+        setToast,
+        isDeleteModalOpen,
+        setIsDeleteModalOpen,
+        bahanToDelete,
+        handleDeleteClick,
+        confirmDelete,
+        navigate,
+    } = useBahanBaju();
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const resBahan = await adminApi.getBahanBaju();
-            if (resBahan.status === "success") setBahanList(resBahan.data);
-
-            const resHistory = await adminApi.getBahanBajuHistory();
-            if (resHistory.status === "success") setHistoryList(resHistory.data);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const handleDeleteClick = (id: number, nama: string) => {
-        setBahanToDelete({ id, nama });
-        setIsDeleteModalOpen(true);
-    };
-
-    const confirmDelete = async () => {
-        if (!bahanToDelete) return;
-        try {
-            await adminApi.deleteBahanBaju(bahanToDelete.id);
-            setToast({ title: "Bahan berhasil dihapus", variant: "success" });
-            fetchData();
-        } catch (error) {
-            console.error(error);
-            setToast({ title: "Gagal menghapus data", variant: "destructive" });
-        } finally {
-            setIsDeleteModalOpen(false);
-            setBahanToDelete(null);
-        }
-    };
 
     return (
         <div className="w-full min-h-screen bg-[#F8FAFC] font-geist pb-24 relative">

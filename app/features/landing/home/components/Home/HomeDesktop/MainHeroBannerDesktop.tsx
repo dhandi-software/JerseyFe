@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { ArrowRight, PackageSearch } from "lucide-react";
+import { ArrowRight, PackageSearch, Heart } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { bannerApi } from "~/api/bannerApi";
+import { useWishlist } from "~/hooks/useWishlist";
 import { useProducts } from "~/hooks/useProducts";
 import { Skeleton } from "~/components/ui/skeleton";
+import { cn } from "~/lib/utils";
 import type { BannerItem } from "~/types/bannerTypes";
 
 export function MainHeroBannerDesktop() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { addToWishlist, isInWishlist } = useWishlist();
   const { products, loading: productsLoading } = useProducts();
 
   useEffect(() => {
@@ -150,23 +153,43 @@ export function MainHeroBannerDesktop() {
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
                     {premierProduct.category || "JERSEY TERBARU"}
                   </span>
-                  <h3 className="text-lg font-bold leading-snug text-white line-clamp-1">
-                    {premierProduct.title}
-                  </h3>
+                  <Link to={`/product/${premierProduct.id}`} className="block">
+                    <h3 className="text-lg font-bold leading-snug text-white line-clamp-1 hover:text-[#FA8232] transition-colors">
+                      {premierProduct.title}
+                    </h3>
+                  </Link>
                   <p className="text-xs text-zinc-300">
                     Rp {premierProduct.price.toLocaleString("id-ID")} / pcs
                   </p>
-                  <div className="pt-2">
+                  <div className="pt-2 flex items-center gap-2">
                     <Button
                       asChild
                       size="sm"
-                      className="bg-[#FA8232] hover:bg-[#e06d20] text-white text-xs font-bold px-4 py-2 gap-1 rounded-lg cursor-pointer"
+                      className="bg-[#FA8232] hover:bg-[#e06d20] text-white text-xs font-bold px-4 py-2 gap-1 rounded-xl cursor-pointer"
                     >
                       <Link to={`/product/${premierProduct.id}`}>
                         <span>ORDER SEKARANG</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </Button>
+                    <button
+                      type="button"
+                      onClick={() => addToWishlist({
+                        id: String(premierProduct.id),
+                        name: premierProduct.title,
+                        price: premierProduct.price,
+                        image: premierProduct.image || "/images/Kain-Jersey-Serena.jpg",
+                        stockStatus: "IN STOCK",
+                        category: premierProduct.category,
+                      })}
+                      className={cn(
+                        "w-9 h-9 rounded-xl bg-zinc-800 text-zinc-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-zinc-700",
+                        isInWishlist(premierProduct.id) && "text-rose-500 bg-rose-950/60 border-rose-600"
+                      )}
+                      aria-label="Wishlist"
+                    >
+                      <Heart className={cn("w-4 h-4", isInWishlist(premierProduct.id) && "fill-current text-rose-500")} />
+                    </button>
                   </div>
                 </div>
 
@@ -174,45 +197,67 @@ export function MainHeroBannerDesktop() {
                   HOT
                 </span>
 
-                <img
-                  src={premierProduct.image || "/images/Kain-Jersey-Serena.jpg"}
-                  alt={premierProduct.title}
-                  className="absolute -right-4 bottom-0 top-0 w-36 h-full object-contain pointer-events-none opacity-50 lg:opacity-75"
-                />
+                <Link to={`/product/${premierProduct.id}`} className="absolute -right-4 bottom-0 top-0 w-36 h-full flex items-center justify-center">
+                  <img
+                    src={premierProduct.image || "/images/Kain-Jersey-Serena.jpg"}
+                    alt={premierProduct.title}
+                    className="w-full h-full object-contain opacity-60 hover:opacity-100 transition-opacity"
+                  />
+                </Link>
               </div>
 
               {/* Card 2: Secondary Product from Admin */}
               {secondaryProduct && (
                 <div className="flex-1 bg-white/80 backdrop-blur-md border border-white/80 rounded-2xl p-6 flex items-center justify-between gap-4 shadow-md min-h-[215px]">
-                  <div className="w-28 h-28 shrink-0 flex items-center justify-center p-1 rounded-xl bg-zinc-50 overflow-hidden">
+                  <Link to={`/product/${secondaryProduct.id}`} className="w-28 h-28 shrink-0 flex items-center justify-center p-1 rounded-xl bg-zinc-50 overflow-hidden hover:opacity-90 transition-opacity">
                     <img
                       src={secondaryProduct.image || "/images/Kain-Jersey-Paragon.jpg"}
                       alt={secondaryProduct.title}
                       className="w-full h-full object-contain drop-shadow-md"
                     />
-                  </div>
+                  </Link>
 
                   <div className="space-y-2 z-10 flex-1 min-w-0">
                     <span className="text-[10px] font-bold text-[#FA8232] uppercase tracking-wider block">
                       {secondaryProduct.category || "BAHAN PILIHAN"}
                     </span>
-                    <h3 className="text-base font-bold leading-tight text-[#191C1F] line-clamp-1">
-                      {secondaryProduct.title}
-                    </h3>
-                    <p className="text-sm font-extrabold text-[#2DA5F3]">
+                    <Link to={`/product/${secondaryProduct.id}`} className="block">
+                      <h3 className="text-base font-bold leading-tight text-[#191C1F] line-clamp-1 hover:text-[#FA8232] transition-colors">
+                        {secondaryProduct.title}
+                      </h3>
+                    </Link>
+                    <p className="text-sm font-extrabold text-[#D25026]">
                       Rp {secondaryProduct.price.toLocaleString("id-ID")}
                     </p>
-                    <div className="pt-1">
+                    <div className="pt-1 flex items-center gap-2">
                       <Button
                         asChild
                         size="sm"
-                        className="bg-[#FA8232] hover:bg-[#e06d20] text-white text-xs font-bold px-4 py-2 gap-1 rounded-lg cursor-pointer"
+                        className="bg-[#FA8232] hover:bg-[#e06d20] text-white text-xs font-bold px-4 py-2 gap-1 rounded-xl cursor-pointer"
                       >
                         <Link to={`/product/${secondaryProduct.id}`}>
                           <span>LIHAT PRODUK</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </Button>
+                      <button
+                        type="button"
+                        onClick={() => addToWishlist({
+                          id: String(secondaryProduct.id),
+                          name: secondaryProduct.title,
+                          price: secondaryProduct.price,
+                          image: secondaryProduct.image || "/images/Kain-Jersey-Paragon.jpg",
+                          stockStatus: "IN STOCK",
+                          category: secondaryProduct.category,
+                        })}
+                        className={cn(
+                          "w-9 h-9 rounded-xl bg-white text-zinc-600 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer border border-zinc-200",
+                          isInWishlist(secondaryProduct.id) && "text-rose-600 bg-rose-50 border-rose-300"
+                        )}
+                        aria-label="Wishlist"
+                      >
+                        <Heart className={cn("w-4 h-4", isInWishlist(secondaryProduct.id) && "fill-current text-rose-600")} />
+                      </button>
                     </div>
                   </div>
                 </div>

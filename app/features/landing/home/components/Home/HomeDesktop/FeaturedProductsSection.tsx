@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, ShoppingCart, Check } from "lucide-react";
+import { ArrowRight, ShoppingCart, Check, Heart, Eye } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { useCart } from "~/context/CartContext";
+import { useWishlist } from "~/hooks/useWishlist";
 import { useProducts } from "~/hooks/useProducts";
 import { FeaturedProductsSkeleton } from "~/features/landing/home/components/Home/HomeProductSkeletons";
 import { HomeProductEmptyState } from "~/features/landing/home/components/Home/HomeProductEmptyState";
 
 export function FeaturedProductsSection() {
   const { addToCart } = useCart();
+  const { addToWishlist, isInWishlist } = useWishlist();
   const { products, loading } = useProducts();
   const [activeTab, setActiveTab] = useState("all");
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
@@ -28,6 +30,7 @@ export function FeaturedProductsSection() {
       id: String(p.id),
       title: p.title,
       price: `Rp ${p.price.toLocaleString("id-ID")}`,
+      rawPrice: p.price,
       image: p.image || "/images/jersey_hero.webp",
       categoryName: p.category || "Bahan Baju",
       categorySlug: (p.category || "").toLowerCase(),
@@ -56,6 +59,19 @@ export function FeaturedProductsSection() {
     setTimeout(() => {
       setAddedIds((prev) => ({ ...prev, [product.id]: false }));
     }, 1500);
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent, product: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToWishlist({
+      id: product.id,
+      name: product.title,
+      price: product.rawPrice ?? product.price,
+      image: product.image,
+      stockStatus: "IN STOCK",
+      category: product.categoryName,
+    });
   };
 
   const filteredProducts = activeTab === "all"
@@ -108,11 +124,13 @@ export function FeaturedProductsSection() {
           </div>
 
           <div className="relative my-auto py-6 flex items-center justify-center">
-            <img
-              src={bannerProduct?.image || "/images/jersey_hero.webp"}
-              alt="Unggulan"
-              className="max-h-64 object-contain drop-shadow-xl hover:scale-105 transition-transform"
-            />
+            <Link to={bannerProduct ? `/product/${bannerProduct.id}` : "/category"}>
+              <img
+                src={bannerProduct?.image || "/images/jersey_hero.webp"}
+                alt="Unggulan"
+                className="max-h-64 object-contain drop-shadow-xl hover:scale-105 transition-transform"
+              />
+            </Link>
           </div>
 
           <div className="z-10 text-center">
@@ -122,13 +140,22 @@ export function FeaturedProductsSection() {
                 {bannerProduct?.price || "Rp 150.000"}
               </span>
             </div>
-            <Link
-              to="/customer/custom-jersey"
-              className="w-full bg-[#FA8232] hover:bg-[#e06d20] text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer"
-            >
-              <span>CUSTOM SEKARANG</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                to={bannerProduct ? `/product/${bannerProduct.id}` : "/category"}
+                className="w-full bg-[#191C1F] hover:bg-black text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-98 cursor-pointer"
+              >
+                <span>DETAIL</span>
+                <Eye className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                to="/customer/custom-jersey"
+                className="w-full bg-[#FA8232] hover:bg-[#e06d20] text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-98 cursor-pointer"
+              >
+                <span>CUSTOM</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -172,13 +199,15 @@ export function FeaturedProductsSection() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProducts.slice(0, 8).map((product) => {
                 const isAdded = addedIds[product.id];
+                const isWished = isInWishlist(product.id);
                 return (
                   <div
                     key={product.id}
-                    className="bg-white border border-zinc-200 rounded-xl p-4 flex flex-col justify-between shadow-2xs hover:border-[#FA8232]/50 hover:shadow-md transition-all group"
+                    className="bg-white border border-zinc-200 rounded-2xl p-4 flex flex-col justify-between shadow-2xs hover:border-[#FA8232]/50 hover:shadow-md transition-all group relative"
                   >
                     <div className="space-y-3">
-                      <div className="relative w-full aspect-square flex items-center justify-center p-2 rounded-lg bg-zinc-50 overflow-hidden">
+                      {/* Image Area with Actions Overlay */}
+                      <div className="relative w-full aspect-square flex items-center justify-center p-2 rounded-xl bg-zinc-50 overflow-hidden">
                         {product.badge && (
                           <span className={cn(
                             "absolute top-2 left-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider z-10",
@@ -187,46 +216,91 @@ export function FeaturedProductsSection() {
                             {product.badge.text}
                           </span>
                         )}
-                        <img
-                          src={product.image}
-                          alt={product.title}
-                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
-                        />
+
+                        <Link to={`/product/${product.id}`} className="w-full h-full flex items-center justify-center">
+                          <img
+                            src={product.image}
+                            alt={product.title}
+                            className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </Link>
+
+                        {/* Hover Action Buttons Overlay */}
+                        <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 rounded-xl z-20">
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleWishlist(e, product)}
+                            className={cn(
+                              "w-9 h-9 rounded-full bg-white flex items-center justify-center text-zinc-700 hover:bg-rose-50 hover:text-rose-600 shadow transition-all duration-200 cursor-pointer",
+                              isWished && "bg-rose-50 text-rose-600 ring-2 ring-rose-300"
+                            )}
+                            title={isWished ? "Hapus dari Favorit" : "Tambah ke Favorit"}
+                            aria-label="Wishlist"
+                          >
+                            <Heart className={cn("w-4 h-4", isWished && "fill-current text-rose-600")} />
+                          </button>
+
+                          <Link
+                            to={`/product/${product.id}`}
+                            className="w-9 h-9 rounded-full bg-[#FA8232] text-white flex items-center justify-center hover:bg-[#D25026] shadow transition-all duration-200"
+                            title="Lihat Detail Produk"
+                            aria-label="Lihat Detail Produk"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleAddToCart(e, product)}
+                            className={cn(
+                              "w-9 h-9 rounded-full bg-white flex items-center justify-center text-zinc-700 hover:bg-[#FA8232] hover:text-white shadow transition-all duration-200 cursor-pointer",
+                              isAdded && "bg-emerald-600 text-white hover:bg-emerald-700"
+                            )}
+                            title="Tambah ke Keranjang"
+                            aria-label="Tambah ke Keranjang"
+                          >
+                            {isAdded ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
 
+                      {/* Content Details */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
                           <span className="truncate">{product.categoryName}</span>
                           <span className="text-zinc-600 font-semibold shrink-0">Stok: {product.stockText}</span>
                         </div>
 
-                        <h4 className="text-xs font-semibold text-zinc-900 line-clamp-2 leading-snug group-hover:text-[#FA8232] transition-colors">
-                          {product.title}
-                        </h4>
+                        <Link to={`/product/${product.id}`} className="block">
+                          <h4 className="text-xs font-semibold text-zinc-900 line-clamp-2 leading-snug group-hover:text-[#FA8232] transition-colors">
+                            {product.title}
+                          </h4>
+                        </Link>
 
                         <div className="flex items-baseline gap-1 pt-1">
-                          <span className="text-sm font-extrabold text-[#2DA5F3]">
+                          <span className="text-sm font-extrabold text-[#D25026]">
                             {product.price}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-3">
+                    {/* Card Actions Bottom */}
+                    <div className="pt-3 grid grid-cols-[1fr_auto] gap-2">
                       <button
                         type="button"
                         onClick={(e) => handleAddToCart(e, product)}
                         className={cn(
-                          "w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
+                          "py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer",
                           isAdded
-                            ? "bg-emerald-500 text-white"
+                            ? "bg-emerald-600 text-white"
                             : "bg-zinc-100 hover:bg-[#FA8232] text-zinc-700 hover:text-white"
                         )}
                       >
                         {isAdded ? (
                           <>
                             <Check className="w-3.5 h-3.5" />
-                            <span>DITAMBAHKAN</span>
+                            <span>DITAMBAH</span>
                           </>
                         ) : (
                           <>
@@ -235,6 +309,15 @@ export function FeaturedProductsSection() {
                           </>
                         )}
                       </button>
+
+                      <Link
+                        to={`/product/${product.id}`}
+                        className="p-2 bg-zinc-100 hover:bg-zinc-900 hover:text-white text-zinc-600 rounded-xl flex items-center justify-center transition-colors"
+                        title="Lihat Detail Produk"
+                        aria-label="Lihat Detail"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
                     </div>
                   </div>
                 );

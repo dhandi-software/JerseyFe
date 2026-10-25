@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from "react";
 import { 
     ChevronLeft, 
     User, 
@@ -30,793 +29,79 @@ import {
     DialogDescription
 } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import { useCart } from "~/context/CartContext";
 import { Card, CardHeader, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { orderService } from "~/services/orderService";
-import { chatService } from "~/services/chatService";
-import { useAuth } from "~/context/AuthContext";
 import { cn } from "~/lib/utils";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Toast } from "~/components/ui/toast";
-import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
+import { useCustomJerseyCheckout } from "~/hooks";
 
-const formatRupiah = (number: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-};
-
-const getSizeSurcharge = (size: string): number => {
-    const s = size.toUpperCase().trim();
-    // Sizes S through 2XL have no surcharge
-    if (["XXS", "XS", "S", "M", "L", "XL", "2XL", "XXL"].includes(s)) {
-        return 0;
-    }
-    // 3XL = +Rp10.000, 4XL = +Rp20.000, 5XL = +Rp30.000, etc.
-    const numXlMatch = s.match(/^(\d+)XL$/);
-    if (numXlMatch) {
-        const xCount = parseInt(numXlMatch[1], 10);
-        if (xCount >= 3) {
-            return (xCount - 2) * 10000;
-        }
-    }
-    // Handle XXXL, XXXXL formats
-    const xMatches = s.match(/^(X+)L$/);
-    if (xMatches) {
-        const xCount = xMatches[1].length;
-        if (xCount >= 3) {
-            return (xCount - 2) * 10000;
-        }
-    }
-    return 0;
-};
-
-const getJerseyKgRequirement = (size: string, sleeve: string, rasioKonversi: number): number => {
-    const s = size.toUpperCase().trim();
-    const isLongSleeve = sleeve === "Lengan Panjang";
-    const isBigSize = ["3XL", "4XL", "5XL", "6XL", "XXXL", "XXXXL"].includes(s);
-    const rasio = rasioKonversi || 2.5;
-
-    if (isLongSleeve) {
-        return (isBigSize ? 2.5 : 1.25) / rasio;
-    } else {
-        return (isBigSize ? 1.25 : 0.8333) / rasio;
-    }
-};
-
-const compressImage = (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-        if (!file.type.startsWith('image/')) {
-            resolve(file);
-            return;
-        }
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const MAX_WIDTH = 1000;
-                const MAX_HEIGHT = 1000;
-                let width = img.width;
-                let height = img.height;
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext("2d");
-                ctx?.drawImage(img, 0, 0, width, height);
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: "image/jpeg" }));
-                    } else {
-                        resolve(file);
-                    }
-                }, "image/jpeg", 0.7);
-            };
-        };
-    });
-};
 
 export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const { cart, clearCart } = useCart();
-    const [step, setStep] = useState(1);
-    const [searchParams] = useSearchParams();
-    const productIdParam = searchParams.get("productId");
-    const [directProduct, setDirectProduct] = useState<any>(null);
-    const [isLoadingProduct, setIsLoadingProduct] = useState(false);
-    
-    const [customDetails, setCustomDetails] = useState<any[]>([]);
-    const [designNote, setDesignNote] = useState("");
-    const [designReferenceFile, setDesignReferenceFile] = useState<File | null>(null);
-    const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
-    const [pdfFile, setPdfFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [shippingMethod, setShippingMethod] = useState("PICKUP");
-    const [shippingAddress, setShippingAddress] = useState("");
-
-    const [pasteText, setPasteText] = useState("");
-    const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    useEffect(() => {
-        if (isPasteDialogOpen) {
-            const isEmptyDefaultList = customDetails.length === 1 && !customDetails[0].name && !customDetails[0].number;
-            if (!isEmptyDefaultList && customDetails.length > 0) {
-                const serializedLines = customDetails.map((detail, idx) => {
-                    const parts: string[] = [];
-                    if (detail.name) parts.push(detail.name);
-                    if (detail.number) parts.push(detail.number);
-                    if (detail.size) parts.push(detail.size);
-                    if (detail.sleeve) {
-                        const shortSleeve = detail.sleeve.replace("Lengan ", "");
-                        parts.push(shortSleeve);
-                    }
-                    return `${idx + 1}. ${parts.join(", ")}`;
-                });
-                serializedLines.push(`${customDetails.length + 1}. `);
-                setPasteText(serializedLines.join("\n"));
-            } else {
-                setPasteText("1. ");
-            }
-            setTimeout(() => {
-                if (textareaRef.current) {
-                    textareaRef.current.focus();
-                    const length = textareaRef.current.value.length;
-                    textareaRef.current.setSelectionRange(length, length);
-                }
-            }, 50);
-        }
-    }, [isPasteDialogOpen]);
-    const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-    const [playerCountInput, setPlayerCountInput] = useState("");
-    const [showValidation, setShowValidation] = useState(false);
-    const [allBahan, setAllBahan] = useState<any[]>([]);
-
-    useEffect(() => {
-        adminApi.getBahanBaju().then(res => {
-            if (res.status === "success") {
-                setAllBahan(res.data);
-            }
-        });
-    }, []);
-
-    const sizeParam = searchParams.get("size") || "L";
-    const sleeveParam = searchParams.get("sleeve") || "Lengan Pendek";
-
-    useEffect(() => {
-        if (productIdParam && cart.length === 0) {
-            setIsLoadingProduct(true);
-            adminApi.getBahanBaju().then(res => {
-                if (res.status === "success") {
-                    const product = res.data.find((b: any) => b.id === Number(productIdParam));
-                    if (product) {
-                        setDirectProduct({
-                            id: product.id,
-                            title: product.nama,
-                            price: product.harga || 150000,
-                            status: product.status,
-                            kuantitasKg: product.kuantitasKg || 0,
-                            rasioKonversi: product.rasioKonversi || 2.5,
-                            image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
-                        });
-                    }
-                }
-            }).finally(() => setIsLoadingProduct(false));
-        }
-    }, [productIdParam, cart.length]);
-
-    const activeProduct = cart.length > 0 ? {
-        id: cart[0].product.id,
-        title: cart[0].product.title,
-        price: cart[0].product.price,
-        status: cart[0].product.status,
-        image: cart[0].product.image
-    } : directProduct;
-
-    const activeBahan = allBahan.find(b => b.id === activeProduct?.id);
-    const availableKg = activeBahan ? (activeBahan.kuantitasKg || 0) : 0;
-
-    const [toast, setToast] = useState<{ show: boolean, message: string, variant: "success" | "destructive" | "default" }>({ 
-        show: false, 
-        message: "", 
-        variant: "success" 
-    });
-
-    const parseSizeAndSleeve = (playerSize: string) => {
-        const match = playerSize.match(/^([^(]+)(?:\(([^)]+)\))?$/);
-        if (match) {
-            const size = match[1].trim();
-            const sleeve = match[2] ? match[2].trim() : "Lengan Pendek";
-            return { size, sleeve };
-        }
-        return { size: playerSize || "L", sleeve: "Lengan Pendek" };
-    };
-
-    const editOrderId = searchParams.get("editOrderId");
-    const [existingOrder, setExistingOrder] = useState<any | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
-
-    useEffect(() => {
-        if (editOrderId) {
-            setIsEditing(true);
-            const loadOrderToEdit = async () => {
-                try {
-                    const order = await orderService.trackOrder(editOrderId);
-                    if (order && order.status === "MENUNGGU") {
-                        setExistingOrder(order);
-                        setDesignNote(order.designNote || "");
-                        setShippingMethod(order.shippingMethod || "PICKUP");
-                        setShippingAddress(order.shippingAddress || "");
-                        
-                        // Load details & product details
-                        adminApi.getBahanBaju().then(res => {
-                            if (res.status === "success") {
-                                const products = res.data;
-                                const firstDetail = order.details?.[0];
-                                if (firstDetail) {
-                                    const product = products.find((b: any) => b.id === Number(firstDetail.productId));
-                                    if (product) {
-                                        setDirectProduct({
-                                            id: product.id,
-                                            title: product.nama,
-                                            price: product.harga || 150000,
-                                            status: product.status,
-                                            kuantitasKg: product.kuantitasKg || 0,
-                                            rasioKonversi: product.rasioKonversi || 2.5,
-                                            image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : ""
-                                        });
-                                    }
-                                }
-
-                                if (order.details && order.details.length > 0) {
-                                    const detailsMapped = order.details.map((detail: any, idx: number) => {
-                                        const { size, sleeve } = parseSizeAndSleeve(detail.playerSize);
-                                        const matchingBahan = products.find((b: any) => b.id === Number(detail.productId));
-                                        return {
-                                            id: `edit-${detail.id}-${idx}`,
-                                            productId: detail.productId,
-                                            productTitle: detail.productTitle,
-                                            price: matchingBahan?.harga || 150000,
-                                            image: matchingBahan?.imageUrl ? `${UPLOADS_URL}${matchingBahan.imageUrl}` : "",
-                                            name: detail.playerName || "",
-                                            number: detail.playerNumber || "",
-                                            size: size,
-                                            sleeve: sleeve
-                                        };
-                                    });
-                                    setCustomDetails(detailsMapped);
-                                }
-                            }
-                        });
-                    } else {
-                        setToast({ show: true, message: "Pesanan ini tidak dapat diedit atau tidak ditemukan.", variant: "destructive" });
-                        navigate("/customer");
-                    }
-                } catch (error) {
-                    console.error("Failed to load order for edit:", error);
-                    setToast({ show: true, message: "Gagal memuat detail pesanan.", variant: "destructive" });
-                }
-            };
-            loadOrderToEdit();
-        }
-    }, [editOrderId]);
-
-    const generateTable = () => {
-        const count = parseInt(playerCountInput);
-        if (isNaN(count) || count <= 0) {
-            setToast({ show: true, message: "Masukkan jumlah pemain yang valid", variant: "destructive" });
-            return;
-        }
-
-        if (!activeProduct) {
-            setToast({ show: true, message: "Pilih produk terlebih dahulu", variant: "destructive" });
-            return;
-        }
-
-        const productId = activeProduct.id;
-        const productTitle = activeProduct.title;
-        const price = activeProduct.price;
-        const image = activeProduct.image;
-        
-        const newDetails = Array.from({ length: count }).map((_, idx) => ({
-            id: `gen-m-${idx}-${Date.now()}`,
-            productId,
-            productTitle,
-            price,
-            image,
-            name: "",
-            number: "",
-            size: sizeParam,
-            sleeve: sleeveParam
-        }));
-        setCustomDetails(newDetails);
-        setPlayerCountInput("");
-        setToast({ show: true, message: `Berhasil membuat tabel untuk ${count} pemain`, variant: "success" });
-    };
-
-    const resetTable = () => {
-        setCustomDetails([]);
-        setIsResetDialogOpen(false);
-        setToast({ show: true, message: "Tabel berhasil direset", variant: "success" });
-    };
-
-    useEffect(() => {
-        if (isEditing || editOrderId) return;
-        if (customDetails.length === 0) {
-            if (cart.length > 0) {
-                const initialDetails = cart.flatMap(item => 
-                    Array.from({ length: item.quantity }).map((_, idx) => ({
-                        id: `${item.product.id}-${Math.random().toString(36).substr(2, 9)}`,
-                        productId: item.product.id,
-                        productTitle: item.product.title,
-                        price: item.product.price,
-                        image: item.product.image,
-                        name: "",
-                        number: "",
-                        size: sizeParam,
-                        sleeve: sleeveParam
-                    }))
-                );
-                setCustomDetails(initialDetails);
-            } else if (activeProduct) {
-                const initialDetails = Array.from({ length: 1 }).map((_, idx) => ({
-                    id: `${activeProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
-                    productId: activeProduct.id,
-                    productTitle: activeProduct.title,
-                    price: activeProduct.price,
-                    image: activeProduct.image,
-                    name: "",
-                    number: "",
-                    size: sizeParam,
-                    sleeve: sleeveParam
-                }));
-                setCustomDetails(initialDetails);
-            }
-        }
-    }, [cart, activeProduct, customDetails.length]);
-
-    const parsePasteData = () => {
-        const lines = pasteText.split('\n').filter(l => l.trim());
-        if (!activeProduct) return;
-
-        const validSizes = ["5XL", "4XL", "3XL", "2XL", "XXXL", "XXL", "XL", "XS", "XXS", "S", "M", "L"];
-        const isSize = (val: string) => validSizes.includes(val.toUpperCase().trim());
-        const normalizeSize = (rawSize: string) => {
-            const s = rawSize.toUpperCase().trim();
-            if (s === "XXL") return "2XL";
-            if (s === "XXXL") return "3XL";
-            if (s === "XXXXL") return "4XL";
-            return s;
-        };
-        const isNumeric = (val: string) => /^\d+$/.test(val.trim());
-
-        const newDetails = lines.map((line, idx) => {
-            let tempLine = line.trim();
-
-            // 1. Detect Sleeve Length (Lengan)
-            let sleeve = "Lengan Pendek";
-            const panjangRegex = /\b(panjang|pjg|long|lengan\s*panjang)\b/i;
-            const pendekRegex = /\b(pendek|pdk|short|lengan\s*pendek)\b/i;
-
-            if (panjangRegex.test(tempLine)) {
-                sleeve = "Lengan Panjang";
-                tempLine = tempLine.replace(panjangRegex, ' ');
-            } else if (pendekRegex.test(tempLine)) {
-                sleeve = "Lengan Pendek";
-                tempLine = tempLine.replace(pendekRegex, ' ');
-            }
-
-            // 2. Strip leading numbering (e.g. "1.", "1)", "1 -", "10.", "10:", "[1]")
-            tempLine = tempLine.replace(/^\s*(?:no\.?|nomor)?\s*\d+\s*[\.\)\:\-]\s*/i, '');
-
-            let name = "";
-            let number = "";
-            let size = "L";
-
-            // 3. Check if line has clear delimiters (slashes '/', tabs '\t', pipes '|', semicolons ';', commas ',', or surrounded dashes ' - ')
-            const hasDelimiter = /[\/\t\|;,]|\s+-\s+/.test(tempLine);
-
-            if (hasDelimiter) {
-                const parts = tempLine
-                    .split(/(?:[\/\t\|;,]+|\s+-\s+)/)
-                    .map(p => p.trim())
-                    .filter(Boolean);
-
-                const nameParts: string[] = [];
-                let sizeFound = false;
-
-                for (const part of parts) {
-                    if (!sizeFound && isSize(part)) {
-                        size = normalizeSize(part);
-                        sizeFound = true;
-                    } else if (!number && isNumeric(part)) {
-                        number = part;
-                    } else {
-                        nameParts.push(part);
-                    }
-                }
-
-                name = nameParts.join(" ");
-            } else {
-                // Space-separated format fallback (e.g. "IRFAN S 27 M" or "AWAN L 24")
-                const tokens = tempLine.split(/\s+/).filter(Boolean);
-                let sizeFound = false;
-
-                for (let i = tokens.length - 1; i >= 0; i--) {
-                    const token = tokens[i];
-                    if (!sizeFound && isSize(token)) {
-                        size = normalizeSize(token);
-                        sizeFound = true;
-                        tokens.splice(i, 1);
-                    } else if (!number && isNumeric(token)) {
-                        number = token;
-                        tokens.splice(i, 1);
-                    }
-                }
-
-                name = tokens.join(" ");
-            }
-
-            // 4. Clean up Name: ensure slashes, backslashes, pipes, and stray punctuation are removed
-            name = name
-                .replace(/["'\(\)\[\]\{\}]/g, '')
-                .replace(/[\/\\|;,]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            return {
-                id: `pasted-m-${idx}-${Date.now()}`,
-                productId: activeProduct?.id || 101,
-                productTitle: activeProduct?.title || "Custom Jersey",
-                price: activeProduct?.price || 150000,
-                image: activeProduct?.image || "",
-                name: name.toUpperCase(),
-                number: number,
-                size: size,
-                sleeve: sleeve
-            };
-        });
-        setCustomDetails(newDetails);
-        setIsPasteDialogOpen(false);
-        setPasteText("");
-        setToast({ show: true, message: `Parsed ${newDetails.length} players!`, variant: "success" });
-    };
-
-    const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        const textarea = e.currentTarget;
-        const val = textarea.value;
-        const selStart = textarea.selectionStart;
-        const selEnd = textarea.selectionEnd;
-
-        const beforeCursor = val.substring(0, selStart);
-        const afterCursor = val.substring(selEnd);
-        const linesBefore = beforeCursor.split("\n");
-        const currentLine = linesBefore[linesBefore.length - 1];
-        const trimmedLine = currentLine.trim();
-
-        // 1. MS Word style auto-numbering when pressing Enter
-        if (e.key === "Enter") {
-            const leadingNumberMatch = currentLine.match(/^(\d+)([\.\)\-\s]+)/);
-            if (leadingNumberMatch) {
-                e.preventDefault();
-                const currentNum = parseInt(leadingNumberMatch[1], 10);
-                const delimiter = leadingNumberMatch[2];
-                const remainingContent = currentLine.substring(leadingNumberMatch[0].length).trim();
-                
-                if (remainingContent === "") {
-                    const newBefore = linesBefore.slice(0, -1).join("\n") + (linesBefore.length > 1 ? "\n" : "");
-                    textarea.value = newBefore + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd = newBefore.length;
-                    setPasteText(textarea.value);
-                } else {
-                    const nextNum = currentNum + 1;
-                    const nextLineText = `\n${nextNum}${delimiter}`;
-                    textarea.value = beforeCursor + nextLineText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd = selStart + nextLineText.length;
-                    setPasteText(textarea.value);
-                }
-                return;
-            }
-        }
-
-        // Auto-comma triggers ONLY when the character before cursor is a space
-        if (beforeCursor.endsWith(" ")) {
-            // 2. Smart auto-inserting comma after Name when typing the back number
-            if (/^\d+[\.\)\-\s]+[A-Za-z_\s]+$/i.test(trimmedLine)) {
-                if (/^\d$/.test(e.key)) {
-                    e.preventDefault();
-                    const insertText = `, ${e.key}`;
-                    textarea.value = beforeCursor + insertText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd = selStart + insertText.length;
-                    setPasteText(textarea.value);
-                    return;
-                }
-            }
-
-            // 3. Smart auto-inserting comma after Back Number when typing size
-            if (/^\d+[\.\)\-\s]+.*,\s*\d+$/i.test(trimmedLine)) {
-                if (/^[a-zA-Z]$/.test(e.key)) {
-                    e.preventDefault();
-                    const insertText = `, ${e.key.toUpperCase()}`;
-                    textarea.value = beforeCursor + insertText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd = selStart + insertText.length;
-                    setPasteText(textarea.value);
-                    return;
-                }
-            }
-
-            // 4. Smart auto-inserting comma after Size when typing sleeve length
-            if (/^\d+[\.\)\-\s]+.*,\s*\d+\s*,\s*(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL|5XL)$/i.test(trimmedLine)) {
-                if (/^[a-zA-Z]$/.test(e.key)) {
-                    e.preventDefault();
-                    const insertText = `, ${e.key.toUpperCase()}`;
-                    textarea.value = beforeCursor + insertText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd = selStart + insertText.length;
-                    setPasteText(textarea.value);
-                    return;
-                }
-            }
-        }
-    };
-
-    const handleTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-        e.preventDefault();
-        const pastedText = e.clipboardData.getData("text");
-        const textarea = e.currentTarget;
-        const val = textarea.value;
-        const selStart = textarea.selectionStart;
-        const selEnd = textarea.selectionEnd;
-
-        // Get the text before and after the selection
-        const before = val.substring(0, selStart);
-        const after = val.substring(selEnd);
-
-        // Let's split the pasted text into lines
-        const lines = pastedText.split(/\r?\n/);
-        
-        // We need to determine the starting number.
-        const lastLineBefore = before.split("\n").pop() || "";
-        const numMatch = lastLineBefore.match(/^(\d+)([\.\)\-\s]+)/);
-        
-        let currentNum = 1;
-        let delimiter = ". ";
-        
-        if (numMatch) {
-            currentNum = parseInt(numMatch[1], 10);
-            delimiter = numMatch[2];
-        } else {
-            const beforeLines = before.split("\n");
-            let lastNumFound = 0;
-            for (let i = beforeLines.length - 1; i >= 0; i--) {
-                const m = beforeLines[i].match(/^(\d+)([\.\)\-\s]+)/);
-                if (m) {
-                    lastNumFound = parseInt(m[1], 10);
-                    delimiter = m[2];
-                    break;
-                }
-            }
-            if (lastNumFound > 0) {
-                currentNum = lastNumFound + 1;
-            }
-        }
-
-        const finalPastedLines: string[] = [];
-        lines.forEach((line, index) => {
-            const trimmed = line.trim();
-            if (!trimmed) {
-                finalPastedLines.push("");
-            } else {
-                const lineNumMatch = trimmed.match(/^(\d+)([\.\)\-\s]+)(.*)/);
-                let lineText = trimmed;
-                if (lineNumMatch) {
-                    lineText = lineNumMatch[3].trim();
-                }
-                const isFirstLine = index === 0;
-                const hasPrefixAlready = isFirstLine && numMatch && (lastLineBefore.trim() === numMatch[0].trim());
-                if (isFirstLine && hasPrefixAlready) {
-                    finalPastedLines.push(lineText);
-                    currentNum++;
-                } else {
-                    const numToUse = currentNum;
-                    currentNum++;
-                    finalPastedLines.push(`${numToUse}${delimiter}${lineText}`);
-                }
-            }
-        });
-
-        const insertText = finalPastedLines.join("\n");
-        const newVal = before + insertText + after;
-        setPasteText(newVal);
-
-        const newCursorPos = selStart + insertText.length;
-        setTimeout(() => {
-            textarea.selectionStart = textarea.selectionEnd = newCursorPos;
-        }, 0);
-    };
-
-    const removeUnit = (id: string) => {
-        setCustomDetails(prev => prev.filter(d => d.id !== id));
-    };
-
-    const totalRequiredKg = customDetails.reduce((sum, item) => sum + getJerseyKgRequirement(item.size, item.sleeve, activeProduct?.rasioKonversi || 2.5), 0);
-    const isOverLimit = activeProduct && activeProduct.status !== "Habis" && totalRequiredKg > availableKg;
-
-    const isStepValid = () => {
-        if (step === 1) {
-            if (pdfFile) return true;
-            if (customDetails.length === 0) return false;
-            if (isOverLimit) return false;
-            return customDetails.every(d => d.name.trim() !== "" && d.number.trim() !== "" && d.size !== "");
-        }
-        if (step === 2) {
-            const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
-            const hasAddressIfCod = shippingMethod !== "COD" || shippingAddress.trim() !== "";
-            return hasDesign && hasAddressIfCod;
-        }
-        if (step === 3) {
-            return !!paymentProofFile || !!existingOrder?.paymentUrl;
-        }
-        return true;
-    };
-
-    const handleNextStep = () => {
-        if (step === 1 && isOverLimit) {
-            const supported = Math.floor(availableKg / (totalRequiredKg / customDetails.length));
-            const reduce = Math.max(1, customDetails.length - supported);
-            setToast({ 
-                show: true, 
-                message: `Stok bahan tidak cukup! Silakan kurangi pesanan Anda sebanyak ${reduce} pcs atau ubah ukuran/lengan agar sesuai dengan ketersediaan.`, 
-                variant: "destructive" 
-            });
-            return;
-        }
-        if (!isStepValid()) {
-            setShowValidation(true);
-            let msg = "Lengkapi langkah ini dulu";
-            if (step === 1) {
-                msg = "Mohon lengkapi detail pemain secara lengkap";
-            } else if (step === 2) {
-                const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
-                if (!hasDesign) {
-                    msg = "Mohon unggah referensi desain jersey Anda";
-                } else {
-                    msg = "Mohon isi alamat pengiriman untuk metode COD";
-                }
-            }
-            setToast({ 
-                show: true, 
-                message: msg, 
-                variant: "destructive" 
-            });
-            return;
-        }
-        setShowValidation(false);
-        setStep(prev => prev + 1);
-    };
-
-    const updateUnitQuantity = (productId: number, delta: number) => {
-        if (delta > 0) {
-            const product = cart.find(item => item.product.id === productId)?.product || 
-                          { id: productId, title: "Custom Jersey", price: 150000, image: "" };
-            
-            setCustomDetails(prev => [...prev, {
-                id: `${productId}-${Math.random().toString(36).substr(2, 9)}`,
-                productId: productId,
-                productTitle: product.title,
-                price: product.price,
-                image: product.image,
-                name: "",
-                number: "",
-                size: sizeParam,
-                sleeve: sleeveParam
-            }]);
-        } else {
-            const lastIdx = [...customDetails].reverse().findIndex(d => d.productId === productId);
-            if (lastIdx !== -1) {
-                const actualIdx = customDetails.length - 1 - lastIdx;
-                setCustomDetails(prev => prev.filter((_, i) => i !== actualIdx));
-            }
-        }
-    };
-
-    const totalCalculated = customDetails.reduce((acc, d) => {
-        const basePrice = activeProduct?.price || d.price || 150000;
-        return acc + basePrice + getSizeSurcharge(d.size);
-    }, 0);
-
-    const handleDetailChange = (id: string, field: string, value: string) => {
-        setCustomDetails(prev => prev.map(detail => 
-            detail.id === id ? { ...detail, [field]: value } : detail
-        ));
-    };
-
-    const handleSubmit = async () => {
-        if (!isStepValid()) {
-            setShowValidation(true);
-            setToast({ show: true, message: "Mohon lengkapi seluruh data (Pemain & Bukti Bayar) sebelum mengirim.", variant: "destructive" });
-            return;
-        }
-
-        setIsUploading(true);
-        setUploadProgress(10);
-        try {
-            let designUrl = existingOrder?.designUrl || "";
-            let paymentUrl = existingOrder?.paymentUrl || "";
-
-            if (designReferenceFile) {
-                setUploadProgress(30);
-                const compressed = await compressImage(designReferenceFile);
-                const res = await chatService.uploadFile(compressed);
-                designUrl = res.url;
-            }
-
-            if (paymentProofFile) {
-                setUploadProgress(60);
-                const compressed = await compressImage(paymentProofFile);
-                const res = await chatService.uploadFile(compressed);
-                paymentUrl = res.url;
-            }
-            setUploadProgress(90);
-            
-            try {
-                const payload = {
-                    customerId: user?.id || 0,
-                    bahanBajuId: activeProduct?.id,
-                    totalAmount: totalCalculated,
-                    designNote: designNote,
-                    designUrl: designUrl,
-                    paymentUrl: paymentUrl,
-                    shippingMethod: shippingMethod,
-                    shippingAddress: shippingMethod === "COD" ? shippingAddress : "",
-                    details: customDetails.map(d => ({
-                        productId: d.productId,
-                        productTitle: d.productTitle,
-                        playerName: d.name,
-                        playerNumber: d.number,
-                        playerSize: `${d.size} (${d.sleeve || "Lengan Pendek"})`
-                    }))
-                };
-
-                if (isEditing && existingOrder) {
-                    await orderService.updateOrder(existingOrder.id, payload);
-                    setUploadProgress(100);
-                    setToast({ show: true, message: "Pesanan berhasil diperbarui!", variant: "success" });
-                } else {
-                    await orderService.createOrder(payload);
-                    setUploadProgress(100);
-                    setToast({ show: true, message: "Pesanan berhasil dibuat dan telah terkirim ke sistem admin!", variant: "success" });
-                }
-
-                setTimeout(() => {
-                    clearCart();
-                    navigate("/customer");
-                }, 1500);
-            } catch (apiErr) {
-                console.error("API Order failed", apiErr);
-                setToast({ show: true, message: isEditing ? "Gagal memperbarui pesanan. Silakan coba lagi." : "Gagal membuat pesanan. Silakan coba lagi.", variant: "destructive" });
-            }
-        } catch (error) {
-            console.error("Upload failed:", error);
-            setToast({ show: true, message: "Gagal mengunggah data. Silakan coba lagi.", variant: "destructive" });
-        } finally {
-            setIsUploading(false);
-        }
-    };
+    const {
+        step,
+        setStep,
+        activeProduct,
+        availableKg,
+        customDetails,
+        designNote,
+        setDesignNote,
+        designReferenceFile,
+        setDesignReferenceFile,
+        paymentProofFile,
+        setPaymentProofFile,
+        paymentType,
+        setPaymentType,
+        dpAmountInput,
+        setDpAmountInput,
+        pdfFile,
+        setPdfFile,
+        isUploading,
+        uploadProgress,
+        shippingMethod,
+        setShippingMethod,
+        shippingAddress,
+        setShippingAddress,
+        pasteText,
+        setPasteText,
+        isPasteDialogOpen,
+        setIsPasteDialogOpen,
+        textareaRef,
+        isResetDialogOpen,
+        setIsResetDialogOpen,
+        playerCountInput,
+        setPlayerCountInput,
+        showValidation,
+        totalRequiredKg,
+        isOverLimit,
+        toast,
+        setToast,
+        user,
+        existingOrder,
+        setExistingOrder,
+        isEditing,
+        steps,
+        formatRupiah,
+        getSizeSurcharge,
+        generateTable,
+        resetTable,
+        parsePasteData,
+        handleTextareaKeyDown,
+        handleTextareaPaste,
+        removeUnit,
+        updateUnitQuantity,
+        handleDetailChange,
+        handlePdfImport,
+        handleNextStep,
+        handleSubmit,
+        totalCalculated,
+        effectivePaidAmount,
+        effectiveRemainingAmount,
+    } = useCustomJerseyCheckout();
 
     return (
         <div className="min-h-screen bg-[#FAFAFA] flex flex-col font-['Inter']">
@@ -1271,19 +556,129 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                             </div>
                         </div>
 
+                        {/* Metode Pembayaran Mobile (Full Cash vs DP) */}
+                        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm space-y-4">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-xs font-black uppercase tracking-widest italic text-neutral-400">Metode Pembayaran</h3>
+                                    <p className="text-[11px] text-neutral-600 font-medium mt-0.5">Pilih pembayaran penuh atau DP</p>
+                                </div>
+                                <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-50 text-[#D25026]">
+                                    {paymentType === "DP" ? "Opsi DP" : "Full 100%"}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentType("FULL")}
+                                    className={cn(
+                                        "min-h-[52px] p-3.5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between active:scale-98",
+                                        paymentType === "FULL"
+                                            ? "border-[#D25026] bg-[#FFF0EB]/40 shadow-xs"
+                                            : "border-neutral-100 bg-neutral-50/50"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black uppercase tracking-tight text-neutral-900">Full Cash</span>
+                                        <div className={cn("w-3.5 h-3.5 rounded-full border flex items-center justify-center", paymentType === "FULL" ? "border-[#D25026] bg-[#D25026]" : "border-neutral-300")}>
+                                            {paymentType === "FULL" && <div className="w-1 h-1 rounded-full bg-white" />}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-neutral-500 font-medium mt-1">Lunas langsung</p>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPaymentType("DP");
+                                        if (!dpAmountInput || dpAmountInput <= 0) {
+                                            setDpAmountInput(Math.round(totalCalculated * 0.5));
+                                        }
+                                    }}
+                                    className={cn(
+                                        "min-h-[52px] p-3.5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between active:scale-98",
+                                        paymentType === "DP"
+                                            ? "border-[#D25026] bg-[#FFF0EB]/40 shadow-xs"
+                                            : "border-neutral-100 bg-neutral-50/50"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black uppercase tracking-tight text-neutral-900">DP (Uang Muka)</span>
+                                        <div className={cn("w-3.5 h-3.5 rounded-full border flex items-center justify-center", paymentType === "DP" ? "border-[#D25026] bg-[#D25026]" : "border-neutral-300")}>
+                                            {paymentType === "DP" && <div className="w-1 h-1 rounded-full bg-white" />}
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-neutral-500 font-medium mt-1">Bayar sebagian</p>
+                                </button>
+                            </div>
+
+                            {paymentType === "DP" && (
+                                <div className="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/60 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[11px] font-bold text-amber-900">Nominal DP (Rp)</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDpAmountInput(Math.round(totalCalculated * 0.5))}
+                                            className="text-[9px] font-black uppercase tracking-wider text-[#D25026] bg-white px-2 py-1 rounded-lg border border-orange-200 shadow-2xs active:bg-orange-50"
+                                        >
+                                            Preset 50%
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-neutral-400 text-xs">Rp</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={totalCalculated}
+                                            value={dpAmountInput || ""}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setDpAmountInput(val);
+                                            }}
+                                            placeholder={`Contoh: ${Math.round(totalCalculated * 0.5)}`}
+                                            className="w-full pl-9 pr-3 py-2 bg-white border border-amber-300/80 rounded-xl text-xs font-bold text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-[#D25026]/30"
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-amber-200/40">
+                                        <span className="text-amber-800 font-medium">Sisa Tagihan:</span>
+                                        <span className="font-black text-rose-600">
+                                            {formatRupiah(effectiveRemainingAmount)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Order Summary Card Mobile */}
                         <div className="bg-black rounded-[2rem] p-6 shadow-2xl relative overflow-hidden ring-1 ring-white/10">
                             <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-blue-600/20 blur-[2.5rem] rounded-full z-0"></div>
-                            <div className="space-y-4 relative z-10">
+                            <div className="space-y-3 relative z-10">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-black uppercase italic text-white/40">Subtotal</span>
-                                    <span className="text-xs font-black text-white italic">{formatRupiah(totalCalculated)}</span>
+                                    <span className="text-[10px] font-black uppercase italic text-white/40">Item Total</span>
+                                    <span className="text-xs font-black text-white italic">{customDetails.length} Units</span>
                                 </div>
-                                <div className="h-px bg-white/10 my-2"></div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-black uppercase italic text-white">Grand Total</span>
-                                    <span className="text-lg font-black text-blue-400 italic tracking-tighter">{formatRupiah(totalCalculated)}</span>
+                                    <span className="text-[10px] font-black uppercase italic text-white/40">Metode</span>
+                                    <span className="text-xs font-black text-amber-400 italic">{paymentType === "DP" ? "DP (Uang Muka)" : "Full Cash"}</span>
                                 </div>
+                                <div className="h-px bg-white/10 my-1"></div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-black uppercase italic text-white">Total Tagihan</span>
+                                    <span className="text-base font-black text-white italic tracking-tighter">{formatRupiah(totalCalculated)}</span>
+                                </div>
+                                {paymentType === "DP" && (
+                                    <>
+                                        <div className="flex justify-between items-center pt-1 border-t border-white/5">
+                                            <span className="text-[11px] font-medium text-neutral-400">Dibayar DP:</span>
+                                            <span className="text-sm font-black text-[#D25026] italic">{formatRupiah(effectivePaidAmount)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[11px] font-medium text-neutral-400">Sisa Tagihan:</span>
+                                            <span className="text-sm font-black text-rose-400 italic">{formatRupiah(effectiveRemainingAmount)}</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -1395,7 +790,7 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                 <Toast 
                     title={toast.message} 
                     variant={toast.variant} 
-                    onClose={() => setToast(prev => ({ ...prev, show: false }))} 
+                    onClose={() => setToast((prev: any) => ({ ...prev, show: false }))} 
                 />
             )}
         </div>

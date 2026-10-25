@@ -1,23 +1,23 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "~/hooks/useAuth";
 import { User, Mail, Shield, Camera, Save, Loader2 } from "lucide-react";
-import { profileApi } from "~/api/profileApi";
+import { useProfileLogic } from "~/hooks";
 import { PasswordSection } from "~/components/profile/password-section";
+import { Toast } from "~/components/ui/toast";
 
 export function ProfileDesktop() {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    profileApi.getProfile(user.id.toString())
-      .then((res) => {
-        setProfile(res.data);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [user?.id]);
+  const {
+    user,
+    profile,
+    loading,
+    saving,
+    toastProps,
+    formData,
+    setFormData,
+    fileInputRef,
+    handleFileChange,
+    handleSave,
+    roleLabel,
+    displayName,
+  } = useProfileLogic();
 
   if (loading) {
     return (
@@ -28,12 +28,34 @@ export function ProfileDesktop() {
   }
 
   return (
-    <div className="p-6 md:p-10 w-full mx-auto space-y-10 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="p-6 md:p-10 w-full mx-auto space-y-10 animate-in slide-in-from-bottom-4 duration-500 font-geist">
+      {toastProps && (
+        <Toast
+          title={toastProps.title}
+          variant={toastProps.variant}
+        />
+      )}
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Profile Header */}
       <div className="flex flex-col md:flex-row items-center gap-8 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
         <div className="relative group">
           <div className="w-32 h-32 rounded-full bg-[#FFF0EB] border-4 border-white shadow-xl overflow-hidden flex items-center justify-center">
-            {profile?.photo ? (
+            {formData.photoPreview ? (
+              <img 
+                src={formData.photoPreview} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            ) : profile?.photo ? (
               <img 
                 src={`/uploads/profiles/${profile.photo}`} 
                 alt="Profile" 
@@ -43,15 +65,19 @@ export function ProfileDesktop() {
               <User size={64} className="text-[#D25026]" />
             )}
           </div>
-          <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border border-gray-100 text-[#D25026] hover:bg-gray-50 transition-colors">
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-lg border border-gray-100 text-[#D25026] hover:bg-gray-50 transition-colors cursor-pointer"
+          >
             <Camera size={18} />
           </button>
         </div>
 
         <div className="text-center md:text-left flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">{(user as any)?.customer?.nama || (user as any)?.username || "Customer Name"}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
           <p className="text-[#D25026] font-medium mt-1 flex items-center justify-center md:justify-start gap-2">
-            <Shield size={16} /> Akun Customer
+            <Shield size={16} /> {roleLabel}
           </p>
           <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4">
              <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl text-gray-600 text-sm">
@@ -73,7 +99,8 @@ export function ProfileDesktop() {
                     <label className="text-sm font-semibold text-gray-700">Nama Lengkap</label>
                     <input 
                         type="text" 
-                        defaultValue={(user as any)?.customer?.nama || (user as any)?.username || ""}
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#D25026]/20 focus:border-[#D25026] outline-none transition-all"
                         placeholder="Masukkan nama lengkap"
                     />
@@ -91,16 +118,22 @@ export function ProfileDesktop() {
             <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Bio / Alamat</label>
                 <textarea 
-                    defaultValue={profile?.bio || ""}
+                    value={formData.bio}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                     rows={3}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#D25026]/20 focus:border-[#D25026] outline-none transition-all"
                     placeholder="Contoh: Alamat pengiriman atau info tambahan..."
                 />
             </div>
             <div className="flex justify-end pt-4">
-                <button className="flex items-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95">
-                    <Save size={18} />
-                    Simpan Perubahan
+                <button 
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                    {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    {saving ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
             </div>
         </div>
@@ -116,3 +149,4 @@ export function ProfileDesktop() {
     </div>
   );
 }
+

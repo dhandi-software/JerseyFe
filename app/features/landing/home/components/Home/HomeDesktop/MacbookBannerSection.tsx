@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Heart } from "lucide-react";
 import { Link } from "react-router";
+import { cn } from "~/lib/utils";
 import { useCart } from "~/context/CartContext";
+import { useWishlist } from "~/hooks/useWishlist";
 import { useProducts } from "~/hooks/useProducts";
 import { Skeleton } from "~/components/ui/skeleton";
 import { HomeProductEmptyState } from "../HomeProductEmptyState";
 
 export function MacbookBannerSection() {
   const { addToCart } = useCart();
+  const { addToWishlist, isInWishlist } = useWishlist();
   const { products, loading } = useProducts();
   const [isAdded, setIsAdded] = useState(false);
 
@@ -27,6 +30,19 @@ export function MacbookBannerSection() {
     setTimeout(() => {
       setIsAdded(false);
     }, 1500);
+  };
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!featuredProduct) return;
+    addToWishlist({
+      id: String(featuredProduct.id),
+      name: featuredProduct.title,
+      price: featuredProduct.price,
+      image: featuredProduct.image || "/images/desain-jersey.jpg",
+      stockStatus: "IN STOCK",
+      category: featuredProduct.category,
+    });
   };
 
   if (loading) {
@@ -61,6 +77,8 @@ export function MacbookBannerSection() {
     );
   }
 
+  const isWished = isInWishlist(featuredProduct.id);
+
   return (
     <section className="w-full my-8">
       <div className="bg-[#FFEEDD] rounded-2xl p-8 lg:p-12 flex flex-col md:flex-row items-center justify-between relative overflow-hidden shadow-sm border border-amber-200/50 min-h-[360px] group">
@@ -80,7 +98,7 @@ export function MacbookBannerSection() {
             </p>
           ) : null}
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               type="button"
               onClick={handleAddToCart}
@@ -100,6 +118,19 @@ export function MacbookBannerSection() {
             >
               DETAIL BAHAN
             </Link>
+
+            <button
+              type="button"
+              onClick={handleToggleWishlist}
+              className={cn(
+                "p-3.5 rounded-xl border border-amber-300 bg-white hover:bg-rose-50 text-zinc-600 hover:text-rose-600 transition-colors cursor-pointer shadow-xs",
+                isWished && "bg-rose-50 border-rose-300 text-rose-600"
+              )}
+              title={isWished ? "Hapus dari Favorit" : "Tambah ke Favorit"}
+              aria-label="Wishlist"
+            >
+              <Heart className={cn("w-4 h-4", isWished && "fill-current text-rose-600")} />
+            </button>
           </div>
         </div>
 
@@ -112,11 +143,13 @@ export function MacbookBannerSection() {
             </span>
           </div>
 
-          <img
-            src={featuredProduct.image || "/images/desain-jersey.jpg"}
-            alt={featuredProduct.title}
-            className="max-h-[320px] w-auto object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-2xl rounded-xl"
-          />
+          <Link to={`/product/${featuredProduct.id}`} className="block">
+            <img
+              src={featuredProduct.image || "/images/desain-jersey.jpg"}
+              alt={featuredProduct.title}
+              className="max-h-[320px] w-auto object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-2xl rounded-xl"
+            />
+          </Link>
         </div>
       </div>
     </section>

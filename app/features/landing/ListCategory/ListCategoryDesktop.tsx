@@ -1,85 +1,30 @@
-import { useState, useEffect } from "react";
 import { Search, Trash2, ShoppingCart, CreditCard } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useCart } from "~/context/CartContext";
 import { CardProduct } from "~/components/template/CardProduct";
-import { adminApi } from "~/api/admin";
-import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 import { CategoryProductGridSkeleton } from "./CategoryProductSkeleton";
 import { CategoryEmptyState } from "./CategoryEmptyState";
-
-const formatRupiah = (number: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-};
+import { useListCategory } from "~/hooks";
 
 export function ListCategoryDesktop() {
     const { cart, addToCart, removeFromCart, updateQuantity, subtotal } = useCart();
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("Semua");
-    const [uangDiterima, setUangDiterima] = useState("");
-    const [materials, setMaterials] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const {
+        materials,
+        filteredProducts,
+        loading,
+        searchQuery,
+        setSearchQuery,
+        selectedCategory,
+        setSelectedCategory,
+        categories,
+        uangDiterima,
+        setUangDiterima,
+        kembalian,
+        formatRupiah,
+        handleCheckout,
+    } = useListCategory();
 
-    const categories = ["Semua", "Jersey"];
-
-    useEffect(() => {
-        let isMounted = true;
-        setLoading(true);
-        adminApi.getBahanBaju().then(res => {
-            if (!isMounted) return;
-            if (res.status === "success" && Array.isArray(res.data)) {
-                const mapped = res.data.map((m: any) => ({
-                    id: m.id,
-                    title: m.nama,
-                    price: Number(m.harga) || 0,
-                    image: m.imageUrl ? `${UPLOADS_URL}${m.imageUrl}` : "/images/mockup-jersey.jpg",
-                    category: "Jersey",
-                    status: m.status,
-                    kuantitasKg: m.kuantitasKg,
-                    rasioKonversi: m.rasioKonversi,
-                    description: m.deskripsi || "Bahan jersey premium."
-                }));
-                setMaterials(mapped);
-            } else {
-                setMaterials([]);
-            }
-        }).catch(err => {
-            console.error("Gagal memuat bahan baju:", err);
-            if (isMounted) setMaterials([]);
-        }).finally(() => {
-            if (isMounted) setLoading(false);
-        });
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    const filteredProducts = materials.filter(p => {
-        const matchesCategory = selectedCategory === "Semua" || p.category === selectedCategory;
-        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase().trim());
-        return matchesCategory && matchesSearch;
-    });
-
-    const handleCheckout = () => {
-        if (cart.length === 0) return;
-
-        const waNumber = "6285892720034";
-        let message = "Halo FCSV, saya ingin memesan barang berikut:\n\n";
-        
-        cart.forEach(item => {
-            message += `- ${item.product.title} (x${item.quantity}) - ${formatRupiah(item.product.price * item.quantity)}\n`;
-        });
-
-        message += `\n*Total: ${formatRupiah(subtotal)}*`;
-        if (uangDiterima) {
-            message += `\nUang Diterima: ${formatRupiah(Number(uangDiterima))}`;
-        }
-
-        const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/${waNumber}?text=${encodedMessage}`, "_blank");
-    };
 
     return (
         <div className="min-h-[calc(100vh-100px)] bg-[#FAFAFA] p-6 md:p-8 font-['Inter'] flex flex-col gap-8 w-full">

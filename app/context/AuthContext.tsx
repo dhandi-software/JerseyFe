@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLoggingOut: boolean;
   login: (data: LoginCredentials) => Promise<void>;
   logout: () => void;
 }
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -118,26 +120,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("jwt");
-    setUser(null);
-
+    setIsLoggingOut(true);
     try {
-      await authService.logout();
+      await Promise.race([
+        authService.logout(),
+        new Promise((resolve) => setTimeout(resolve, 1500))
+      ]);
     } catch (e) {
-      console.error("Logout error:", e);
+      console.warn("Logout error:", e);
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("user");
+        localStorage.removeItem("jwt");
+        window.location.replace("/login");
+      } else {
+        localStorage.removeItem("user");
+        localStorage.removeItem("jwt");
+        setUser(null);
+        setIsLoggingOut(false);
+        navigate("/login", { replace: true });
+      }
     }
-
-    navigate("/login", { replace: true });
   };
 
   const value = React.useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isLoading,
+    isLoggingOut,
     login,
     logout
-  }), [user, isLoading]);
+  }), [user, isLoading, isLoggingOut]);
 
   return (
     <AuthContext.Provider value={value}>
