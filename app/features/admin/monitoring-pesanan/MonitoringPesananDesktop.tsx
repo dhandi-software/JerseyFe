@@ -1,6 +1,6 @@
 import { Fragment } from "react";
-import { Loader2, Eye, ChevronDown, Search, Video } from "lucide-react";
-import { cn } from "~/lib/utils";
+import { Loader2, Eye, ChevronDown, Search, Video, ShoppingBag } from "lucide-react";
+import { cn, formatRupiah } from "~/lib/utils";
 import { Toast } from "~/components/ui/toast";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -16,7 +16,7 @@ import {
 import { useMonitoringPesanan } from "~/hooks";
 import { OrderMembersSubTable } from "./components/OrderMembersSubTable";
 import { OrderDetailViewDesktop } from "./components/OrderDetailViewDesktop";
-import { getStatusStyle } from "./utils";
+import { getStatusStyle, findOrderBahan, resolveUploadImageUrl } from "./utils";
 import type { MonitoringFilterTab, MonitoringSortOption } from "~/types";
 
 export function MonitoringPesananDesktop() {
@@ -306,7 +306,11 @@ export function MonitoringPesananDesktop() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    paginatedOrders.map((order) => (
+                                    paginatedOrders.map((order) => {
+                                        const matchedBahan = findOrderBahan(order, bahanList);
+                                        const productImageUrl = resolveUploadImageUrl(matchedBahan?.imageUrl);
+
+                                        return (
                                         <Fragment key={order.rawId}>
                                             <tr className="hover:bg-slate-50 transition-colors">
                                                 <td className="px-6 py-5 font-bold text-slate-600 font-mono text-sm">
@@ -333,7 +337,32 @@ export function MonitoringPesananDesktop() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-5 font-black text-slate-900 uppercase italic text-base">{order.customer}</td>
-                                                <td className="px-6 py-5 text-slate-600 font-medium italic text-sm">{order.product}</td>
+                                                <td className="px-6 py-5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-11 h-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                                            {productImageUrl ? (
+                                                                <img
+                                                                    src={productImageUrl}
+                                                                    alt={order.product}
+                                                                    className="w-full h-full object-cover"
+                                                                    loading="lazy"
+                                                                />
+                                                            ) : (
+                                                                <ShoppingBag size={18} className="text-slate-400" />
+                                                            )}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-slate-900 font-bold italic text-sm truncate max-w-[200px]">
+                                                                {order.product}
+                                                            </p>
+                                                            {matchedBahan?.harga ? (
+                                                                <p className="text-[11px] font-semibold text-slate-600">
+                                                                    {formatRupiah(matchedBahan.harga)} / pcs
+                                                                </p>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-5 font-black text-slate-800 italic text-sm">{order.qty} Unit</td>
                                                 <td className="px-6 py-5 font-bold text-[#D25026] italic text-base">Rp {order.totalAmount?.toLocaleString('id-ID')}</td>
                                                 <td className="px-6 py-5">
@@ -378,7 +407,8 @@ export function MonitoringPesananDesktop() {
                                                 />
                                             )}
                                         </Fragment>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>

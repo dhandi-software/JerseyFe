@@ -16,6 +16,25 @@ export const SIZE_ORDER = [
     '6XL'
 ];
 
+export const parsePlayerSizeAndSleeve = (rawSize?: string): { sizeOnly: string; sleeve: string } => {
+    const raw = (rawSize || "-").trim();
+    if (raw.includes("(")) {
+        const parts = raw.split("(");
+        return {
+            sizeOnly: parts[0].trim() || "-",
+            sleeve: parts[1]?.replace(")", "").trim() || "-",
+        };
+    }
+    if (raw.includes("-") && raw.length > 1) {
+        const parts = raw.split("-");
+        return {
+            sizeOnly: parts[0].trim() || "-",
+            sleeve: parts.slice(1).join("-").trim() || "-",
+        };
+    }
+    return { sizeOnly: raw || "-", sleeve: "-" };
+};
+
 /**
  * Sorts an array of player objects by their size based on the standard SIZE_ORDER.
  * @param players Array of player objects with a 'size' property.
@@ -23,8 +42,10 @@ export const SIZE_ORDER = [
  */
 export const sortPlayersBySize = (players: any[]) => {
     return [...players].sort((a, b) => {
-        const sizeA = (a.size || a.playerSize || "").toUpperCase();
-        const sizeB = (b.size || b.playerSize || "").toUpperCase();
+        const rawA = (a.size || a.playerSize || "").toUpperCase();
+        const rawB = (b.size || b.playerSize || "").toUpperCase();
+        const sizeA = parsePlayerSizeAndSleeve(rawA).sizeOnly;
+        const sizeB = parsePlayerSizeAndSleeve(rawB).sizeOnly;
 
         const indexA = SIZE_ORDER.indexOf(sizeA);
         const indexB = SIZE_ORDER.indexOf(sizeB);
@@ -33,7 +54,26 @@ export const sortPlayersBySize = (players: any[]) => {
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;
 
-        return sizeA.localeCompare(sizeB);
+        return rawA.localeCompare(rawB);
+    });
+};
+
+export const filterPlayersByQuery = (players: any[], query: string) => {
+    const sorted = sortPlayersBySize(players || []);
+    const q = query.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter((item: any) => {
+        const name = String(item.playerName || item.name || "").toLowerCase();
+        const number = String(item.playerNumber || item.number || "").toLowerCase();
+        const sizeRaw = String(item.playerSize || item.size || "").toLowerCase();
+        const { sizeOnly, sleeve } = parsePlayerSizeAndSleeve(item.playerSize || item.size);
+        return (
+            name.includes(q) ||
+            number.includes(q) ||
+            sizeRaw.includes(q) ||
+            sizeOnly.toLowerCase().includes(q) ||
+            sleeve.toLowerCase().includes(q)
+        );
     });
 };
 
@@ -41,7 +81,7 @@ export const sortPlayersBySize = (players: any[]) => {
 
 export const downloadPlayersPDF = (order: any) => {
     const doc = new jsPDF();
-    const orderId = order.id || order.orderId;
+    const orderId = String(order.orderId || (typeof order.id === "string" ? order.id : "") || order.id || "ORD-0001");
     const customer = order.customer || order.customerName || "GUEST";
     const date = order.date || (order.createdAt ? new Date(order.createdAt).toLocaleDateString('id-ID') : "-");
     const totalAmount = order.totalAmount || 0;

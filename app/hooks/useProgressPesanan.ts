@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Clock,
     FileText,
@@ -8,10 +8,17 @@ import {
 } from "lucide-react";
 import { orderService } from "~/services/orderService";
 import { generateInvoicePDF } from "~/lib/pdfHelper";
+import { filterPlayersByQuery } from "~/lib/sizeUtils";
 import { useAuth } from "~/context/AuthContext";
-import type { TrackingStage, UseProgressPesananReturn } from "~/types";
+import { getDisplayStatus } from "./useTrackingPesanan";
+import type { CustomerTrackedOrder } from "~/types/trackingPesanan";
+import type {
+    ProgressStage,
+    ProgressToastMessage,
+    UseProgressPesananReturn,
+} from "~/types/progressPesanan";
 
-export const PROGRESS_STAGES: TrackingStage[] = [
+export const PROGRESS_STAGES: ProgressStage[] = [
     { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek pembayaran" },
     { id: "DESAIN", label: "Desain", icon: FileText, desc: "Mockup desain" },
     { id: "LAYOUT", label: "Layout", icon: FileText, desc: "Pola & Layout" },
@@ -20,38 +27,32 @@ export const PROGRESS_STAGES: TrackingStage[] = [
     { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Selesai" },
 ];
 
-export const getProgressDisplayStatus = (
-    status: string,
-    isWorking: boolean,
-) => {
-    if (status === "MENUNGGU") return "Verifikasi Pembayaran";
-    if (status === "DESAIN") {
-        return isWorking ? "Pesanan Sedang Diproses" : "Pembayaran Diterima";
-    }
-    if (["LAYOUT", "PRINT", "FINISHING"].includes(status)) {
-        return "Pesanan Sedang Diproses";
-    }
-    if (status === "SELESAI") return "Selesai";
-    if (status === "DITOLAK") return "Ditolak";
-    return status;
-};
+export const getProgressDisplayStatus = getDisplayStatus;
 
 export function useProgressPesanan(): UseProgressPesananReturn {
     const { user } = useAuth();
-    const [orders, setOrders] = useState<any[]>([]);
-    const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+    const [orders, setOrders] = useState<CustomerTrackedOrder[]>([]);
+    const [selectedOrder, setSelectedOrder] = useState<CustomerTrackedOrder | null>(null);
     const [loading, setLoading] = useState(true);
+    const [memberSearch, setMemberSearch] = useState("");
 
     const [feedbackInput, setFeedbackInput] = useState("");
     const [showRevisiForm, setShowRevisiForm] = useState(false);
     const [showLayoutRevisiForm, setShowLayoutRevisiForm] = useState(false);
     const [layoutFeedbackInput, setLayoutFeedbackInput] = useState("");
     const [submittingAction, setSubmittingAction] = useState(false);
-    const [toast, setToast] = useState<{
-        title: string;
-        variant: "success" | "destructive";
-    } | null>(null);
+    const [toast, setToast] = useState<ProgressToastMessage | null>(null);
     const [isPrinting, setIsPrinting] = useState(false);
+
+    useEffect(() => {
+        setMemberSearch("");
+    }, [selectedOrder?.id]);
+
+    const totalPlayers = (selectedOrder?.details || []).length;
+    const filteredPlayers = useMemo(
+        () => filterPlayersByQuery(selectedOrder?.details || [], memberSearch),
+        [selectedOrder?.details, memberSearch],
+    );
 
     const handlePrintInvoice = async () => {
         if (!selectedOrder) return;
@@ -82,20 +83,23 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         fetchOrders();
     }, [user?.id]);
 
+    const syncUpdatedOrder = (updated: CustomerTrackedOrder) => {
+        setSelectedOrder(updated);
+        setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? updated : o)),
+        );
+    };
+
     const handleApprove = async () => {
         if (!selectedOrder) return;
         setSubmittingAction(true);
         try {
             await orderService.approveDesign(selectedOrder.id);
-            const updated = {
+            syncUpdatedOrder({
                 ...selectedOrder,
                 designStatus: "APPROVED",
                 designFeedback: null,
-            };
-            setSelectedOrder(updated);
-            setOrders((prev) =>
-                prev.map((o) => (o.id === selectedOrder.id ? updated : o)),
-            );
+            });
             setToast({ title: "Desain berhasil disetujui!", variant: "success" });
         } catch (err) {
             console.error("Gagal menyetujui desain:", err);
@@ -110,15 +114,11 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.revisiDesign(selectedOrder.id, feedbackInput);
-            const updated = {
+            syncUpdatedOrder({
                 ...selectedOrder,
                 designStatus: "REVISI",
                 designFeedback: feedbackInput,
-            };
-            setSelectedOrder(updated);
-            setOrders((prev) =>
-                prev.map((o) => (o.id === selectedOrder.id ? updated : o)),
-            );
+            });
             setShowRevisiForm(false);
             setFeedbackInput("");
             setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
@@ -135,15 +135,11 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.approveLayout(selectedOrder.id);
-            const updated = {
+            syncUpdatedOrder({
                 ...selectedOrder,
                 layoutStatus: "APPROVED",
                 layoutFeedback: null,
-            };
-            setSelectedOrder(updated);
-            setOrders((prev) =>
-                prev.map((o) => (o.id === selectedOrder.id ? updated : o)),
-            );
+            });
             setToast({ title: "Layout berhasil disetujui!", variant: "success" });
         } catch (err) {
             console.error("Gagal menyetujui layout:", err);
@@ -161,15 +157,11 @@ export function useProgressPesanan(): UseProgressPesananReturn {
                 selectedOrder.id,
                 layoutFeedbackInput,
             );
-            const updated = {
+            syncUpdatedOrder({
                 ...selectedOrder,
                 layoutStatus: "REVISI",
                 layoutFeedback: layoutFeedbackInput,
-            };
-            setSelectedOrder(updated);
-            setOrders((prev) =>
-                prev.map((o) => (o.id === selectedOrder.id ? updated : o)),
-            );
+            });
             setShowLayoutRevisiForm(false);
             setLayoutFeedbackInput("");
             setToast({
@@ -192,14 +184,10 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.unapproveDesign(selectedOrder.id);
-            const updated = {
+            syncUpdatedOrder({
                 ...selectedOrder,
                 designStatus: "SENT",
-            };
-            setSelectedOrder(updated);
-            setOrders((prev) =>
-                prev.map((o) => (o.id === selectedOrder.id ? updated : o)),
-            );
+            });
             setToast({
                 title: "Persetujuan desain dibatalkan!",
                 variant: "success",
@@ -220,14 +208,10 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.unapproveLayout(selectedOrder.id);
-            const updated = {
+            syncUpdatedOrder({
                 ...selectedOrder,
                 layoutStatus: "SENT",
-            };
-            setSelectedOrder(updated);
-            setOrders((prev) =>
-                prev.map((o) => (o.id === selectedOrder.id ? updated : o)),
-            );
+            });
             setToast({
                 title: "Persetujuan layout dibatalkan!",
                 variant: "success",
@@ -255,6 +239,10 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         selectedOrder,
         setSelectedOrder,
         loading,
+        memberSearch,
+        setMemberSearch,
+        filteredPlayers,
+        totalPlayers,
         feedbackInput,
         setFeedbackInput,
         showRevisiForm,

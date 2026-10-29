@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router";
 import {
     Clock,
@@ -8,10 +8,28 @@ import {
     Scissors,
     CheckCircle2,
 } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
 import { orderService } from "~/services/orderService";
 import { generateInvoicePDF } from "~/lib/pdfHelper";
+import { filterPlayersByQuery } from "~/lib/sizeUtils";
 import { adminApi } from "~/api/admin";
-import type { TrackingStage, UseTrackingPesananReturn } from "~/types";
+import type {
+    AlternativeBahan,
+    CustomerDesignApprovalCardProps,
+    CustomerTrackedOrder,
+    TrackingStage,
+    TrackingToastMessage,
+    UseTrackingPesananReturn,
+} from "~/types/trackingPesanan";
+
+export const STORE_PICKUP_ADDRESS =
+    "Jalan raya cikande kopo. Kp padaharan, Ds Rancasumur rt 001 rw 001 kecamatan kopo. Kabupaten Serang. Provinsi Banten 42178";
+
+export function resolveCustomerUploadUrl(rawUrl?: string | null): string {
+    if (!rawUrl) return "";
+    if (rawUrl.startsWith("http")) return rawUrl;
+    return `${UPLOADS_URL}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+}
 
 export const TRACKING_STAGES: TrackingStage[] = [
     { id: "MENUNGGU", label: "Verifikasi", icon: Clock, desc: "Cek pembayaran" },
@@ -22,7 +40,7 @@ export const TRACKING_STAGES: TrackingStage[] = [
     { id: "SELESAI", label: "Selesai", icon: CheckCircle2, desc: "Selesai" },
 ];
 
-export const getDisplayStatus = (status: string, isWorking: boolean) => {
+export const getDisplayStatus = (status: string, isWorking?: boolean) => {
     if (status === "MENUNGGU") return "Verifikasi Pembayaran";
     if (status === "DESAIN") {
         return isWorking ? "Pesanan Sedang Diproses" : "Pembayaran Diterima";
@@ -35,21 +53,232 @@ export const getDisplayStatus = (status: string, isWorking: boolean) => {
     return status;
 };
 
+export function useCustomerDesignApprovalCard({
+    mode,
+    variant = "desktop",
+    fileUrl,
+    feedback,
+    interactive = true,
+    onToggleRevisiForm,
+    onFeedbackInputChange,
+}: Pick<
+    CustomerDesignApprovalCardProps,
+    | "mode"
+    | "variant"
+    | "fileUrl"
+    | "feedback"
+    | "interactive"
+    | "onToggleRevisiForm"
+    | "onFeedbackInputChange"
+>) {
+    const isDesign = mode === "design";
+    const resolvedUrl = resolveCustomerUploadUrl(fileUrl);
+    const isPdf = Boolean(fileUrl && fileUrl.toLowerCase().endsWith(".pdf"));
+
+    const title =
+        variant === "desktop"
+            ? isDesign
+                ? "Hasil Desain Mockup Jersey Anda"
+                : "Layout Pola Cetak Jersey Anda"
+            : isDesign
+              ? "Hasil Desain Mockup"
+              : "Layout Pola Cetak";
+
+    const description =
+        variant === "desktop"
+            ? isDesign
+                ? "Tim desainer kami telah mengunggah mockup desain jersey Anda. Silakan tinjau desain di bawah ini sebelum kami melanjutkan ke proses Layout Pola Cetak."
+                : interactive
+                  ? "Tim desainer kami telah mengunggah layout pola cetak jersey Anda. Silakan tinjau layout di bawah ini sebelum kami melanjutkan ke proses print cetak kain."
+                  : "Layout pola cetak jersey Anda."
+            : isDesign
+              ? "Silakan tinjau mockup desain jersey Anda di bawah ini sebelum kami melanjutkan ke proses layout pola cetak."
+              : interactive
+                ? "Silakan tinjau layout pola cetak jersey Anda di bawah ini sebelum kami melanjutkan ke proses print cetak kain."
+                : "Layout pola cetak jersey Anda.";
+
+    const statusPrefix =
+        variant === "desktop"
+            ? isDesign
+                ? "Status Desain:"
+                : "Status Layout:"
+            : "Status:";
+
+    const approveButtonLabel =
+        variant === "desktop"
+            ? isDesign
+                ? "Setujui Desain"
+                : "Setujui Layout"
+            : isDesign
+              ? "Setujui"
+              : "Setujui Layout";
+
+    const revisiFormLabel =
+        variant === "desktop"
+            ? isDesign
+                ? "Detail Revisi yang Diinginkan:"
+                : "Detail Revisi Layout yang Diinginkan:"
+            : isDesign
+              ? "Detail Revisi:"
+              : "Detail Revisi Layout:";
+
+    const revisiPlaceholder =
+        variant === "desktop"
+            ? isDesign
+                ? "Contoh: Tolong warna tulisan sponsor diubah menjadi putih, dan logo tim digeser sedikit ke atas."
+                : "Contoh: Tolong penempatan nama pemain dan nomor punggung diselaraskan kembali."
+            : isDesign
+              ? "Contoh: Tolong ganti warna..."
+              : "Contoh: Tolong penempatan nama pemain...";
+
+    const submitRevisiLabel =
+        variant === "desktop"
+            ? isDesign
+                ? "Kirim Revisi"
+                : "Kirim Revisi Layout"
+            : isDesign
+              ? "Kirim"
+              : "Kirim Layout";
+
+    const approvedMessage =
+        variant === "desktop"
+            ? isDesign
+                ? "Desain telah disetujui! Pesanan akan segera dilanjutkan ke tahap Layout Pola & Cetak."
+                : "Layout telah disetujui! Pesanan akan segera dilanjutkan ke tahap Print Cetak Kain."
+            : isDesign
+              ? "Desain disetujui! Segera dilanjutkan ke tahap berikutnya."
+              : "Layout disetujui! Segera dilanjutkan ke proses cetak kain.";
+
+    const handleStartRevisi = () => {
+        onFeedbackInputChange?.("");
+        onToggleRevisiForm?.(true);
+    };
+
+    const handleCancelRevisi = () => {
+        onToggleRevisiForm?.(false);
+        onFeedbackInputChange?.("");
+    };
+
+    const handleEditRevisiNote = () => {
+        onFeedbackInputChange?.(feedback || "");
+        onToggleRevisiForm?.(true);
+    };
+
+    return {
+        isDesign,
+        resolvedUrl,
+        isPdf,
+        title,
+        description,
+        statusPrefix,
+        approveButtonLabel,
+        revisiFormLabel,
+        revisiPlaceholder,
+        submitRevisiLabel,
+        approvedMessage,
+        handleStartRevisi,
+        handleCancelRevisi,
+        handleEditRevisiNote,
+    };
+}
+
+export function useCustomerAlternativeFabric(
+    order: CustomerTrackedOrder,
+    bahanList: AlternativeBahan[]
+) {
+    const recommendedIds = order.recommendedBahanIds || [];
+    const hasRecommendations = recommendedIds.length > 0;
+    const recommendedItems = useMemo(
+        () => bahanList.filter((b) => recommendedIds.includes(b.id)),
+        [bahanList, recommendedIds]
+    );
+
+    return {
+        hasRecommendations,
+        recommendedItems,
+    };
+}
+
+export function useCustomerProductionNotesVideo(order: CustomerTrackedOrder) {
+    const hasNote = Boolean(order.adminNote && order.adminNote.trim().length > 0);
+    const hasVideo = Boolean(order.videoUrl && order.videoUrl.trim().length > 0);
+
+    const embedUrl = useMemo(() => {
+        const url = order.videoUrl;
+        if (!url) return null;
+        try {
+            const clean = url.trim();
+            if (clean.includes("youtube.com/watch")) {
+                const parsed = new URL(clean);
+                const v = parsed.searchParams.get("v");
+                if (v) return `https://www.youtube.com/embed/${v}`;
+            }
+            if (clean.includes("youtube.com/shorts/")) {
+                const id = clean.split("youtube.com/shorts/")[1]?.split(/[?&/]/)[0];
+                if (id) return `https://www.youtube.com/embed/${id}`;
+            }
+            if (clean.includes("youtu.be/")) {
+                const id = clean.split("youtu.be/")[1]?.split("?")[0];
+                if (id) return `https://www.youtube.com/embed/${id}`;
+            }
+            if (clean.includes("drive.google.com/file/d/")) {
+                const match = clean.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    return `https://drive.google.com/file/d/${match[1]}/preview`;
+                }
+            }
+        } catch {
+            return null;
+        }
+        return null;
+    }, [order.videoUrl]);
+
+    const noteParts = useMemo(() => {
+        if (!order.adminNote) return [];
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return order.adminNote.split(urlRegex).map((part) => ({
+            text: part,
+            isLink: /^https?:\/\/[^\s]+$/.test(part),
+        }));
+    }, [order.adminNote]);
+
+    return {
+        hasNote,
+        hasVideo,
+        embedUrl,
+        noteParts,
+    };
+}
+
+export function useCustomerSupportBanner(orderId?: string) {
+    const waText = orderId
+        ? `Halo Admin FCSV, saya ingin menanyakan status pesanan jersey dengan kode ${orderId}`
+        : "Halo Admin FCSV, saya ingin menanyakan status pesanan jersey";
+    const waUrl = `https://wa.me/6285892720034?text=${encodeURIComponent(waText)}`;
+
+    const handleOpenSupport = () => {
+        window.open(waUrl, "_blank");
+    };
+
+    return {
+        waUrl,
+        handleOpenSupport,
+    };
+}
+
 export function useTrackingPesanan(): UseTrackingPesananReturn {
     const [searchParams] = useSearchParams();
     const [orderId, setOrderId] = useState(searchParams.get("id") || "");
-    const [order, setOrder] = useState<any | null>(null);
+    const [order, setOrder] = useState<CustomerTrackedOrder | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [memberSearch, setMemberSearch] = useState("");
 
     const [feedbackInput, setFeedbackInput] = useState("");
     const [showRevisiForm, setShowRevisiForm] = useState(false);
     const [submittingAction, setSubmittingAction] = useState(false);
-    const [toast, setToast] = useState<{
-        title: string;
-        variant: "success" | "destructive";
-    } | null>(null);
-    const [bahanList, setBahanList] = useState<any[]>([]);
+    const [toast, setToast] = useState<TrackingToastMessage | null>(null);
+    const [bahanList, setBahanList] = useState<AlternativeBahan[]>([]);
     const [isPrinting, setIsPrinting] = useState(false);
 
     useEffect(() => {
@@ -71,10 +300,11 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
 
         setLoading(true);
         setError("");
+        setMemberSearch("");
         try {
             const data = await orderService.trackOrder(idToSearch.trim());
             setOrder(data);
-        } catch (err: any) {
+        } catch {
             setError(
                 "ID Pesanan tidak ditemukan. Pastikan kode yang Anda masukkan benar.",
             );
@@ -91,6 +321,12 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
             executeSearch(id);
         }
     }, [searchParams]);
+
+    const totalPlayers = (order?.details || []).length;
+    const filteredPlayers = useMemo(
+        () => filterPlayersByQuery(order?.details || [], memberSearch),
+        [order?.details, memberSearch],
+    );
 
     const handlePrintInvoice = async () => {
         if (!order) return;
@@ -110,11 +346,15 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.approveDesign(order.id);
-            setOrder((prev: any) => ({
-                ...prev,
-                designStatus: "APPROVED",
-                designFeedback: null,
-            }));
+            setOrder((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          designStatus: "APPROVED",
+                          designFeedback: null,
+                      }
+                    : null,
+            );
             setToast({ title: "Desain berhasil disetujui!", variant: "success" });
         } catch (err) {
             console.error("Gagal menyetujui desain:", err);
@@ -129,10 +369,14 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.unapproveDesign(order.id);
-            setOrder((prev: any) => ({
-                ...prev,
-                designStatus: "SENT",
-            }));
+            setOrder((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          designStatus: "SENT",
+                      }
+                    : null,
+            );
             setToast({
                 title: "Persetujuan desain dibatalkan!",
                 variant: "success",
@@ -153,11 +397,15 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
         setSubmittingAction(true);
         try {
             await orderService.revisiDesign(order.id, feedbackInput);
-            setOrder((prev: any) => ({
-                ...prev,
-                designStatus: "REVISI",
-                designFeedback: feedbackInput,
-            }));
+            setOrder((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          designStatus: "REVISI",
+                          designFeedback: feedbackInput,
+                      }
+                    : null,
+            );
             setShowRevisiForm(false);
             setFeedbackInput("");
             setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
@@ -177,7 +425,7 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
                 title: "Bahan berhasil diganti ke alternatif!",
                 variant: "success",
             });
-            executeSearch(order.orderId || order.id);
+            executeSearch(order.orderId || String(order.id));
         } catch (err) {
             console.error("Gagal memilih bahan alternatif:", err);
             setToast({
@@ -204,6 +452,10 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
         setOrder,
         loading,
         error,
+        memberSearch,
+        setMemberSearch,
+        filteredPlayers,
+        totalPlayers,
         feedbackInput,
         setFeedbackInput,
         showRevisiForm,

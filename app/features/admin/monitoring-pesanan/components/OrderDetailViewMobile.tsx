@@ -13,6 +13,7 @@ import {
     AlternativeBahanAlert,
     HandoverDesignerModal
 } from "./detail";
+import { findOrderBahan } from "../utils";
 import type { MonitoringOrder, BahanItem, DesignerItem, ToastState } from "~/types";
 
 export interface OrderDetailViewMobileProps {
@@ -30,7 +31,7 @@ export interface OrderDetailViewMobileProps {
     isPrinting: boolean;
     handlePrintInvoice: () => Promise<void>;
     isUploadingProof: boolean;
-    handleUploadProof: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+    handleUploadProof: (e: React.ChangeEvent<HTMLInputElement>, slot?: "DP" | "FULL") => Promise<void>;
     isUploadingPrint: boolean;
     handleUploadPrint: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
     isUploadingFinishing: boolean;
@@ -92,7 +93,7 @@ export function OrderDetailViewMobile({
     handleDeleteMember,
     handleUpdatePaymentDetails
 }: OrderDetailViewMobileProps) {
-    const currentBahan = bahanList.find(b => b.id === selectedOrder.productId);
+    const currentBahan = findOrderBahan(selectedOrder, bahanList);
 
     return (
         <div className="min-h-screen bg-slate-50 font-geist pb-32">
@@ -131,6 +132,7 @@ export function OrderDetailViewMobile({
                 {/* Customer Design Reference & Video / Internal Notes */}
                 <DesignReferenceSection
                     order={selectedOrder}
+                    currentBahan={currentBahan}
                     onUpdateNotesAndVideo={handleUpdateNotesAndVideo}
                     variant="mobile"
                 />

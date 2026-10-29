@@ -4,7 +4,8 @@ import { chatService } from "~/services/chatService";
 import { adminApi } from "~/api/admin";
 import { generateInvoicePDF } from "~/lib/pdfHelper";
 import { sortPlayersBySize } from "~/lib/sizeUtils";
-import { formatOrderData } from "~/features/admin/monitoring-pesanan/utils";
+import { convertImageToWebP } from "~/lib/utils";
+import { formatOrderData, serializePaymentProofUrls } from "~/features/admin/monitoring-pesanan/utils";
 import type { 
     MonitoringOrder, 
     DesignerItem, 
@@ -244,65 +245,88 @@ export function useMonitoringPesanan() {
         }
     };
 
-    // Action: Upload payment proof
-    const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+    // Action: Upload payment proof (DP or FULL slot, converted to WebP)
+    const handleUploadProof = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        slot?: "DP" | "FULL"
+    ) => {
+        const inputEl = e.target;
+        const file = inputEl.files?.[0];
         if (!file || !selectedOrder) return;
         
+        const targetSlot: "DP" | "FULL" = slot || (selectedOrder.paymentType === "DP" ? "DP" : "FULL");
         setIsUploadingProof(true);
         try {
-            const res = await chatService.uploadFile(file);
-            const newPaymentUrl = res.url;
+            const optimizedFile = await convertImageToWebP(file);
+            const res = await chatService.uploadFile(optimizedFile);
+            const newPaymentUrl = serializePaymentProofUrls(
+                selectedOrder.paymentProofUrl,
+                selectedOrder.paymentType,
+                targetSlot,
+                res.url
+            );
             await orderService.updatePaymentUrl(selectedOrder.rawId, newPaymentUrl);
             
-            setToast({ title: "Bukti pembayaran berhasil diunggah!", variant: "success" });
-            setSelectedOrder({ ...selectedOrder, paymentProofUrl: newPaymentUrl });
+            setToast({
+                title: targetSlot === "DP"
+                    ? "Bukti pembayaran DP berhasil diunggah!"
+                    : "Bukti pembayaran Full berhasil diunggah!",
+                variant: "success"
+            });
+            setSelectedOrder(prev => prev ? { ...prev, paymentProofUrl: newPaymentUrl } : null);
             setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, paymentProofUrl: newPaymentUrl } : o));
         } catch (error) {
             console.error("Gagal mengunggah bukti pembayaran", error);
             setToast({ title: "Gagal mengunggah bukti pembayaran", variant: "destructive" });
         } finally {
             setIsUploadingProof(false);
+            inputEl.value = "";
             if (proofInputRef.current) proofInputRef.current.value = "";
         }
     };
 
-    // Action: Upload print progress photo
+    // Action: Upload print progress photo (converted to WebP)
     const handleUploadPrint = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const inputEl = e.target;
+        const file = inputEl.files?.[0];
         if (!file || !selectedOrder) return;
         
         setIsUploadingPrint(true);
         try {
-            const res = await orderService.uploadPrint(selectedOrder.rawId, file);
+            const optimizedFile = await convertImageToWebP(file);
+            const res = await orderService.uploadPrint(selectedOrder.rawId, optimizedFile);
             setToast({ title: "Foto progres Print berhasil diunggah!", variant: "success" });
-            setSelectedOrder({ ...selectedOrder, printUrl: res.printUrl });
+            setSelectedOrder(prev => prev ? { ...prev, printUrl: res.printUrl } : null);
             setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, printUrl: res.printUrl } : o));
         } catch (error) {
             console.error("Gagal mengunggah foto Print", error);
             setToast({ title: "Gagal mengunggah foto Print", variant: "destructive" });
         } finally {
             setIsUploadingPrint(false);
+            inputEl.value = "";
             if (printInputRef.current) printInputRef.current.value = "";
         }
     };
 
-    // Action: Upload finishing progress photo
+    // Action: Upload finishing progress photo (converted to WebP)
     const handleUploadFinishing = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const inputEl = e.target;
+        const file = inputEl.files?.[0];
         if (!file || !selectedOrder) return;
         
         setIsUploadingFinishing(true);
         try {
-            const res = await orderService.uploadFinishing(selectedOrder.rawId, file);
+            const optimizedFile = await convertImageToWebP(file);
+            const res = await orderService.uploadFinishing(selectedOrder.rawId, optimizedFile);
             setToast({ title: "Foto progres Finishing berhasil diunggah!", variant: "success" });
-            setSelectedOrder({ ...selectedOrder, finishingUrl: res.finishingUrl });
+            setSelectedOrder(prev => prev ? { ...prev, finishingUrl: res.finishingUrl } : null);
             setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, finishingUrl: res.finishingUrl } : o));
         } catch (error) {
             console.error("Gagal mengunggah foto Finishing", error);
             setToast({ title: "Gagal mengunggah foto Finishing", variant: "destructive" });
         } finally {
             setIsUploadingFinishing(false);
+            inputEl.value = "";
             if (finishingInputRef.current) finishingInputRef.current.value = "";
         }
     };

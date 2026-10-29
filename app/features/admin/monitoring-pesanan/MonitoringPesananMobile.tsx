@@ -14,7 +14,7 @@ import {
 } from "~/components/ui/pagination";
 import { useMonitoringPesanan } from "~/hooks";
 import { OrderDetailViewMobile } from "./components/OrderDetailViewMobile";
-import { getStatusStyle, parseSleeveAndSize } from "./utils";
+import { getStatusStyle, parseSleeveAndSize, findOrderBahan, resolveUploadImageUrl } from "./utils";
 import type { MonitoringFilterTab, MonitoringSortOption } from "~/types";
 
 export function MonitoringPesananMobile() {
@@ -294,6 +294,8 @@ export function MonitoringPesananMobile() {
                         const matchedMembers = q ? (order.details || []).filter((d: any) => 
                             d.playerName?.toLowerCase().includes(q) || d.playerNumber?.toString().toLowerCase().includes(q)
                         ) : [];
+                        const matchedBahan = findOrderBahan(order, bahanList);
+                        const productImageUrl = resolveUploadImageUrl(matchedBahan?.imageUrl);
 
                         return (
                             <div 
@@ -302,44 +304,58 @@ export function MonitoringPesananMobile() {
                             >
                                 <div 
                                     onClick={() => setSelectedOrder(order)}
-                                    className="flex items-center justify-between cursor-pointer"
+                                    className="flex items-center justify-between gap-3 cursor-pointer"
                                 >
-                                    <div className="flex flex-col gap-1.5 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="text-[9px] font-black text-slate-300 font-mono tracking-tighter">{order.id}</span>
-                                            {order.queueNumber && (
-                                                <span className="bg-[#D25026]/10 text-[#D25026] px-1.5 py-0.5 rounded text-[7px] font-black uppercase italic border border-[#D25026]/20">
-                                                    Antrean: {order.queueNumber}
-                                                </span>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-12 h-12 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                            {productImageUrl ? (
+                                                <img
+                                                    src={productImageUrl}
+                                                    alt={order.product}
+                                                    className="w-full h-full object-cover"
+                                                    loading="lazy"
+                                                />
+                                            ) : (
+                                                <ShoppingBag size={18} className="text-slate-400" />
                                             )}
-                                            {order.videoUrl && (
-                                                <a
-                                                    href={order.videoUrl}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    title="Buka Link Video"
-                                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 text-[8px] font-black uppercase tracking-tight shadow-2xs"
-                                                >
-                                                    <Video size={9} className="text-purple-600" />
-                                                    <span>Video</span>
-                                                </a>
-                                            )}
-                                            <span className={cn("px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border", getStatusStyle(order.status))}>
-                                                {order.status}
-                                            </span>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-black text-slate-900 uppercase italic truncate max-w-[220px] leading-tight">{order.customer}</p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <p className="text-[9px] font-bold text-slate-400 italic uppercase tracking-tight">{order.product} ({order.qty} Unit)</p>
-                                                <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                                                <p className="text-[9px] font-black text-[#D25026] italic">Rp {order.totalAmount?.toLocaleString('id-ID')}</p>
+                                        <div className="flex flex-col gap-1.5 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-[9px] font-black text-slate-500 font-mono tracking-tighter">{order.id}</span>
+                                                {order.queueNumber && (
+                                                    <span className="bg-[#D25026]/10 text-[#D25026] px-1.5 py-0.5 rounded text-[7px] font-black uppercase italic border border-[#D25026]/20">
+                                                        Antrean: {order.queueNumber}
+                                                    </span>
+                                                )}
+                                                {order.videoUrl && (
+                                                    <a
+                                                        href={order.videoUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        title="Buka Link Video"
+                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 text-[8px] font-black uppercase tracking-tight shadow-2xs"
+                                                    >
+                                                        <Video size={9} className="text-purple-600" />
+                                                        <span>Video</span>
+                                                    </a>
+                                                )}
+                                                <span className={cn("px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border", getStatusStyle(order.status))}>
+                                                    {order.status}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-slate-900 uppercase italic truncate max-w-[180px] leading-tight">{order.customer}</p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <p className="text-[10px] font-bold text-slate-600 italic uppercase tracking-tight truncate max-w-[150px]">{order.product} ({order.qty} Unit)</p>
+                                                    <div className="w-1 h-1 bg-slate-300 rounded-full shrink-0" />
+                                                    <p className="text-[10px] font-black text-[#D25026] italic shrink-0">Rp {order.totalAmount?.toLocaleString('id-ID')}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="bg-slate-50 p-2.5 rounded-xl group-hover:bg-[#D25026]/10 group-hover:text-[#D25026] transition-colors shrink-0 ml-2">
-                                        <ChevronRight size={18} className="text-slate-300 group-hover:text-[#D25026]" />
+                                        <ChevronRight size={18} className="text-slate-400 group-hover:text-[#D25026]" />
                                     </div>
                                 </div>
 

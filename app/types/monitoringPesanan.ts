@@ -62,7 +62,9 @@ export interface DesignerItem {
 export interface BahanItem {
     id: number;
     nama: string;
+    deskripsi?: string;
     harga?: number;
+    imageUrl?: string;
     status: string;
 }
 

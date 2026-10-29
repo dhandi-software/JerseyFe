@@ -1,5 +1,78 @@
+import { UPLOADS_URL } from "~/api/client";
 import { sortPlayersBySize } from "~/lib/sizeUtils";
-import type { MonitoringOrder } from "~/types";
+import type { BahanItem, MonitoringOrder } from "~/types";
+
+export const resolveUploadImageUrl = (rawUrl?: string | null): string => {
+    if (!rawUrl) return "";
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return "";
+    if (trimmed.startsWith("http")) return trimmed;
+    return `${UPLOADS_URL}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+};
+
+export const findOrderBahan = (
+    order: Pick<MonitoringOrder, "productId" | "product">,
+    bahanList: BahanItem[]
+): BahanItem | undefined => {
+    if (!bahanList || bahanList.length === 0) return undefined;
+    if (order.productId !== null && order.productId !== undefined) {
+        const byId = bahanList.find(b => Number(b.id) === Number(order.productId));
+        if (byId) return byId;
+    }
+    if (order.product) {
+        const targetName = order.product.trim().toLowerCase();
+        return bahanList.find(b => b.nama?.trim().toLowerCase() === targetName);
+    }
+    return undefined;
+};
+
+export interface ParsedPaymentProofUrls {
+    dpProofUrl: string;
+    fullProofUrl: string;
+    isAwaitingAdmin: boolean;
+}
+
+export const parsePaymentProofUrls = (
+    rawUrl?: string | null,
+    paymentType?: string
+): ParsedPaymentProofUrls => {
+    if (!rawUrl) {
+        return { dpProofUrl: "", fullProofUrl: "", isAwaitingAdmin: false };
+    }
+    const trimmed = rawUrl.trim();
+    if (trimmed === "MENUNGGU_PEMBAYARAN_ADMIN") {
+        return { dpProofUrl: "", fullProofUrl: "", isAwaitingAdmin: true };
+    }
+    if (trimmed.startsWith("{")) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            const dp = typeof parsed?.dp === "string" && parsed.dp !== "MENUNGGU_PEMBAYARAN_ADMIN" ? parsed.dp : "";
+            const full = typeof parsed?.full === "string" && parsed.full !== "MENUNGGU_PEMBAYARAN_ADMIN" ? parsed.full : "";
+            return { dpProofUrl: dp, fullProofUrl: full, isAwaitingAdmin: false };
+        } catch {
+            // Fall through to plain URL handling if JSON is malformed.
+        }
+    }
+    if (paymentType === "DP") {
+        return { dpProofUrl: trimmed, fullProofUrl: "", isAwaitingAdmin: false };
+    }
+    return { dpProofUrl: "", fullProofUrl: trimmed, isAwaitingAdmin: false };
+};
+
+export const serializePaymentProofUrls = (
+    currentRawUrl: string | undefined | null,
+    currentPaymentType: string | undefined,
+    slot: "DP" | "FULL",
+    newUrl: string
+): string => {
+    const { dpProofUrl, fullProofUrl } = parsePaymentProofUrls(currentRawUrl, currentPaymentType);
+    const nextDp = slot === "DP" ? newUrl : dpProofUrl;
+    const nextFull = slot === "FULL" ? newUrl : fullProofUrl;
+    return JSON.stringify({
+        dp: nextDp || undefined,
+        full: nextFull || undefined
+    });
+};
 
 export const parseSleeveAndSize = (rawSize: string) => {
     if (!rawSize) return { size: "-", sleeve: "PENDEK" };

@@ -132,6 +132,19 @@
   --spacing-3xl: 2.5rem;
   --spacing-4xl: 3.75rem;
 
+  /* container scale so --spacing-* does not collapse max-w-* utilities */
+  --container-xs: 20rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-xl: 36rem;
+  --container-2xl: 42rem;
+  --container-3xl: 48rem;
+  --container-4xl: 56rem;
+  --container-5xl: 64rem;
+  --container-6xl: 72rem;
+  --container-7xl: 80rem;
+
   /* outline */
   --color-outline-focus-primary: oklch(0.9001 0.0753 69.86 / 60%);
   --color-outline-focus-destructive: oklch(0.8834 0.0616 18.39 / 60%);

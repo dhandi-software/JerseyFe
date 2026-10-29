@@ -14,7 +14,7 @@ export interface DetailCommonProps {
     isPrinting: boolean;
     handlePrintInvoice: () => Promise<void>;
     isUploadingProof: boolean;
-    handleUploadProof: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+    handleUploadProof: (e: React.ChangeEvent<HTMLInputElement>, slot?: "DP" | "FULL") => Promise<void>;
     isUploadingPrint: boolean;
     handleUploadPrint: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
     isUploadingFinishing: boolean;

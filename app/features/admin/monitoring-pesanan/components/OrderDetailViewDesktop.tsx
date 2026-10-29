@@ -13,6 +13,7 @@ import {
     AlternativeBahanAlert,
     HandoverDesignerModal
 } from "./detail";
+import { findOrderBahan } from "../utils";
 import type { MonitoringOrder, BahanItem, DesignerItem, ToastState } from "~/types";
 
 export interface OrderDetailViewDesktopProps {
@@ -30,7 +31,7 @@ export interface OrderDetailViewDesktopProps {
     isPrinting: boolean;
     handlePrintInvoice: () => Promise<void>;
     isUploadingProof: boolean;
-    handleUploadProof: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+    handleUploadProof: (e: React.ChangeEvent<HTMLInputElement>, slot?: "DP" | "FULL") => Promise<void>;
     isUploadingPrint: boolean;
     handleUploadPrint: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
     isUploadingFinishing: boolean;
@@ -92,7 +93,7 @@ export function OrderDetailViewDesktop({
     handleDeleteMember,
     handleUpdatePaymentDetails
 }: OrderDetailViewDesktopProps) {
-    const currentBahan = bahanList.find(b => b.id === selectedOrder.productId);
+    const currentBahan = findOrderBahan(selectedOrder, bahanList);
 
     return (
         <div className="min-h-screen bg-slate-50 font-geist">
@@ -133,6 +134,7 @@ export function OrderDetailViewDesktop({
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
                             <DesignReferenceSection
                                 order={selectedOrder}
+                                currentBahan={currentBahan}
                                 onUpdateNotesAndVideo={handleUpdateNotesAndVideo}
                                 variant="desktop"
                             />

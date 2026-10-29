@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Image as ImageIcon, FileText, Video, ExternalLink, Edit3, Loader2 } from "lucide-react";
+import { Image as ImageIcon, FileText, Video, ExternalLink, Edit3, Loader2, ShoppingBag } from "lucide-react";
 import { UPLOADS_URL } from "~/api/client";
+import { formatRupiah, cn } from "~/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import type { MonitoringOrder } from "~/types";
+import { resolveUploadImageUrl } from "../../utils";
+import type { MonitoringOrder, BahanItem } from "~/types";
 
 interface DesignReferenceSectionProps {
     order: MonitoringOrder;
+    currentBahan?: BahanItem;
     onUpdateNotesAndVideo?: (orderId: number, data: { videoUrl?: string; adminNote?: string; designNote?: string }) => Promise<any>;
     variant?: "desktop" | "mobile";
     isMobile?: boolean;
@@ -60,6 +63,7 @@ function renderLinkedText(text?: string | null) {
 
 export function DesignReferenceSection({
     order,
+    currentBahan,
     onUpdateNotesAndVideo,
     variant,
     isMobile = false
@@ -87,18 +91,88 @@ export function DesignReferenceSection({
     const designUrl = order.designUrl
         ? (order.designUrl.startsWith("http") ? order.designUrl : `${UPLOADS_URL}${order.designUrl.startsWith("/") ? "" : "/"}${order.designUrl}`)
         : null;
+    const productImageUrl = resolveUploadImageUrl(currentBahan?.imageUrl);
+    const productName = order.product || currentBahan?.nama || "Custom Jersey";
 
     return (
         <div className="space-y-4">
-            <h3 className={isMobile ? "text-xs font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic" : "text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic"}>
+            <h3 className={mobileMode ? "text-xs font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 italic" : "text-sm font-black uppercase tracking-widest text-slate-900 flex items-center gap-3 italic"}>
                 <div className="w-8 h-8 bg-white rounded-xl shadow-xs flex items-center justify-center border border-slate-100">
                     <ImageIcon className="text-[#D25026]" size={16} />
                 </div>
-                Referensi Desain & Catatan
+                Produk, Referensi Desain & Catatan
             </h3>
 
             <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
+                {/* Purchased Product & Photo */}
+                <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">
+                        Produk / Bahan yang Dibeli Pelanggan:
+                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs">
+                        {productImageUrl ? (
+                            <a
+                                href={productImageUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="Klik untuk melihat foto produk ukuran penuh"
+                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border border-slate-200 bg-white overflow-hidden shrink-0 block focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#D25026]/40 shadow-2xs group"
+                            >
+                                <img
+                                    src={productImageUrl}
+                                    alt={productName}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                            </a>
+                        ) : (
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border border-slate-200 bg-white flex flex-col items-center justify-center shrink-0 text-slate-400">
+                                <ShoppingBag size={24} />
+                                <span className="text-[9px] font-bold uppercase tracking-wider mt-1">Tanpa Foto</span>
+                            </div>
+                        )}
+
+                        <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h4 className="text-base font-black uppercase italic text-slate-900 tracking-tight">
+                                    {productName}
+                                </h4>
+                                {currentBahan?.status && (
+                                    <span className={cn(
+                                        "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border",
+                                        currentBahan.status === "Habis"
+                                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    )}>
+                                        Stok: {currentBahan.status}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-black text-slate-800">
+                                    Jumlah: {order.qty} Unit
+                                </span>
+                                {currentBahan?.harga ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-orange-50 border border-orange-200/70 text-xs font-black text-[#D25026]">
+                                        {formatRupiah(currentBahan.harga)} / pcs
+                                    </span>
+                                ) : null}
+                            </div>
+
+                            {currentBahan?.deskripsi ? (
+                                <p className="text-xs text-slate-600 font-medium line-clamp-2">
+                                    {currentBahan.deskripsi}
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Reference Image or PDF */}
+                <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">
+                        Lampiran Referensi Desain Pelanggan:
+                    </p>
                 {designUrl ? (
                     <div className="w-full bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center p-3 shadow-xs">
                         {order.designUrl?.toLowerCase().endsWith(".pdf") ? (
@@ -126,6 +200,7 @@ export function DesignReferenceSection({
                         <p className="text-xs font-bold text-slate-400 italic uppercase tracking-wider">Tidak ada referensi gambar</p>
                     </div>
                 )}
+                </div>
 
                 {/* Customer Design Note */}
                 <div className="space-y-1">

@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { parsePlayerSizeAndSleeve } from './sizeUtils';
 
 export const generateInvoicePDF = async (order: any) => {
     const doc = new jsPDF();
+    const invoiceCode = String(order.orderId || (typeof order.id === "string" ? order.id : "") || order.id || "ORD-0001");
     
     // Large Faint Watermark Text (Drawn first so it acts as background)
     doc.setFontSize(80);
@@ -56,7 +58,7 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("INVOICE", 195, 20, { align: 'right' });
     doc.setFontSize(10);
     doc.setTextColor(79, 70, 229); // indigo-600
-    doc.text(`${order.id || order.orderId || 'ORD-0001'}`, 195, 26, { align: 'right' });
+    doc.text(invoiceCode, 195, 26, { align: 'right' });
     
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
@@ -249,18 +251,7 @@ export const generateInvoicePDF = async (order: any) => {
     doc.text("RINCIAN DATA PEMAIN", 14, finalY);
 
     const dataPemainBody = memberItems.map((item: any, idx: number) => {
-        let sizeOnly = item.playerSize || "-";
-        let sleeve = "-";
-        // Handle "L (Lengan Pendek)" or "L - Lengan Pendek"
-        if (sizeOnly.includes("(")) {
-            const parts = sizeOnly.split("(");
-            sizeOnly = parts[0].trim();
-            sleeve = parts[1].replace(")", "").trim();
-        } else if (sizeOnly.includes("-")) {
-            const parts = sizeOnly.split("-");
-            sizeOnly = parts[0].trim();
-            sleeve = parts.slice(1).join("-").trim();
-        }
+        const { sizeOnly, sleeve } = parsePlayerSizeAndSleeve(item.playerSize);
         return [
             (idx + 1).toString(),
             item.playerName || "-",
@@ -309,5 +300,5 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setTextColor(200, 200, 200);
     doc.text("Dokumen ini diterbitkan oleh FCSV · order@fcsv.id", 105, 280, { align: 'center' });
     
-    doc.save(`Invoice_${order.id || order.orderId}.pdf`);
+    doc.save(`Invoice_${invoiceCode}.pdf`);
 };
