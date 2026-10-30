@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
     Clock,
     FileText,
@@ -7,14 +7,14 @@ import {
     CheckCircle2,
 } from "lucide-react";
 import { orderService } from "~/services/orderService";
-import { generateInvoicePDF } from "~/lib/pdfHelper";
-import { filterPlayersByQuery } from "~/lib/sizeUtils";
 import { useAuth } from "~/context/AuthContext";
-import { getDisplayStatus } from "./useTrackingPesanan";
+import {
+    getDisplayStatus,
+    useCustomerOrderSharedActions,
+} from "./useTrackingPesanan";
 import type { CustomerTrackedOrder } from "~/types/trackingPesanan";
 import type {
     ProgressStage,
-    ProgressToastMessage,
     UseProgressPesananReturn,
 } from "~/types/progressPesanan";
 
@@ -34,38 +34,20 @@ export function useProgressPesanan(): UseProgressPesananReturn {
     const [orders, setOrders] = useState<CustomerTrackedOrder[]>([]);
     const [selectedOrder, setSelectedOrder] = useState<CustomerTrackedOrder | null>(null);
     const [loading, setLoading] = useState(true);
-    const [memberSearch, setMemberSearch] = useState("");
-
-    const [feedbackInput, setFeedbackInput] = useState("");
-    const [showRevisiForm, setShowRevisiForm] = useState(false);
     const [showLayoutRevisiForm, setShowLayoutRevisiForm] = useState(false);
     const [layoutFeedbackInput, setLayoutFeedbackInput] = useState("");
-    const [submittingAction, setSubmittingAction] = useState(false);
-    const [toast, setToast] = useState<ProgressToastMessage | null>(null);
-    const [isPrinting, setIsPrinting] = useState(false);
 
-    useEffect(() => {
-        setMemberSearch("");
-    }, [selectedOrder?.id]);
-
-    const totalPlayers = (selectedOrder?.details || []).length;
-    const filteredPlayers = useMemo(
-        () => filterPlayersByQuery(selectedOrder?.details || [], memberSearch),
-        [selectedOrder?.details, memberSearch],
-    );
-
-    const handlePrintInvoice = async () => {
-        if (!selectedOrder) return;
-        setIsPrinting(true);
-        try {
-            await generateInvoicePDF(selectedOrder);
-        } catch (err) {
-            console.error("Failed to generate PDF", err);
-            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
-        } finally {
-            setIsPrinting(false);
-        }
+    const syncUpdatedOrder = (updated: CustomerTrackedOrder) => {
+        setSelectedOrder(updated);
+        setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? updated : o)),
+        );
     };
+
+    const {
+        setSubmittingAction,
+        ...sharedActions
+    } = useCustomerOrderSharedActions(selectedOrder, syncUpdatedOrder);
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -83,53 +65,6 @@ export function useProgressPesanan(): UseProgressPesananReturn {
         fetchOrders();
     }, [user?.id]);
 
-    const syncUpdatedOrder = (updated: CustomerTrackedOrder) => {
-        setSelectedOrder(updated);
-        setOrders((prev) =>
-            prev.map((o) => (o.id === updated.id ? updated : o)),
-        );
-    };
-
-    const handleApprove = async () => {
-        if (!selectedOrder) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.approveDesign(selectedOrder.id);
-            syncUpdatedOrder({
-                ...selectedOrder,
-                designStatus: "APPROVED",
-                designFeedback: null,
-            });
-            setToast({ title: "Desain berhasil disetujui!", variant: "success" });
-        } catch (err) {
-            console.error("Gagal menyetujui desain:", err);
-            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleRevisi = async () => {
-        if (!selectedOrder || !feedbackInput.trim()) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.revisiDesign(selectedOrder.id, feedbackInput);
-            syncUpdatedOrder({
-                ...selectedOrder,
-                designStatus: "REVISI",
-                designFeedback: feedbackInput,
-            });
-            setShowRevisiForm(false);
-            setFeedbackInput("");
-            setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
-        } catch (err) {
-            console.error("Gagal mengajukan revisi:", err);
-            setToast({ title: "Gagal mengajukan revisi", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
     const handleApproveLayout = async () => {
         if (!selectedOrder) return;
         setSubmittingAction(true);
@@ -140,10 +75,16 @@ export function useProgressPesanan(): UseProgressPesananReturn {
                 layoutStatus: "APPROVED",
                 layoutFeedback: null,
             });
-            setToast({ title: "Layout berhasil disetujui!", variant: "success" });
+            sharedActions.setToast({
+                title: "Layout berhasil disetujui!",
+                variant: "success",
+            });
         } catch (err) {
             console.error("Gagal menyetujui layout:", err);
-            setToast({ title: "Gagal menyetujui layout", variant: "destructive" });
+            sharedActions.setToast({
+                title: "Gagal menyetujui layout",
+                variant: "destructive",
+            });
         } finally {
             setSubmittingAction(false);
         }
@@ -164,38 +105,14 @@ export function useProgressPesanan(): UseProgressPesananReturn {
             });
             setShowLayoutRevisiForm(false);
             setLayoutFeedbackInput("");
-            setToast({
+            sharedActions.setToast({
                 title: "Revisi layout berhasil diajukan!",
                 variant: "success",
             });
         } catch (err) {
             console.error("Gagal mengajukan revisi layout:", err);
-            setToast({
+            sharedActions.setToast({
                 title: "Gagal mengajukan revisi layout",
-                variant: "destructive",
-            });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleUnapproveDesign = async () => {
-        if (!selectedOrder) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.unapproveDesign(selectedOrder.id);
-            syncUpdatedOrder({
-                ...selectedOrder,
-                designStatus: "SENT",
-            });
-            setToast({
-                title: "Persetujuan desain dibatalkan!",
-                variant: "success",
-            });
-        } catch (err) {
-            console.error("Gagal membatalkan persetujuan desain:", err);
-            setToast({
-                title: "Gagal membatalkan persetujuan desain",
                 variant: "destructive",
             });
         } finally {
@@ -212,13 +129,13 @@ export function useProgressPesanan(): UseProgressPesananReturn {
                 ...selectedOrder,
                 layoutStatus: "SENT",
             });
-            setToast({
+            sharedActions.setToast({
                 title: "Persetujuan layout dibatalkan!",
                 variant: "success",
             });
         } catch (err) {
             console.error("Gagal membatalkan persetujuan layout:", err);
-            setToast({
+            sharedActions.setToast({
                 title: "Gagal membatalkan persetujuan layout",
                 variant: "destructive",
             });
@@ -234,36 +151,20 @@ export function useProgressPesanan(): UseProgressPesananReturn {
     };
 
     return {
+        ...sharedActions,
         user,
         orders,
         selectedOrder,
         setSelectedOrder,
         loading,
-        memberSearch,
-        setMemberSearch,
-        filteredPlayers,
-        totalPlayers,
-        feedbackInput,
-        setFeedbackInput,
-        showRevisiForm,
-        setShowRevisiForm,
         showLayoutRevisiForm,
         setShowLayoutRevisiForm,
         layoutFeedbackInput,
         setLayoutFeedbackInput,
-        submittingAction,
-        toast,
-        setToast,
-        isPrinting,
-        handlePrintInvoice,
-        handleApprove,
-        handleUnapproveDesign,
-        handleRevisi,
         handleApproveLayout,
         handleUnapproveLayout,
         handleRevisiLayout,
         getCurrentStageIndex,
         stages: PROGRESS_STAGES,
-        getDisplayStatus: getProgressDisplayStatus,
     };
 }

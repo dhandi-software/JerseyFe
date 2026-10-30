@@ -16,6 +16,7 @@ import { adminApi } from "~/api/admin";
 import type {
     AlternativeBahan,
     CustomerDesignApprovalCardProps,
+    CustomerOrderSharedActionsReturn,
     CustomerTrackedOrder,
     TrackingStage,
     TrackingToastMessage,
@@ -266,20 +267,138 @@ export function useCustomerSupportBanner(orderId?: string) {
     };
 }
 
+export function useCustomerOrderSharedActions(
+    activeOrder: CustomerTrackedOrder | null,
+    onOrderUpdated: (updated: CustomerTrackedOrder) => void,
+): CustomerOrderSharedActionsReturn {
+    const [memberSearch, setMemberSearch] = useState("");
+    const [feedbackInput, setFeedbackInput] = useState("");
+    const [showRevisiForm, setShowRevisiForm] = useState(false);
+    const [submittingAction, setSubmittingAction] = useState(false);
+    const [toast, setToast] = useState<TrackingToastMessage | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    useEffect(() => {
+        setMemberSearch("");
+    }, [activeOrder?.id]);
+
+    const totalPlayers = (activeOrder?.details || []).length;
+    const filteredPlayers = useMemo(
+        () => filterPlayersByQuery(activeOrder?.details || [], memberSearch),
+        [activeOrder?.details, memberSearch],
+    );
+
+    const handlePrintInvoice = async () => {
+        if (!activeOrder) return;
+        setIsPrinting(true);
+        try {
+            await generateInvoicePDF(activeOrder);
+        } catch (err) {
+            console.error("Failed to generate PDF", err);
+            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
+    const handleApprove = async () => {
+        if (!activeOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.approveDesign(activeOrder.id);
+            onOrderUpdated({
+                ...activeOrder,
+                designStatus: "APPROVED",
+                designFeedback: null,
+            });
+            setToast({ title: "Desain berhasil disetujui!", variant: "success" });
+        } catch (err) {
+            console.error("Gagal menyetujui desain:", err);
+            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    const handleUnapproveDesign = async () => {
+        if (!activeOrder) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.unapproveDesign(activeOrder.id);
+            onOrderUpdated({
+                ...activeOrder,
+                designStatus: "SENT",
+            });
+            setToast({
+                title: "Persetujuan desain dibatalkan!",
+                variant: "success",
+            });
+        } catch (err) {
+            console.error("Gagal membatalkan persetujuan desain:", err);
+            setToast({
+                title: "Gagal membatalkan persetujuan desain",
+                variant: "destructive",
+            });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    const handleRevisi = async () => {
+        if (!activeOrder || !feedbackInput.trim()) return;
+        setSubmittingAction(true);
+        try {
+            await orderService.revisiDesign(activeOrder.id, feedbackInput);
+            onOrderUpdated({
+                ...activeOrder,
+                designStatus: "REVISI",
+                designFeedback: feedbackInput,
+            });
+            setShowRevisiForm(false);
+            setFeedbackInput("");
+            setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
+        } catch (err) {
+            console.error("Gagal mengajukan revisi:", err);
+            setToast({ title: "Gagal mengajukan revisi", variant: "destructive" });
+        } finally {
+            setSubmittingAction(false);
+        }
+    };
+
+    return {
+        memberSearch,
+        setMemberSearch,
+        filteredPlayers,
+        totalPlayers,
+        feedbackInput,
+        setFeedbackInput,
+        showRevisiForm,
+        setShowRevisiForm,
+        submittingAction,
+        setSubmittingAction,
+        toast,
+        setToast,
+        isPrinting,
+        handlePrintInvoice,
+        handleApprove,
+        handleUnapproveDesign,
+        handleRevisi,
+        getDisplayStatus,
+    };
+}
+
 export function useTrackingPesanan(): UseTrackingPesananReturn {
     const [searchParams] = useSearchParams();
     const [orderId, setOrderId] = useState(searchParams.get("id") || "");
     const [order, setOrder] = useState<CustomerTrackedOrder | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [memberSearch, setMemberSearch] = useState("");
-
-    const [feedbackInput, setFeedbackInput] = useState("");
-    const [showRevisiForm, setShowRevisiForm] = useState(false);
-    const [submittingAction, setSubmittingAction] = useState(false);
-    const [toast, setToast] = useState<TrackingToastMessage | null>(null);
     const [bahanList, setBahanList] = useState<AlternativeBahan[]>([]);
-    const [isPrinting, setIsPrinting] = useState(false);
+
+    const {
+        setSubmittingAction: _setSubmittingAction,
+        ...sharedActions
+    } = useCustomerOrderSharedActions(order, (updated) => setOrder(updated));
 
     useEffect(() => {
         const fetchBahan = async () => {
@@ -300,7 +419,7 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
 
         setLoading(true);
         setError("");
-        setMemberSearch("");
+        sharedActions.setMemberSearch("");
         try {
             const data = await orderService.trackOrder(idToSearch.trim());
             setOrder(data);
@@ -322,113 +441,18 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
         }
     }, [searchParams]);
 
-    const totalPlayers = (order?.details || []).length;
-    const filteredPlayers = useMemo(
-        () => filterPlayersByQuery(order?.details || [], memberSearch),
-        [order?.details, memberSearch],
-    );
-
-    const handlePrintInvoice = async () => {
-        if (!order) return;
-        setIsPrinting(true);
-        try {
-            await generateInvoicePDF(order);
-        } catch (err) {
-            console.error("Failed to generate PDF", err);
-            setToast({ title: "Gagal mencetak invoice", variant: "destructive" });
-        } finally {
-            setIsPrinting(false);
-        }
-    };
-
-    const handleApprove = async () => {
-        if (!order) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.approveDesign(order.id);
-            setOrder((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          designStatus: "APPROVED",
-                          designFeedback: null,
-                      }
-                    : null,
-            );
-            setToast({ title: "Desain berhasil disetujui!", variant: "success" });
-        } catch (err) {
-            console.error("Gagal menyetujui desain:", err);
-            setToast({ title: "Gagal menyetujui desain", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleUnapproveDesign = async () => {
-        if (!order) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.unapproveDesign(order.id);
-            setOrder((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          designStatus: "SENT",
-                      }
-                    : null,
-            );
-            setToast({
-                title: "Persetujuan desain dibatalkan!",
-                variant: "success",
-            });
-        } catch (err) {
-            console.error("Gagal membatalkan persetujuan desain:", err);
-            setToast({
-                title: "Gagal membatalkan persetujuan desain",
-                variant: "destructive",
-            });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
-    const handleRevisi = async () => {
-        if (!order || !feedbackInput.trim()) return;
-        setSubmittingAction(true);
-        try {
-            await orderService.revisiDesign(order.id, feedbackInput);
-            setOrder((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          designStatus: "REVISI",
-                          designFeedback: feedbackInput,
-                      }
-                    : null,
-            );
-            setShowRevisiForm(false);
-            setFeedbackInput("");
-            setToast({ title: "Revisi berhasil diajukan!", variant: "success" });
-        } catch (err) {
-            console.error("Gagal mengajukan revisi:", err);
-            setToast({ title: "Gagal mengajukan revisi", variant: "destructive" });
-        } finally {
-            setSubmittingAction(false);
-        }
-    };
-
     const handleSelectAlternative = async (bahanId: number | string) => {
         if (!order) return;
         try {
             await orderService.selectAlternative(order.id, Number(bahanId));
-            setToast({
+            sharedActions.setToast({
                 title: "Bahan berhasil diganti ke alternatif!",
                 variant: "success",
             });
             executeSearch(order.orderId || String(order.id));
         } catch (err) {
             console.error("Gagal memilih bahan alternatif:", err);
-            setToast({
+            sharedActions.setToast({
                 title: "Gagal mengganti bahan",
                 variant: "destructive",
             });
@@ -446,34 +470,18 @@ export function useTrackingPesanan(): UseTrackingPesananReturn {
     };
 
     return {
+        ...sharedActions,
         orderId,
         setOrderId,
         order,
         setOrder,
         loading,
         error,
-        memberSearch,
-        setMemberSearch,
-        filteredPlayers,
-        totalPlayers,
-        feedbackInput,
-        setFeedbackInput,
-        showRevisiForm,
-        setShowRevisiForm,
-        submittingAction,
-        toast,
-        setToast,
         bahanList,
-        isPrinting,
-        handlePrintInvoice,
         executeSearch,
-        handleApprove,
-        handleUnapproveDesign,
-        handleRevisi,
         handleSelectAlternative,
         handleSearch,
         getCurrentStageIndex,
         stages: TRACKING_STAGES,
-        getDisplayStatus,
     };
 }

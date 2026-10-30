@@ -66,13 +66,7 @@ export interface TrackingToastMessage {
     variant: "success" | "destructive";
 }
 
-export interface UseTrackingPesananReturn {
-    orderId: string;
-    setOrderId: React.Dispatch<React.SetStateAction<string>>;
-    order: CustomerTrackedOrder | null;
-    setOrder: React.Dispatch<React.SetStateAction<CustomerTrackedOrder | null>>;
-    loading: boolean;
-    error: string;
+export interface CustomerOrderSharedActionsReturn {
     memberSearch: string;
     setMemberSearch: React.Dispatch<React.SetStateAction<string>>;
     filteredPlayers: CustomerOrderPlayerDetail[];
@@ -82,20 +76,31 @@ export interface UseTrackingPesananReturn {
     showRevisiForm: boolean;
     setShowRevisiForm: React.Dispatch<React.SetStateAction<boolean>>;
     submittingAction: boolean;
+    setSubmittingAction: React.Dispatch<React.SetStateAction<boolean>>;
     toast: TrackingToastMessage | null;
     setToast: React.Dispatch<React.SetStateAction<TrackingToastMessage | null>>;
-    bahanList: AlternativeBahan[];
     isPrinting: boolean;
     handlePrintInvoice: () => Promise<void>;
-    executeSearch: (idToSearch: string) => Promise<void>;
     handleApprove: () => Promise<void>;
     handleUnapproveDesign: () => Promise<void>;
     handleRevisi: () => Promise<void>;
+    getDisplayStatus: (status: string, isWorking?: boolean) => string;
+}
+
+export interface UseTrackingPesananReturn
+    extends Omit<CustomerOrderSharedActionsReturn, "setSubmittingAction"> {
+    orderId: string;
+    setOrderId: React.Dispatch<React.SetStateAction<string>>;
+    order: CustomerTrackedOrder | null;
+    setOrder: React.Dispatch<React.SetStateAction<CustomerTrackedOrder | null>>;
+    loading: boolean;
+    error: string;
+    bahanList: AlternativeBahan[];
+    executeSearch: (idToSearch: string) => Promise<void>;
     handleSelectAlternative: (bahanId: number | string) => Promise<void>;
     handleSearch: (e: React.FormEvent) => Promise<void>;
     getCurrentStageIndex: () => number;
     stages: TrackingStage[];
-    getDisplayStatus: (status: string, isWorking?: boolean) => string;
 }
 
 export interface CustomerOrderStepperProps {
