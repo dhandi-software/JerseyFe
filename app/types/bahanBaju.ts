@@ -1,5 +1,6 @@
 export interface BahanBajuItem {
     id: number;
+    uuid?: string;
     nama: string;
     deskripsi?: string;
     kuantitasKg: number;

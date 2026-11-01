@@ -1,4 +1,5 @@
 import { client, UPLOADS_URL } from "./client";
+import { generateBahanUuid } from "~/lib/utils";
 import type { ProductItem } from "~/types/product";
 
 function getJerseyImageByName(nama: string = "", index: number = 0): string {
@@ -27,7 +28,6 @@ function getJerseyImageByName(nama: string = "", index: number = 0): string {
   return jerseyCycle[index % jerseyCycle.length];
 }
 
-
 function getCategoryByName(nama: string = ""): string {
   const lower = nama.toLowerCase();
   if (lower.includes("dri-fit") || lower.includes("drifit")) {
@@ -45,6 +45,10 @@ function getCategoryByName(nama: string = ""): string {
   return "Koleksi Jersey Custom";
 }
 
+export function isSeededDummyBahan(_bahan: any): boolean {
+  return false;
+}
+
 export function formatBahanToProduct(bahan: any, index: number = 0): ProductItem {
   const rawPrice = Number(bahan.harga) || 0;
   const image = bahan.imageUrl
@@ -52,143 +56,59 @@ export function formatBahanToProduct(bahan: any, index: number = 0): ProductItem
     : getJerseyImageByName(bahan.nama, index);
 
   const displayTitle = bahan.nama ? bahan.nama.trim() : "Bahan Baju";
+  const uuid = generateBahanUuid(bahan.id, bahan.uuid);
 
   return {
     id: bahan.id,
-    sku: `BAHAN-${bahan.id}`,
+    uuid,
+    sku: `BAHAN-${uuid.slice(0, 8).toUpperCase()}`,
     title: displayTitle,
     category: getCategoryByName(bahan.nama),
     price: rawPrice,
     discount_price: undefined,
     stock: Number(bahan.kuantitasKg) || 0,
+    rasioKonversi: Number(bahan.rasioKonversi) || 2.5,
+    status: bahan.status || "Tersedia",
     brand: "FCSV Authentic",
     is_featured: true,
-    is_active: bahan.status !== "Habis",
+    is_active: bahan.status !== "Habis" && Number(bahan.kuantitasKg) > 0,
     is_best_deal: false,
     image,
     short_description: bahan.deskripsi || "",
     description: bahan.deskripsi || "",
+    createdAt: bahan.createdAt,
   };
 }
 
-export const FALLBACK_PRODUCTS: ProductItem[] = [
-  {
-    id: 1,
-    sku: "BAHAN-1",
-    title: "Dryfit Milano Premium",
-    category: "Jersey Dri-Fit & Futsal",
-    price: 150000,
-    stock: 50,
-    brand: "FCSV Authentic",
-    is_featured: true,
-    is_active: true,
-    is_best_deal: false,
-    image: "/images/Kain-Jersey-Serena.webp",
-    short_description: "Kain berserat zig-zag halus, sangat menyerap keringat dan adem untuk jersey olahraga.",
-    description: "Kain berserat zig-zag halus, sangat menyerap keringat dan adem untuk jersey olahraga.",
-  },
-  {
-    id: 2,
-    sku: "BAHAN-2",
-    title: "Dryfit Brazil High Quality",
-    category: "Jersey Sepak Bola Pro",
-    price: 165000,
-    stock: 35,
-    brand: "FCSV Authentic",
-    is_featured: true,
-    is_active: true,
-    is_best_deal: false,
-    image: "/images/Kain-Jersey-Paragon.webp",
-    short_description: "Tekstur bintik rapat, elastis, dan lembut, pilihan terbaik untuk jersey sepak bola & futsal.",
-    description: "Tekstur bintik rapat, elastis, dan lembut, pilihan terbaik untuk jersey sepak bola & futsal.",
-  },
-  {
-    id: 3,
-    sku: "BAHAN-3",
-    title: "Dryfit Mesh Bintik",
-    category: "Jersey Basket & Running",
-    price: 145000,
-    stock: 25,
-    brand: "FCSV Authentic",
-    is_featured: true,
-    is_active: true,
-    is_best_deal: false,
-    image: "/images/Kain-Jersey-Twist.webp",
-    short_description: "Poripori sirkulasi udara optimal, sangat ringan dan cepat kering.",
-    description: "Poripori sirkulasi udara optimal, sangat ringan dan cepat kering.",
-  },
-  {
-    id: 4,
-    sku: "BAHAN-4",
-    title: "Jersey Serena Soft Touch",
-    category: "Jersey Setelan Sublimasi",
-    price: 135000,
-    stock: 40,
-    brand: "FCSV Authentic",
-    is_featured: true,
-    is_active: true,
-    is_best_deal: false,
-    image: "/images/Kain-Jersey-Spandek-Korea.webp",
-    short_description: "Permukaan rata, licin, dan sangat cocok untuk cetak sublimasi warna tajam.",
-    description: "Permukaan rata, licin, dan sangat cocok untuk cetak sublimasi warna tajam.",
-  },
-  {
-    id: 5,
-    sku: "BAHAN-5",
-    title: "Dryfit Waffle Tech",
-    category: "Koleksi Jersey Custom",
-    price: 155000,
-    stock: 20,
-    brand: "FCSV Authentic",
-    is_featured: true,
-    is_active: true,
-    is_best_deal: false,
-    image: "/images/Kain-Jersey-Crepe.webp",
-    short_description: "Pola kotak berongga mikro dengan daya serap maksimal untuk aktivitas intensitas tinggi.",
-    description: "Pola kotak berongga mikro dengan daya serap maksimal untuk aktivitas intensitas tinggi.",
-  },
-  {
-    id: 6,
-    sku: "BAHAN-6",
-    title: "Dryfit Puma Sportswear",
-    category: "Jersey Dri-Fit & Futsal",
-    price: 140000,
-    stock: 30,
-    brand: "FCSV Authentic",
-    is_featured: true,
-    is_active: true,
-    is_best_deal: false,
-    image: "/images/Kain-Jersey-Rayon.webp",
-    short_description: "Kain jersey lentur dengan ketahanan gesekan tinggi untuk seragam tim.",
-    description: "Kain jersey lentur dengan ketahanan gesekan tinggi untuk seragam tim.",
-  }
-];
+export const FALLBACK_PRODUCTS: ProductItem[] = [];
 
 export const productApi = {
   async getAll(params?: { category?: string; q?: string; featured?: boolean; active?: boolean }) {
-    try {
-      const res = await client.get<{ status: string; data: any[] }>("/bahan-baju");
-      if (res.data && res.data.status === "success" && Array.isArray(res.data.data) && res.data.data.length > 0) {
-        const mapped: ProductItem[] = res.data.data.map((bahan, idx) => formatBahanToProduct(bahan, idx));
-        return {
-          total: mapped.length,
-          data: mapped,
-        };
-      }
-    } catch (err) {
-      console.warn("Backend bahan-baju tidak terhubung / timeout, menggunakan data katalog default FCSV:", err);
+    const res = await client.get<{ status: string; data: any[] }>("/bahan-baju");
+    if (res.data && res.data.status === "success" && Array.isArray(res.data.data)) {
+      const adminItems = res.data.data.filter((bahan) => !isSeededDummyBahan(bahan));
+      const mapped: ProductItem[] = adminItems.map((bahan, idx) => formatBahanToProduct(bahan, idx));
+      return {
+        total: mapped.length,
+        data: mapped,
+      };
     }
 
     return {
-      total: FALLBACK_PRODUCTS.length,
-      data: FALLBACK_PRODUCTS,
+      total: 0,
+      data: [],
     };
   },
 
   async getById(id: string | number): Promise<ProductItem | null> {
     const all = await this.getAll();
-    const found = all.data.find((p) => String(p.id) === String(id) || p.sku === id);
+    const target = String(id).trim();
+    const found = all.data.find(
+      (p) =>
+        p.uuid === target ||
+        String(p.id) === target ||
+        p.sku === target
+    );
     return found || null;
   },
 };
-

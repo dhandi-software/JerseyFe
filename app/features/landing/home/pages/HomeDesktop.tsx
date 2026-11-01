@@ -1,4 +1,10 @@
-import { Search, RotateCcw, AlertCircle, PackageSearch } from "lucide-react";
+import {
+    Search,
+    RotateCcw,
+    AlertCircle,
+    PackageSearch,
+    PackageOpen,
+} from "lucide-react";
 import { useHomeCatalog } from "~/hooks";
 import {
     HomeHeroBannerSection,
@@ -83,19 +89,20 @@ export function HomeDesktop() {
                             <h2 className="text-2xl font-extrabold text-slate-950 tracking-tight">
                                 Total Katalog Produk
                             </h2>
-                            <span className="text-2xl font-bold text-slate-400">
+                            <span className="text-2xl font-bold text-slate-600">
                                 {allCatalogItems.length}
                             </span>
                         </div>
 
                         <div className="relative w-full sm:w-80">
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <input
                                 type="text"
+                                aria-label="Cari bahan atau model jersey"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Cari bahan atau model jersey..."
-                                className="w-full h-11 pl-10 pr-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm font-medium text-slate-800 focus:outline-none focus:border-[#5B1D99]"
+                                className="w-full min-h-[44px] pl-10 pr-4 rounded-2xl bg-white border border-slate-300 text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99] focus-visible:border-[#5B1D99]"
                             />
                         </div>
                     </div>
@@ -132,7 +139,7 @@ export function HomeDesktop() {
                         <div className="flex-1 w-full min-w-0">
                             {loading ? (
                                 <div className="space-y-3">
-                                    <p className="text-xs font-medium text-slate-500">
+                                    <p className="text-xs font-medium text-slate-600">
                                         Memuat daftar produk katalog yang diunggah admin...
                                     </p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -163,7 +170,7 @@ export function HomeDesktop() {
                                 </div>
                             ) : error ? (
                                 <div className="bg-white border border-rose-200 rounded-3xl p-10 text-center space-y-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+                                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center mx-auto">
                                         <AlertCircle className="w-6 h-6" />
                                     </div>
                                     <div className="space-y-1">
@@ -177,11 +184,25 @@ export function HomeDesktop() {
                                     <button
                                         type="button"
                                         onClick={fetchProducts}
-                                        className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#240B36] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+                                        className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#240B36] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99]"
                                     >
                                         <RotateCcw className="w-4 h-4" />
                                         <span>Muat Ulang Katalog</span>
                                     </button>
+                                </div>
+                            ) : allCatalogItems.length === 0 ? (
+                                <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center space-y-4">
+                                    <div className="w-14 h-14 rounded-2xl bg-purple-50 text-[#5B1D99] flex items-center justify-center mx-auto">
+                                        <PackageOpen className="w-7 h-7" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <h3 className="text-lg font-extrabold text-slate-900">
+                                            Belum Ada Produk Katalog
+                                        </h3>
+                                        <p className="text-xs sm:text-sm text-slate-600 max-w-[480px] mx-auto leading-relaxed">
+                                            Saat ini belum ada produk atau bahan jersey yang dibuat oleh admin. Produk akan tampil secara otomatis setelah admin menambahkannya melalui panel manajemen bahan.
+                                        </p>
+                                    </div>
                                 </div>
                             ) : filteredCatalogItems.length === 0 ? (
                                 <div className="bg-white border border-slate-200/80 rounded-3xl p-10 text-center space-y-4">
@@ -193,13 +214,13 @@ export function HomeDesktop() {
                                             Tidak Ada Produk yang Sesuai Filter
                                         </h3>
                                         <p className="text-xs text-slate-600 max-w-[448px] mx-auto">
-                                            Belum ada produk katalog yang cocok dengan kombinasi pencarian atau filter harga yang dipilih.
+                                            Belum ada produk katalog yang cocok dengan kombinasi pencarian atau filter kategori yang dipilih.
                                         </p>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={handleResetFilters}
-                                        className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#240B36] hover:bg-[#3B1258] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors"
+                                        className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#240B36] hover:bg-[#3B1258] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99]"
                                     >
                                         <RotateCcw className="w-4 h-4" />
                                         <span>Reset Semua Filter</span>

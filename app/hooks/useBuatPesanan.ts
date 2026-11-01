@@ -43,7 +43,7 @@ export function useBuatPesanan() {
     const [designNote, setDesignNote] = useState("");
     const [designReferenceFile, setDesignReferenceFile] = useState<File | null>(null);
     const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
-    const [paymentType, setPaymentType] = useState<"FULL" | "DP">("FULL");
+    const [paymentType, setPaymentType] = useState<"FULL" | "DP">("DP");
     const [dpAmountInput, setDpAmountInput] = useState<number>(0);
     const [pdfFile, setPdfFile] = useState<File | null>(null);
 
@@ -252,7 +252,7 @@ export function useBuatPesanan() {
     }, 0);
 
     const effectivePaidAmount = paymentType === "DP"
-        ? (dpAmountInput > 0 ? Math.min(dpAmountInput, totalCalculated) : Math.round(totalCalculated * 0.5))
+        ? Math.min(Math.max(0, dpAmountInput), totalCalculated)
         : totalCalculated;
 
     const effectiveRemainingAmount = Math.max(0, totalCalculated - effectivePaidAmount);
@@ -536,7 +536,9 @@ export function useBuatPesanan() {
         setUploadProgress(10);
         try {
             let designUrl = existingOrder?.designUrl || "";
-            const paymentUrl = "MENUNGGU_PEMBAYARAN_ADMIN";
+            const paymentUrl = paymentType === "FULL"
+                ? "LUNAS_ADMIN"
+                : (effectivePaidAmount > 0 ? "DP_TERKONFIRMASI_ADMIN" : "MENUNGGU_PEMBAYARAN_ADMIN");
 
             if (designReferenceFile) {
                 setUploadProgress(20);

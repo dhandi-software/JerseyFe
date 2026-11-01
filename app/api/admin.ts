@@ -1,4 +1,5 @@
 import { client } from "./client";
+import { generateBahanUuid } from "~/lib/utils";
 
 // Base response wrapper type
 interface ApiResponse<T> {
@@ -71,7 +72,6 @@ export const adminApi = {
         return response.data;
     },
 
-
     /**
      * Get user by ID
      * GET /admin/users/:id
@@ -113,6 +113,12 @@ export const adminApi = {
      */
     getBahanBaju: async (): Promise<ApiResponse<any[]>> => {
         const response = await client.get<ApiResponse<any[]>>("/bahan-baju");
+        if (response.data && Array.isArray(response.data.data)) {
+            response.data.data = response.data.data.map((item: any) => ({
+                ...item,
+                uuid: generateBahanUuid(item.id, item.uuid),
+            }));
+        }
         return response.data;
     },
     getBahanBajuHistory: async (): Promise<ApiResponse<any[]>> => {
@@ -123,11 +129,11 @@ export const adminApi = {
         const response = await client.post<ApiResponse<any>>("/bahan-baju", data);
         return response.data;
     },
-    updateBahanBaju: async (id: number, data: FormData): Promise<ApiResponse<any>> => {
+    updateBahanBaju: async (id: number | string, data: FormData): Promise<ApiResponse<any>> => {
         const response = await client.put<ApiResponse<any>>(`/bahan-baju/${id}`, data);
         return response.data;
     },
-    deleteBahanBaju: async (id: number, actor?: string): Promise<ApiResponse<any>> => {
+    deleteBahanBaju: async (id: number | string, actor?: string): Promise<ApiResponse<any>> => {
         const url = actor ? `/bahan-baju/${id}?actor=${encodeURIComponent(actor)}` : `/bahan-baju/${id}`;
         const response = await client.delete<ApiResponse<any>>(url);
         return response.data;

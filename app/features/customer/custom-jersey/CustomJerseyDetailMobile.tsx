@@ -140,7 +140,7 @@ export function CustomJerseyDetailMobile() {
                         </div>
                         <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-[0.9] italic uppercase">{currentBahan.nama}</h1>
                         <div className="flex items-baseline gap-2 pt-2">
-                            <span className="text-3xl font-black text-slate-900">Rp 150.000</span>
+                            <span className="text-3xl font-black text-slate-900">{formatRupiah(currentBahan.harga || 150000)}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ Custom Order</span>
                         </div>
                     </div>

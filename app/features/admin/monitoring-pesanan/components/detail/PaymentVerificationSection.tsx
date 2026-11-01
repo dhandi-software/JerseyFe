@@ -77,6 +77,20 @@ export function PaymentVerificationSection({
         await handleUploadProof(e, slot);
     };
 
+    const handleQuickSettle = async () => {
+        if (!onUpdatePayment || totalOrderAmount <= 0) return;
+        setIsSaving(true);
+        try {
+            await onUpdatePayment(order.rawId, {
+                paymentType: order.paymentType || "DP",
+                paidAmount: totalOrderAmount,
+                remainingAmount: 0
+            });
+            setIsEditing(false);
+        } finally {
+            setIsSaving(false);
+        }
+    };
     const activeEditSlot: "DP" | "FULL" = editType === "DP" && editPaid < totalOrderAmount ? "DP" : "FULL";
     const activeEditHasProof = activeEditSlot === "DP" ? Boolean(resolvedDpUrl) : Boolean(resolvedFullUrl);
 
@@ -141,14 +155,27 @@ export function PaymentVerificationSection({
                 </h3>
 
                 {onUpdatePayment && !isEditing && (
-                    <button
-                        type="button"
-                        onClick={() => setIsEditing(true)}
-                        className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#D25026]/40 text-[11px] font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
-                    >
-                        <Edit3 size={13} className="text-[#D25026]" />
-                        <span>Kelola Bayar</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {currentRemaining > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleQuickSettle}
+                                disabled={isSaving}
+                                className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/40 text-[11px] font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                            >
+                                {isSaving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+                                <span>Konfirmasi Pelunasan</span>
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => setIsEditing(true)}
+                            className="inline-flex items-center gap-1.5 min-h-11 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#D25026]/40 text-[11px] font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
+                        >
+                            <Edit3 size={13} className="text-[#D25026]" />
+                            <span>Kelola Bayar</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
@@ -250,7 +277,7 @@ export function PaymentVerificationSection({
                                 onClick={() => {
                                     setEditType("DP");
                                     if (editPaid >= totalOrderAmount) {
-                                        setEditPaid(Math.round(totalOrderAmount * 0.5));
+                                        setEditPaid(currentPaid < totalOrderAmount ? currentPaid : 0);
                                     }
                                 }}
                                 className={cn(

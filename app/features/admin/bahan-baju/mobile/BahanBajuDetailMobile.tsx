@@ -53,7 +53,7 @@ export function BahanBajuDetailMobile() {
                 </div>
                 <Button 
                     variant="ghost" 
-                    onClick={() => navigate(`/admin/bahan-baju/edit/${currentBahan.id}`)}
+                    onClick={() => navigate(`/admin/bahan-baju/edit/${currentBahan.uuid || currentBahan.id}`)}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 active:scale-90"
                 >
                     <Edit3 className="w-4 h-4 text-slate-900" />
@@ -189,7 +189,7 @@ export function BahanBajuDetailMobile() {
             {/* Bottom Actions */}
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-30">
                 <Button 
-                    onClick={() => navigate(`/admin/bahan-baju/edit/${currentBahan.id}`)}
+                    onClick={() => navigate(`/admin/bahan-baju/edit/${currentBahan.uuid || currentBahan.id}`)}
                     className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-xl active:scale-95"
                 >
                     Edit Spesifikasi

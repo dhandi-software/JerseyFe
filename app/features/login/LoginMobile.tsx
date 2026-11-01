@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { Eye, EyeOff, ShieldCheck, Mail, Lock } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 export function LoginMobile() {
+    const location = useLocation();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
@@ -132,7 +133,7 @@ export function LoginMobile() {
                         </Button>
 
                         <div className="text-center pt-4 px-1">
-                            <Link to="/register" className="text-[10px] font-black text-indigo-600 uppercase italic">
+                            <Link to="/register" state={location.state} className="text-[10px] font-black text-indigo-600 uppercase italic">
                                 Belum punya akun? Daftar di sini
                             </Link>
                         </div>

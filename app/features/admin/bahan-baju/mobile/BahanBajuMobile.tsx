@@ -132,16 +132,16 @@ export function BahanBajuMobile() {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2 pt-3 border-t border-slate-50 mt-1">
-                                                    <Button 
+                                                        <Button 
                                                         variant="outline" 
-                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.id}`)}
+                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.uuid || item.id}`)}
                                                         className="flex-1 h-10 rounded-xl border-slate-100 text-slate-600 bg-slate-50 hover:bg-slate-100 text-[10px] font-bold uppercase tracking-widest"
                                                     >
                                                         <Eye className="w-3.5 h-3.5 mr-1.5" /> Detail
                                                     </Button>
                                                     <Button 
                                                         variant="outline" 
-                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.id}`)}
+                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.uuid || item.id}`)}
                                                         className="flex-1 h-10 rounded-xl border-orange-100 text-orange-600 bg-orange-50/50 hover:bg-orange-100 text-[10px] font-bold uppercase tracking-widest"
                                                     >
                                                         <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
@@ -228,16 +228,16 @@ export function BahanBajuMobile() {
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2 pt-3 border-t border-slate-50 mt-1">
-                                                    <Button 
+                                                        <Button 
                                                         variant="outline" 
-                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.id}`)}
+                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.uuid || item.id}`)}
                                                         className="flex-1 h-10 rounded-xl border-slate-100 text-slate-600 bg-slate-50 hover:bg-slate-100 text-[10px] font-bold uppercase tracking-widest"
                                                     >
                                                         <Eye className="w-3.5 h-3.5 mr-1.5" /> Detail
                                                     </Button>
                                                     <Button 
                                                         variant="outline" 
-                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.id}`)}
+                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.uuid || item.id}`)}
                                                         className="flex-1 h-10 rounded-xl border-orange-100 text-orange-600 bg-orange-50/50 hover:bg-orange-100 text-[10px] font-bold uppercase tracking-widest"
                                                     >
                                                         <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit

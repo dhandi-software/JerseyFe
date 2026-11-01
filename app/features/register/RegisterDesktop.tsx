@@ -1,5 +1,5 @@
 import { Button } from "~/components/ui/button";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Eye, EyeOff, ShieldCheck, Mail, Lock, User } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "~/lib/utils";
@@ -7,6 +7,7 @@ import { useRegister } from "./UseRegister";
 import { Toast } from "~/components/ui/toast";
 
 export function RegisterDesktop() {
+    const location = useLocation();
     const {
         formData,
         showPassword,
@@ -131,7 +132,7 @@ export function RegisterDesktop() {
                     </Button>
 
                     <div className="text-center pt-2">
-                        <Link to="/login" className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
+                        <Link to="/login" state={location.state} className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
                             Sudah punya akun? Masuk di sini
                         </Link>
                     </div>

@@ -32,6 +32,12 @@ export interface ParsedPaymentProofUrls {
     isAwaitingAdmin: boolean;
 }
 
+const ADMIN_PAYMENT_MARKERS = new Set([
+    "MENUNGGU_PEMBAYARAN_ADMIN",
+    "DP_TERKONFIRMASI_ADMIN",
+    "LUNAS_ADMIN"
+]);
+
 export const parsePaymentProofUrls = (
     rawUrl?: string | null,
     paymentType?: string
@@ -40,14 +46,14 @@ export const parsePaymentProofUrls = (
         return { dpProofUrl: "", fullProofUrl: "", isAwaitingAdmin: false };
     }
     const trimmed = rawUrl.trim();
-    if (trimmed === "MENUNGGU_PEMBAYARAN_ADMIN") {
+    if (ADMIN_PAYMENT_MARKERS.has(trimmed)) {
         return { dpProofUrl: "", fullProofUrl: "", isAwaitingAdmin: true };
     }
     if (trimmed.startsWith("{")) {
         try {
             const parsed = JSON.parse(trimmed);
-            const dp = typeof parsed?.dp === "string" && parsed.dp !== "MENUNGGU_PEMBAYARAN_ADMIN" ? parsed.dp : "";
-            const full = typeof parsed?.full === "string" && parsed.full !== "MENUNGGU_PEMBAYARAN_ADMIN" ? parsed.full : "";
+            const dp = typeof parsed?.dp === "string" && !ADMIN_PAYMENT_MARKERS.has(parsed.dp) ? parsed.dp : "";
+            const full = typeof parsed?.full === "string" && !ADMIN_PAYMENT_MARKERS.has(parsed.full) ? parsed.full : "";
             return { dpProofUrl: dp, fullProofUrl: full, isAwaitingAdmin: false };
         } catch {
             // Fall through to plain URL handling if JSON is malformed.
@@ -101,61 +107,82 @@ export const getStatusStyle = (status: string) => {
 };
 
 export const formatOrderData = (data: any[]): MonitoringOrder[] => {
-    return data.map((o: any) => ({
-        id: o.orderId,
-        rawId: o.id,
-        customer: o.customerName,
-        designer: o.designerName || "Belum Ada",
-        product: o.details?.length > 0 ? o.details[0].productTitle : "Custom Jersey",
-        productId: o.details?.length > 0 ? o.details[0].productId : null,
-        recommendedBahanIds: o.recommendedBahanIds || [],
-        qty: o.details?.length || 0,
-        status: o.status,
-        queueNumber: o.queueNumber,
-        isWorking: o.isWorking,
-        date: new Date(o.createdAt).toISOString().split('T')[0],
-        playerInfo: sortPlayersBySize((o.details || []).map((d: any) => ({
-            name: d.playerName || "-",
-            number: d.playerNumber || "-",
-            size: d.playerSize || "-"
-        }))),
-        designNote: o.designNote,
-        adminNote: o.adminNote,
-        designUrl: o.designUrl,
-        videoUrl: o.videoUrl,
-        paymentProofUrl: o.paymentUrl,
-        paymentType: o.paymentType || "FULL",
-        paidAmount: o.paidAmount !== undefined ? o.paidAmount : (o.paymentType === "DP" ? 0 : (o.totalAmount || 0)),
-        remainingAmount: o.remainingAmount !== undefined ? o.remainingAmount : (o.paymentType === "DP" ? (o.totalAmount || 0) : 0),
-        isAdminOrder: !!o.isAdminOrder,
-        totalAmount: o.totalAmount,
-        shippingMethod: o.shippingMethod,
-        shippingAddress: o.shippingAddress,
-        mockupUrl: o.mockupUrl,
-        designStatus: o.designStatus,
-        designFeedback: o.designFeedback,
-        layoutUrl: o.layoutUrl,
-        layoutStatus: o.layoutStatus,
-        layoutFeedback: o.layoutFeedback,
-        printUrl: o.printUrl,
-        finishingUrl: o.finishingUrl,
-        details: (o.details || []).map((d: any) => ({
-            id: d.id,
-            productId: d.productId,
-            productTitle: d.productTitle,
-            playerName: d.playerName,
-            playerNumber: d.playerNumber,
-            playerSize: d.playerSize,
-            statusBaju: Boolean(d.statusBaju),
-            statusCelana: Boolean(d.statusCelana)
-        })),
-        dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
-            weekday: 'long', 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        })
-    }));
+    return data.map((o: any) => {
+        const total = Number(o.totalAmount) || 0;
+        const rawPaid = Number(o.paidAmount) || 0;
+        const isUnverifiedAdmin = o.paymentUrl === "MENUNGGU_PEMBAYARAN_ADMIN";
+
+        let normalizedType: "DP" | "FULL" = o.paymentType === "DP" ? "DP" : "FULL";
+        let normalizedPaid = Math.min(total, Math.max(0, rawPaid));
+        let normalizedRemaining = Math.max(0, total - normalizedPaid);
+
+        if (o.status === "SELESAI") {
+            normalizedPaid = total;
+            normalizedRemaining = 0;
+        } else if (isUnverifiedAdmin) {
+            normalizedType = "DP";
+            normalizedPaid = 0;
+            normalizedRemaining = total;
+        } else if (normalizedRemaining > 0) {
+            normalizedType = "DP";
+        }
+
+        return {
+            id: o.orderId,
+            rawId: o.id,
+            customer: o.customerName,
+            designer: o.designerName || "Belum Ada",
+            product: o.details?.length > 0 ? o.details[0].productTitle : "Custom Jersey",
+            productId: o.details?.length > 0 ? o.details[0].productId : null,
+            recommendedBahanIds: o.recommendedBahanIds || [],
+            qty: o.details?.length || 0,
+            status: o.status,
+            queueNumber: o.queueNumber,
+            isWorking: o.isWorking,
+            date: new Date(o.createdAt).toISOString().split('T')[0],
+            playerInfo: sortPlayersBySize((o.details || []).map((d: any) => ({
+                name: d.playerName || "-",
+                number: d.playerNumber || "-",
+                size: d.playerSize || "-"
+            }))),
+            designNote: o.designNote,
+            adminNote: o.adminNote,
+            designUrl: o.designUrl,
+            videoUrl: o.videoUrl,
+            paymentProofUrl: o.paymentUrl,
+            paymentType: normalizedType,
+            paidAmount: normalizedPaid,
+            remainingAmount: normalizedRemaining,
+            isAdminOrder: !!o.isAdminOrder,
+            totalAmount: total,
+            shippingMethod: o.shippingMethod,
+            shippingAddress: o.shippingAddress,
+            mockupUrl: o.mockupUrl,
+            designStatus: o.designStatus,
+            designFeedback: o.designFeedback,
+            layoutUrl: o.layoutUrl,
+            layoutStatus: o.layoutStatus,
+            layoutFeedback: o.layoutFeedback,
+            printUrl: o.printUrl,
+            finishingUrl: o.finishingUrl,
+            details: (o.details || []).map((d: any) => ({
+                id: d.id,
+                productId: d.productId,
+                productTitle: d.productTitle,
+                playerName: d.playerName,
+                playerNumber: d.playerNumber,
+                playerSize: d.playerSize,
+                statusBaju: Boolean(d.statusBaju),
+                statusCelana: Boolean(d.statusCelana)
+            })),
+            dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            })
+        };
+    });
 };

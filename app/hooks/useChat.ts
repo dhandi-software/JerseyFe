@@ -31,7 +31,11 @@ export function useChat() {
     if (!user) return;
 
     // Prevent multiple connections if user didn't change (strict mode double mount safety handled by cleanup)
-    const newSocket = io(SOCKET_URL);
+    const token = typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
+    const newSocket = io(SOCKET_URL, {
+      withCredentials: true,
+      auth: token ? { token } : undefined,
+    });
     setSocket(newSocket);
 
     newSocket.emit("join", user.id);

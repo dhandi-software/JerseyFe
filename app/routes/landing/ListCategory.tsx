@@ -5,15 +5,18 @@ import { ListCategoryDesktop, ListCategoryMobile } from "~/features/landing/List
 export async function loader({ context }: { context?: any }) {
     const i18next = getInstance(context);
     return {
-        title: "List Category",
-        description: "Sistem Point of Sale",
+        title: "List Category - FCSV Apparel",
+        description: "Katalog Bahan & Koleksi Jersey Resmi FCSV Apparel",
     };
 }
 
 export function meta() {
     return [
-        { title: "List Category" },
-        { name: "description", content: "Sistem Point of Sale" },
+        { title: "List Category - FCSV Apparel" },
+        {
+            name: "description",
+            content: "Katalog Bahan & Koleksi Jersey Resmi FCSV Apparel",
+        },
     ];
 }
 

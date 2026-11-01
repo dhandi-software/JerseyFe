@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { adminApi } from "~/api/admin";
+import { orderService } from "~/services/orderService";
+import { computeDashboardStatsFromOrders } from "~/lib/omsetRevenueUtils";
 import type { TimeView, DashboardStatsData } from "~/types";
 
 export function useDashboard() {
@@ -46,25 +48,31 @@ export function useDashboard() {
     const fetchDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-            const [statsRes, adminRes] = await Promise.all([
+            const [statsRes, adminRes, ordersRes] = await Promise.allSettled([
                 adminApi.getDashboardStats(),
-                adminApi.getUserCountByRole("admin")
+                adminApi.getUserCountByRole("admin"),
+                orderService.getOrders()
             ]);
+
+            const statsPayload = statsRes.status === "fulfilled" ? statsRes.value?.data : null;
+            const adminCount = adminRes.status === "fulfilled" ? adminRes.value?.data?.count : 0;
+            const rawOrders = ordersRes.status === "fulfilled" && Array.isArray(ordersRes.value) ? ordersRes.value : [];
+            const computed = rawOrders.length > 0 ? computeDashboardStatsFromOrders(rawOrders) : null;
 
             setStatsData(prev => ({
                 ...prev,
-                totalCustomer: Number(statsRes.data?.totalCustomer || 0),
-                totalStaff: Number(statsRes.data?.totalStaff || 0),
-                totalAdmin: Number(statsRes.data?.totalAdmin || adminRes.data?.count || 0),
-                totalRevenue: Number(statsRes.data?.totalRevenue || 0),
-                salesData: statsRes.data?.salesData || prev.salesData,
-                recentCustomers: statsRes.data?.recentCustomers || [],
-                recentChats: statsRes.data?.recentChats || [],
-                totalUnreadChat: statsRes.data?.totalUnreadChat || 0,
-                bestMonth: statsRes.data?.bestMonth || prev.bestMonth,
-                bestYear: statsRes.data?.bestYear || prev.bestYear,
-                topBuyer: statsRes.data?.topBuyer || prev.topBuyer,
-                newOrders: statsRes.data?.newOrders || prev.newOrders
+                totalCustomer: Number(statsPayload?.totalCustomer || 0),
+                totalStaff: Number(statsPayload?.totalStaff || 0),
+                totalAdmin: Number(statsPayload?.totalAdmin || adminCount || 0),
+                totalRevenue: computed ? computed.totalRevenue : Number(statsPayload?.totalRevenue || 0),
+                salesData: computed ? computed.salesData : (statsPayload?.salesData || prev.salesData),
+                recentCustomers: statsPayload?.recentCustomers || [],
+                recentChats: statsPayload?.recentChats || [],
+                totalUnreadChat: statsPayload?.totalUnreadChat || 0,
+                bestMonth: computed ? computed.bestMonth : (statsPayload?.bestMonth || prev.bestMonth),
+                bestYear: computed ? computed.bestYear : (statsPayload?.bestYear || prev.bestYear),
+                topBuyer: computed ? computed.topBuyer : (statsPayload?.topBuyer || prev.topBuyer),
+                newOrders: computed ? computed.newOrders : (statsPayload?.newOrders || prev.newOrders)
             }));
         } catch (error) {
             console.error("Error fetching dashboard data:", error);

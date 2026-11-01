@@ -7,55 +7,20 @@ import { orderService } from "~/services/orderService";
 import { chatService } from "~/services/chatService";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
-import { formatRupiah, convertImageToWebP } from "~/lib/utils";
+import { formatRupiah } from "~/lib/utils";
+import {
+    getSizeSurcharge,
+    getJerseyKgRequirement,
+    compressImage,
+    parseSizeAndSleeve,
+} from "~/features/admin/buat-pesanan/utils";
 import type {
     CustomJerseyDetailItem,
     CustomJerseyCheckoutStep,
     UseCustomJerseyCheckoutReturn,
 } from "~/types";
 
-const getSizeSurcharge = (size: string): number => {
-    const s = size.toUpperCase().trim();
-    if (["XXS", "XS", "S", "M", "L", "XL", "2XL", "XXL"].includes(s)) {
-        return 0;
-    }
-    const numXlMatch = s.match(/^(\d+)XL$/);
-    if (numXlMatch) {
-        const xCount = parseInt(numXlMatch[1], 10);
-        if (xCount >= 3) {
-            return (xCount - 2) * 10000;
-        }
-    }
-    const xMatches = s.match(/^(X+)L$/);
-    if (xMatches) {
-        const xCount = xMatches[1].length;
-        if (xCount >= 3) {
-            return (xCount - 2) * 10000;
-        }
-    }
-    return 0;
-};
-
-export const getJerseyKgRequirement = (
-    size: string,
-    sleeve: string,
-    rasioKonversi: number,
-): number => {
-    const s = size.toUpperCase().trim();
-    const isLongSleeve = sleeve === "Lengan Panjang";
-    const isBigSize = ["3XL", "4XL", "5XL", "6XL", "XXXL", "XXXXL"].includes(s);
-    const rasio = rasioKonversi || 2.5;
-
-    if (isLongSleeve) {
-        return (isBigSize ? 2.5 : 1.25) / rasio;
-    } else {
-        return (isBigSize ? 1.25 : 0.8333) / rasio;
-    }
-};
-
-export const compressImage = (file: File): Promise<File> => {
-    return convertImageToWebP(file, 0.8, 1200);
-};
+export { getJerseyKgRequirement, compressImage };
 
 export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
     const navigate = useNavigate();
@@ -103,6 +68,8 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
 
     const sizeParam = searchParams.get("size") || "L";
     const sleeveParam = searchParams.get("sleeve") || "Lengan Pendek";
+    const nameParam = searchParams.get("name") || "";
+    const numberParam = searchParams.get("number") || "";
 
     useEffect(() => {
         adminApi.getBahanBaju().then((res) => {
@@ -112,22 +79,14 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
         });
     }, []);
 
-    const parseSizeAndSleeve = (playerSize: string) => {
-        const match = playerSize.match(/^([^(]+)(?:\(([^)]+)\))?$/);
-        if (match) {
-            const size = match[1].trim();
-            const sleeve = match[2] ? match[2].trim() : "Lengan Pendek";
-            return { size, sleeve };
-        }
-        return { size: playerSize || "L", sleeve: "Lengan Pendek" };
-    };
-
     useEffect(() => {
-        if (productIdParam && cart.length === 0) {
+        if (productIdParam) {
             adminApi.getBahanBaju().then((res) => {
-                if (res.status === "success") {
+                if (res.status === "success" && Array.isArray(res.data)) {
                     const product = res.data.find(
-                        (b: any) => b.id === Number(productIdParam),
+                        (b: any) =>
+                            String(b.id) === String(productIdParam) ||
+                            String(b.uuid) === String(productIdParam),
                     );
                     if (product) {
                         setDirectProduct({
@@ -145,9 +104,9 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
                 }
             });
         }
-    }, [productIdParam, cart.length]);
+    }, [productIdParam]);
 
-    const activeProduct =
+    const cartActiveProduct =
         cart.length > 0
             ? {
                   id: cart[0].product.id,
@@ -157,7 +116,11 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
                   image: cart[0].product.image,
                   rasioKonversi: 2.5,
               }
-            : directProduct;
+            : null;
+
+    const activeProduct = productIdParam
+        ? directProduct || cartActiveProduct
+        : cartActiveProduct || directProduct;
 
     const activeBahan = allBahan.find((b) => b.id === activeProduct?.id);
     const availableKg = activeBahan ? activeBahan.kuantitasKg || 0 : 0;
@@ -285,7 +248,20 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
     useEffect(() => {
         if (isEditing || editOrderId) return;
         if (customDetails.length === 0) {
-            if (cart.length > 0) {
+            if (productIdParam && directProduct) {
+                const initialDetails = Array.from({ length: 1 }).map(() => ({
+                    id: `${directProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
+                    productId: directProduct.id,
+                    productTitle: directProduct.title,
+                    price: directProduct.price,
+                    image: directProduct.image,
+                    name: nameParam,
+                    number: numberParam,
+                    size: sizeParam,
+                    sleeve: sleeveParam,
+                }));
+                setCustomDetails(initialDetails);
+            } else if (!productIdParam && cart.length > 0) {
                 const initialDetails = cart.flatMap((item) =>
                     Array.from({ length: item.quantity }).map(() => ({
                         id: `${item.product.id}-${Math.random().toString(36).substr(2, 9)}`,
@@ -293,29 +269,39 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
                         productTitle: item.product.title,
                         price: item.product.price,
                         image: item.product.image,
-                        name: "",
-                        number: "",
+                        name: nameParam,
+                        number: numberParam,
                         size: sizeParam,
                         sleeve: sleeveParam,
                     })),
                 );
                 setCustomDetails(initialDetails);
-            } else if (activeProduct) {
+            } else if (!productIdParam && activeProduct) {
                 const initialDetails = Array.from({ length: 1 }).map(() => ({
                     id: `${activeProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
                     productId: activeProduct.id,
                     productTitle: activeProduct.title,
                     price: activeProduct.price,
                     image: activeProduct.image,
-                    name: "",
-                    number: "",
+                    name: nameParam,
+                    number: numberParam,
                     size: sizeParam,
                     sleeve: sleeveParam,
                 }));
                 setCustomDetails(initialDetails);
             }
         }
-    }, [cart, activeProduct, customDetails.length]);
+    }, [
+        cart,
+        activeProduct,
+        directProduct,
+        productIdParam,
+        customDetails.length,
+        nameParam,
+        numberParam,
+        sizeParam,
+        sleeveParam,
+    ]);
 
     const generateTable = () => {
         const count = parseInt(playerCountInput);
@@ -823,6 +809,14 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
         try {
             let designUrl = existingOrder?.designUrl || "";
             let paymentUrl = existingOrder?.paymentUrl || "";
+            let finalDesignNote = designNote;
+
+            if (pdfFile) {
+                const pdfRes = await chatService.uploadFile(pdfFile);
+                if (pdfRes?.url) {
+                    finalDesignNote = `${designNote ? `${designNote}\n` : ""}[Data Pemain PDF: ${pdfRes.url}]`;
+                }
+            }
 
             if (designReferenceFile) {
                 setUploadProgress(20);
@@ -843,6 +837,35 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
             setUploadProgress(90);
 
             try {
+                const effectiveDetails =
+                    customDetails.length > 0
+                        ? customDetails.map((d) => ({
+                              productId: d.productId || activeProduct?.id || 1,
+                              productTitle:
+                                  d.productTitle ||
+                                  activeProduct?.title ||
+                                  "Custom Jersey",
+                              playerName:
+                                  d.name.trim() ||
+                                  (pdfFile ? "DATA PEMAIN PDF" : "PEMAIN"),
+                              playerNumber:
+                                  d.number.trim() || (pdfFile ? "PDF" : "00"),
+                              playerSize: `${d.size || "L"} (${d.sleeve || "Lengan Pendek"})`,
+                          }))
+                        : activeProduct
+                          ? [
+                                {
+                                    productId: activeProduct.id,
+                                    productTitle: activeProduct.title,
+                                    playerName: pdfFile
+                                        ? "DATA PEMAIN PDF"
+                                        : "PEMAIN",
+                                    playerNumber: pdfFile ? "PDF" : "00",
+                                    playerSize: `${sizeParam || "L"} (${sleeveParam || "Lengan Pendek"})`,
+                                },
+                            ]
+                          : [];
+
                 const payload = {
                     customerId: user?.id || 0,
                     bahanBajuId: activeProduct?.id,
@@ -850,19 +873,13 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
                     paymentType: paymentType,
                     paidAmount: effectivePaidAmount,
                     remainingAmount: effectiveRemainingAmount,
-                    designNote: designNote,
+                    designNote: finalDesignNote,
                     designUrl: designUrl,
                     paymentUrl: paymentUrl,
                     shippingMethod: shippingMethod,
                     shippingAddress:
                         shippingMethod === "COD" ? shippingAddress : "",
-                    details: customDetails.map((d) => ({
-                        productId: d.productId,
-                        productTitle: d.productTitle,
-                        playerName: d.name,
-                        playerNumber: d.number,
-                        playerSize: `${d.size} (${d.sleeve || "Lengan Pendek"})`,
-                    })),
+                    details: effectiveDetails,
                 };
 
                 if (isEditing && existingOrder) {

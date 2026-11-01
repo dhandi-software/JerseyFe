@@ -59,10 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response?.user) {
         const token = response.token;
-        const userObj: User = {
-          ...response.user,
-          token: token || response.user.token
-        };
+        const { token: _unusedUserToken, ...cleanUser } = response.user as any;
+        const userObj: User = cleanUser;
 
         if (token) {
           localStorage.setItem("jwt", token);
@@ -91,7 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         const defaultDashboard = getDashboardForRole(role);
-        const from = (location.state as any)?.from?.pathname || null;
+        const fromLocation = (location.state as any)?.from;
+        const from = fromLocation?.pathname || null;
+        const fromSearch = fromLocation?.search || "";
 
         // Verify if `from` is a safe and role-authorized destination to prevent bouncing
         const isFromAuthorized = () => {
@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
 
         if (isFromAuthorized()) {
-          navigate(from, { replace: true });
+          navigate(`${from}${fromSearch}`, { replace: true });
         } else {
           navigate(defaultDashboard, { replace: true });
         }

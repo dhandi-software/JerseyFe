@@ -128,6 +128,11 @@ export function BahanBajuDesktop() {
                                                         <tr key={`penyubliman-${item.id}`} className="hover:bg-slate-50/50 transition-colors group">
                                                             <td className="px-6 py-4 align-top">
                                                                 <div className="font-bold text-slate-800 text-sm mt-3">{item.nama}</div>
+                                                                {item.uuid && (
+                                                                    <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5 truncate" title={item.uuid}>
+                                                                        UUID: {item.uuid.slice(0, 8)}...
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="px-4 py-4 align-top text-center">
                                                                 <div className="flex flex-col items-center gap-1.5 mt-3 justify-center">
@@ -184,7 +189,7 @@ export function BahanBajuDesktop() {
                                                                 <div className="flex items-center gap-3 mt-1">
                                                                     <Button 
                                                                         variant="ghost" 
-                                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.id}`)}
+                                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.uuid || item.id}`)}
                                                                         className="h-11 w-11 rounded-2xl bg-blue-50/50 hover:bg-blue-100 text-blue-600 border border-blue-100/50 transition-all shadow-sm flex items-center justify-center group"
                                                                         title="Lihat Detail"
                                                                     >
@@ -192,7 +197,7 @@ export function BahanBajuDesktop() {
                                                                     </Button>
                                                                     <Button 
                                                                         variant="ghost" 
-                                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.id}`)}
+                                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.uuid || item.id}`)}
                                                                         className="h-11 w-11 rounded-2xl bg-orange-50/50 hover:bg-orange-100 text-orange-600 border border-orange-100/50 transition-all shadow-sm flex items-center justify-center group"
                                                                         title="Edit Bahan"
                                                                     >
@@ -314,6 +319,11 @@ export function BahanBajuDesktop() {
                                                             </td>
                                                             <td className="px-6 py-4 align-top">
                                                                 <div className="font-bold text-slate-800 text-sm mt-3">{item.nama}</div>
+                                                                {item.uuid && (
+                                                                    <div className="text-[10px] font-mono font-semibold text-slate-400 mt-0.5 truncate" title={item.uuid}>
+                                                                        UUID: {item.uuid.slice(0, 8)}...
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="px-6 py-4 align-top">
                                                                 <div className="font-black text-blue-600 text-[13px] mt-3">
@@ -375,7 +385,7 @@ export function BahanBajuDesktop() {
                                                                 <div className="flex items-center gap-3 mt-1">
                                                                     <Button 
                                                                         variant="ghost" 
-                                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.id}`)}
+                                                                        onClick={() => navigate(`/admin/bahan-baju/detail/${item.uuid || item.id}`)}
                                                                         className="h-11 w-11 rounded-2xl bg-blue-50/50 hover:bg-blue-100 text-blue-600 border border-blue-100/50 transition-all shadow-sm flex items-center justify-center group"
                                                                         title="Lihat Detail"
                                                                     >
@@ -383,7 +393,7 @@ export function BahanBajuDesktop() {
                                                                     </Button>
                                                                     <Button 
                                                                         variant="ghost" 
-                                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.id}`)}
+                                                                        onClick={() => navigate(`/admin/bahan-baju/edit/${item.uuid || item.id}`)}
                                                                         className="h-11 w-11 rounded-2xl bg-orange-50/50 hover:bg-orange-100 text-orange-600 border border-orange-100/50 transition-all shadow-sm flex items-center justify-center group"
                                                                         title="Edit Bahan"
                                                                     >

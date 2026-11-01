@@ -53,8 +53,8 @@ export function BahanBajuDetailDesktop() {
 
                 <div className="flex items-center gap-4">
                     <div className="text-right hidden sm:block">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Internal Reference</p>
-                        <p className="text-sm font-bold text-slate-900">#BHN-{currentBahan.id.toString().padStart(4, '0')}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">UUID Reference</p>
+                        <p className="text-xs font-mono font-bold text-slate-900">{currentBahan.uuid || `#BHN-${currentBahan.id.toString().padStart(4, '0')}`}</p>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center">
                         <Fingerprint className="w-5 h-5 text-slate-300" />
@@ -200,7 +200,7 @@ export function BahanBajuDetailDesktop() {
 
                     <div className="pt-12 flex gap-4">
                         <Button 
-                            onClick={() => navigate(`/admin/bahan-baju/edit/${currentBahan.id}`)}
+                            onClick={() => navigate(`/admin/bahan-baju/edit/${currentBahan.uuid || currentBahan.id}`)}
                             className="h-16 flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3"
                         >
                             <Edit3 className="w-5 h-5" />

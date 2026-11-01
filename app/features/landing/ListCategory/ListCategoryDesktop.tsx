@@ -1,74 +1,90 @@
-import { Search, Trash2, ShoppingCart, CreditCard } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { useCart } from "~/context/CartContext";
+import { Search, Layers } from "lucide-react";
 import { CardProduct } from "~/components/template/CardProduct";
 import { cn } from "~/lib/utils";
 import { CategoryProductGridSkeleton } from "./CategoryProductSkeleton";
 import { CategoryEmptyState } from "./CategoryEmptyState";
-import { useListCategory } from "~/hooks";
+import { CategoryPagination } from "./CategoryPagination";
+import { useListCategory, DESKTOP_ITEMS_PER_PAGE } from "~/hooks";
 
 export function ListCategoryDesktop() {
-    const { cart, addToCart, removeFromCart, updateQuantity, subtotal } = useCart();
     const {
         materials,
         filteredProducts,
+        paginatedProducts,
+        currentPage,
+        totalPages,
+        startItemIndex,
+        endItemIndex,
+        handlePageChange,
         loading,
+        error,
         searchQuery,
         setSearchQuery,
         selectedCategory,
         setSelectedCategory,
         categories,
-        uangDiterima,
-        setUangDiterima,
-        kembalian,
-        formatRupiah,
-        handleCheckout,
-    } = useListCategory();
-
+        handleViewDetail,
+        refetch,
+    } = useListCategory(DESKTOP_ITEMS_PER_PAGE);
 
     return (
-        <div className="min-h-[calc(100vh-100px)] bg-[#FAFAFA] p-6 md:p-8 font-['Inter'] flex flex-col gap-8 w-full">
-            {/* Page Header */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-3xl font-black text-neutral-900 tracking-tighter italic uppercase">List Category</h1>
-                    <p className="text-neutral-500 text-sm font-medium mt-1">Katalog Bahan Jersey FCSV</p>
-                </div>
-                <div className="flex gap-4">
-                    <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-neutral-100 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="text-xs font-bold text-neutral-600">Terminal 01</span>
+        <div className="min-h-[calc(100vh-100px)] bg-[#FAFAFA] py-8 px-6 md:px-10 font-sans w-full">
+            <div className="max-w-[1440px] mx-auto flex flex-col gap-8">
+                {/* Page Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200/80 pb-6">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+                            List Category
+                        </h1>
+                        <p className="text-slate-600 text-sm font-medium mt-1">
+                            Katalog Bahan & Koleksi Jersey Resmi dari Admin FCSV Apparel
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white px-4 py-2.5 rounded-xl shadow-2xs border border-slate-200 flex items-center gap-2.5">
+                            <Layers className="w-4 h-4 text-[#B83B14]" />
+                            <span className="text-xs font-bold text-slate-700">
+                                {loading
+                                    ? "Memuat Katalog..."
+                                    : `${materials.length} Produk Admin`}
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="flex items-start gap-8 w-full">
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col gap-8 min-w-0">
+                <div className="flex flex-col gap-8 w-full min-w-0">
                     {/* Filters & Search */}
-                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
                         <div className="flex-1 relative w-full group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within:text-black transition-colors" />
-                            <input 
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-slate-900 transition-colors pointer-events-none" />
+                            <input
                                 type="text"
-                                placeholder="Cari Bahan Jersey..."
+                                aria-label="Cari bahan atau produk jersey"
+                                placeholder="Cari nama atau spesifikasi bahan jersey..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-6 py-4 bg-white border border-neutral-100 rounded-2xl text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-200 transition-all placeholder:text-neutral-400 text-neutral-900"
+                                className="w-full min-h-[48px] pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:border-slate-900 transition-all placeholder:text-slate-500 text-slate-900"
                             />
                         </div>
-                        
-                        <div className="bg-white p-1.5 rounded-2xl shadow-sm border border-neutral-100 flex gap-2 w-full md:w-auto">
-                            {categories.map(cat => (
-                                <button 
+
+                        <div
+                            role="tablist"
+                            aria-label="Filter kategori bahan"
+                            className="bg-white p-1.5 rounded-2xl shadow-2xs border border-slate-200 flex gap-2 w-full md:w-auto"
+                        >
+                            {categories.map((cat) => (
+                                <button
                                     key={cat}
                                     type="button"
+                                    role="tab"
+                                    aria-selected={selectedCategory === cat}
                                     onClick={() => setSelectedCategory(cat)}
                                     className={cn(
-                                        "px-6 py-2.5 rounded-xl text-xs font-bold transition-all uppercase tracking-wider cursor-pointer",
-                                        selectedCategory === cat 
-                                            ? "bg-neutral-900 text-white shadow-md shadow-black/10" 
-                                            : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50"
+                                        "min-h-[44px] px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all uppercase tracking-wider cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900",
+                                        selectedCategory === cat
+                                            ? "bg-slate-900 text-white shadow-xs"
+                                            : "text-slate-700 hover:text-slate-950 hover:bg-slate-100",
                                     )}
                                 >
                                     {cat}
@@ -77,131 +93,51 @@ export function ListCategoryDesktop() {
                         </div>
                     </div>
 
-                    {/* Product Grid / Skeleton / Empty States */}
+                    {/* Product Grid / Skeleton / Error / Empty States */}
                     {loading ? (
-                        <CategoryProductGridSkeleton count={8} className="grid-cols-2 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6" />
+                        <CategoryProductGridSkeleton
+                            count={10}
+                            className="grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5"
+                        />
+                    ) : error ? (
+                        <CategoryEmptyState
+                            type="error"
+                            errorMessage={error}
+                            onRetry={refetch}
+                        />
                     ) : materials.length === 0 ? (
                         <CategoryEmptyState type="no-data" />
                     ) : filteredProducts.length === 0 ? (
-                        <CategoryEmptyState 
-                            type="not-found" 
-                            searchQuery={searchQuery} 
+                        <CategoryEmptyState
+                            type="not-found"
+                            searchQuery={searchQuery}
                             onReset={() => {
                                 setSearchQuery("");
                                 setSelectedCategory("Semua");
-                            }} 
+                            }}
                         />
                     ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                            {filteredProducts.map(product => (
-                                <CardProduct 
-                                    key={product.id} 
-                                    product={product} 
-                                    onAdd={addToCart} 
-                                />
-                            ))}
+                        <div className="flex flex-col">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+                                {paginatedProducts.map((product) => (
+                                    <CardProduct
+                                        key={product.id}
+                                        product={product}
+                                        onPreview={handleViewDetail}
+                                    />
+                                ))}
+                            </div>
+
+                            <CategoryPagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                totalItems={filteredProducts.length}
+                                startItemIndex={startItemIndex}
+                                endItemIndex={endItemIndex}
+                                onPageChange={handlePageChange}
+                            />
                         </div>
                     )}
-                </div>
-
-                {/* Sidebar Cart */}
-                <div className="w-[400px] border border-neutral-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] rounded-[2.5rem] flex flex-col shrink-0 sticky top-24 self-start bg-white h-[calc(100vh-10rem)] overflow-hidden ring-1 ring-black/5">
-                    <div className="p-6 pb-2 border-b border-neutral-50 flex-none flex flex-col gap-1">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-black text-neutral-900 tracking-tight flex items-center gap-2 italic uppercase">
-                                <ShoppingCart className="w-5 h-5 text-[#D25026]" />
-                                My Cart
-                            </h2>
-                            <div className="bg-neutral-900 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                                {cart.length < 10 ? `0${cart.length}` : cart.length} Items
-                            </div>
-                        </div>
-                        <p className="text-neutral-400 text-xs font-medium">Lengkapi pesanan Anda di bawah ini</p>
-                    </div>
-
-                    <div className={cn("flex-1 overflow-y-auto min-h-0", cart.length > 2 && "scrollbar-thick")}>
-                        <div className="px-6 py-4 flex flex-col gap-4">
-                            {cart.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center text-center gap-4 opacity-30 pt-16 pb-32">
-                                    <div className="p-8 bg-neutral-50 rounded-full border border-neutral-100 shadow-inner">
-                                        <ShoppingCart className="w-16 h-16 text-neutral-300" />
-                                    </div>
-                                    <p className="text-neutral-400 text-[13px] font-black uppercase italic tracking-tighter">Keranjang Kosong</p>
-                                </div>
-                            ) : (
-                                cart.map(item => (
-                                    <div key={item.product.id} className="flex gap-4 group animate-in slide-in-from-right-2 duration-300">
-                                        <div className="w-20 h-20 rounded-2xl bg-neutral-50 overflow-hidden shrink-0 ring-1 ring-black/5 shadow-sm p-1.5 flex items-center justify-center">
-                                            <img src={item.product.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-                                        </div>
-                                        <div className="flex-1 flex flex-col justify-between py-0.5">
-                                            <div>
-                                                <div className="text-[14px] font-black text-neutral-900 leading-tight line-clamp-1 italic uppercase tracking-tighter">{item.product.title}</div>
-                                                <div className="text-sm font-black text-[#D25026] mt-0.5">{formatRupiah(item.product.price)}</div>
-                                            </div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-4 bg-white rounded-xl px-3 py-1.5 border border-neutral-100 shadow-sm">
-                                                    <button 
-                                                        onClick={() => updateQuantity(item.product.id, -1)} 
-                                                        className="w-4 h-4 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors text-neutral-400 font-bold"
-                                                    >-</button>
-                                                    <span className="text-[13px] font-black w-4 text-center">{item.quantity}</span>
-                                                    <button 
-                                                        onClick={() => updateQuantity(item.product.id, 1)} 
-                                                        className="w-4 h-4 flex items-center justify-center hover:bg-neutral-100 rounded-full transition-colors text-neutral-400 font-bold"
-                                                    >+</button>
-                                                </div>
-                                                <button 
-                                                    onClick={() => removeFromCart(item.product.id)} 
-                                                    className="w-10 h-10 flex items-center justify-center text-neutral-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="p-5 border-t border-neutral-50 bg-[#FAFAFA]/50 flex flex-col gap-3 flex-none">
-                        <div className="w-full space-y-1.5 px-1">
-                            <div className="flex justify-between items-center">
-                                <span className="text-neutral-400 font-black text-[10px] uppercase tracking-widest italic">Subtotal</span>
-                                <span className="font-bold text-neutral-600 text-sm">{formatRupiah(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-1.5 border-t border-neutral-100">
-                                <span className="text-neutral-900 font-black text-lg uppercase italic tracking-tighter">Total Amount</span>
-                                <span className="font-black text-neutral-900 text-2xl tracking-tighter">{formatRupiah(subtotal)}</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 bg-white p-3 rounded-2xl border border-neutral-100 shadow-sm group-focus-within:ring-2 ring-neutral-100 transition-all">
-                            <div className="flex flex-col flex-1">
-                                <label className="text-[9px] font-black text-neutral-400 uppercase tracking-widest italic leading-none mb-1">Uang Diterima</label>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-black text-neutral-300">Rp</span>
-                                    <input 
-                                        type="number" 
-                                        value={uangDiterima}
-                                        onChange={(e) => setUangDiterima(e.target.value)}
-                                        placeholder="0"
-                                        className="w-full bg-transparent border-none p-0 text-base font-black text-neutral-900 focus:outline-none placeholder:text-neutral-100"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <Button 
-                            onClick={handleCheckout}
-                            className="w-full h-12 rounded-2xl text-[14px] font-black uppercase tracking-tighter shadow-lg shadow-black/5 hover:shadow-black/10 transition-all active:scale-95 disabled:grayscale cursor-pointer"
-                            disabled={cart.length === 0}
-                        >
-                            <CreditCard className="w-4 h-4 mr-2" />
-                            PURCHASE ORDER
-                        </Button>
-                    </div>
                 </div>
             </div>
         </div>

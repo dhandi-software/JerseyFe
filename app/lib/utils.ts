@@ -5,9 +5,52 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getProductDetailUrl(product?: { id?: string | number; sku?: string; rawProduct?: { sku?: string; id?: string | number } } | null): string {
+export function generateBahanUuid(
+  id: number | string,
+  existingUuid?: string | null
+): string {
+  if (existingUuid && typeof existingUuid === "string" && existingUuid.length >= 8) {
+    return existingUuid;
+  }
+  const str = `fcsv-bahan-baju-v1-${id}`;
+  const hash32 = (seed: number) => {
+    let h = seed >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 0x5bd1e995);
+      h = (h ^ (h >>> 13)) >>> 0;
+    }
+    h = Math.imul(h ^ (h >>> 15), 0x27d4eb2d);
+    return (h ^ (h >>> 15)) >>> 0;
+  };
+  const p1 = hash32(0x9747b28c).toString(16).padStart(8, "0");
+  const p2 = hash32(0x85ebca6b).toString(16).padStart(8, "0");
+  const p3 = hash32(0xc2b2ae35).toString(16).padStart(8, "0");
+  const p4 = hash32(0x27d4eb2f).toString(16).padStart(8, "0");
+
+  const timeLow = p1;
+  const timeMid = p2.slice(0, 4);
+  const timeHiAndVersion = "4" + p2.slice(5, 8);
+  const variantNibble = ((parseInt(p3[0], 16) & 0x3) | 0x8).toString(16);
+  const clockSeq = variantNibble + p3.slice(1, 4);
+  const node = p3.slice(4, 8) + p4;
+  return `${timeLow}-${timeMid}-${timeHiAndVersion}-${clockSeq}-${node}`;
+}
+
+export function getProductDetailUrl(
+  product?: {
+    id?: string | number;
+    uuid?: string;
+    sku?: string;
+    rawProduct?: { sku?: string; id?: string | number; uuid?: string };
+  } | null
+): string {
   if (!product) return "/product/1";
+  const rawUuid = product.uuid ?? product.rawProduct?.uuid;
+  if (rawUuid) return `/product/${encodeURIComponent(rawUuid)}`;
   const id = product.id ?? product.rawProduct?.id;
+  if (id !== undefined && id !== null && /^\d+$/.test(String(id))) {
+    return `/product/${encodeURIComponent(generateBahanUuid(id))}`;
+  }
   return `/product/${encodeURIComponent(String(id || "1"))}`;
 }
 

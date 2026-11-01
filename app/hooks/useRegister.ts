@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { authService } from "~/services/authService";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import type { ToastProps } from "~/types/common";
 
 export const useRegister = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -62,7 +63,7 @@ export const useRegister = () => {
   };
 
   const handleCancel = () => {
-      navigate(`/login`);
+      navigate(`/login`, { state: location.state });
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -80,7 +81,7 @@ export const useRegister = () => {
       showToast("Akun berhasil dibuat", "success");
 
       setTimeout(() => {
-        navigate(`/login`);
+        navigate(`/login`, { state: location.state });
       }, 1500);
 
     } catch (error: any) {

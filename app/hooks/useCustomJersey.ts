@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { adminApi } from "~/api/admin";
+import { isSeededDummyBahan } from "~/api/productApi";
 import { UPLOADS_URL } from "~/api/client";
 import { formatRupiah } from "~/lib/utils";
 import type { CustomJerseyProduct, UseCustomJerseyReturn } from "~/types";
@@ -16,15 +17,19 @@ export function useCustomJersey(): UseCustomJerseyReturn {
             .getBahanBaju()
             .then((res) => {
                 if (res.status === "success" && Array.isArray(res.data)) {
-                    const mapped: CustomJerseyProduct[] = res.data.map((bahan: any) => ({
+                    const adminItems = res.data.filter(
+                        (bahan: any) => !isSeededDummyBahan(bahan),
+                    );
+                    const mapped: CustomJerseyProduct[] = adminItems.map((bahan: any) => ({
                         id: bahan.id,
+                        uuid: bahan.uuid,
                         title: bahan.nama,
                         category: "Jersey",
-                        price: bahan.harga || 150000,
+                        price: bahan.harga || 0,
                         status: bahan.status,
                         image: bahan.imageUrl
                             ? `${UPLOADS_URL}${bahan.imageUrl}`
-                            : "https://via.placeholder.com/300?text=No+Image",
+                            : "/images/GambarBaju.png",
                         kuantitasKg: bahan.kuantitasKg,
                         rasioKonversi: bahan.rasioKonversi,
                     }));
@@ -39,8 +44,8 @@ export function useCustomJersey(): UseCustomJerseyReturn {
         return p.title.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
-    const handlePreview = (product: { id: number }) => {
-        navigate(`/customer/custom-jersey/detail/${product.id}`);
+    const handlePreview = (product: { id: number; uuid?: string }) => {
+        navigate(`/customer/custom-jersey/detail/${product.uuid || product.id}`);
     };
 
     const handleCustomize = (product: { id: number }) => {

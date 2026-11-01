@@ -231,12 +231,7 @@ export function DesignAndShippingSectionMobile({
 
                         <button
                             type="button"
-                            onClick={() => {
-                                onPaymentTypeChange("DP");
-                                if (!dpAmountInput || dpAmountInput <= 0) {
-                                    onDpAmountInputChange(Math.round(totalCalculated * 0.5));
-                                }
-                            }}
+                            onClick={() => onPaymentTypeChange("DP")}
                             className={cn(
                                 "min-h-[50px] p-3 rounded-xl border-2 text-left transition-all relative flex flex-col justify-between active:scale-98 cursor-pointer",
                                 paymentType === "DP"

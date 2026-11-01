@@ -1,11 +1,12 @@
 import { Button } from "~/components/ui/button";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Eye, EyeOff, ShieldCheck, Mail, Lock, User } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { useRegister } from "./UseRegister";
 import { Toast } from "~/components/ui/toast";
 
 export function RegisterMobile() {
+    const location = useLocation();
     const {
         formData,
         showPassword,
@@ -117,7 +118,7 @@ export function RegisterMobile() {
                         </Button>
 
                         <div className="text-center pt-2">
-                            <Link to="/login" className="text-[10px] font-black text-indigo-600 uppercase italic">
+                            <Link to="/login" state={location.state} className="text-[10px] font-black text-indigo-600 uppercase italic">
                                 Sudah punya akun? Masuk di sini
                             </Link>
                         </div>

@@ -5,6 +5,7 @@ import { useBahanBajuEdit } from "~/hooks/useBahanBajuEdit";
 
 export function BahanBajuEditMobile() {
     const {
+        id,
         backPath,
         loading,
         isSubmitting,
@@ -73,8 +74,15 @@ export function BahanBajuEditMobile() {
 
                 <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/40">
                     <div className="mb-6">
-                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-[9px] font-black uppercase tracking-widest mb-3">
-                            Update Material
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-[9px] font-black uppercase tracking-widest">
+                                Update Material
+                            </div>
+                            {id && (
+                                <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[9px] font-mono font-bold">
+                                    UUID: {String(id).slice(0, 8)}...
+                                </span>
+                            )}
                         </div>
                         <h1 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Edit Bahan</h1>
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-2 italic leading-relaxed">Update spesifikasi atau stok bahan baku.</p>

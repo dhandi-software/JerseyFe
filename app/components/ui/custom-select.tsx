@@ -78,7 +78,7 @@ export function CustomSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] p-1 rounded-xl border-gray-200 shadow-lg bg-white" 
+        className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] p-1 rounded-xl border-gray-200 shadow-lg bg-white z-[10010]" 
         align="start"
       >
         <Command className="w-full">

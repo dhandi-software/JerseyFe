@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Truck, ShieldCheck, RotateCcw, Sparkles, Shirt } from "lucide-react";
+import { Check, Truck, ShieldCheck, RotateCcw, Shirt, Layers } from "lucide-react";
 import type { ProductDetailData, ProductDetailTabType } from "~/types/productDetail";
 
 interface ProductDetailInfoTabsProps {
@@ -25,10 +25,10 @@ export function ProductDetailInfoTabs({ activeTab, setActiveTab, product }: Prod
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-colors pb-3 -mb-3 border-b-2 whitespace-nowrap cursor-pointer ${
+            className={`min-h-[44px] px-2 text-xs sm:text-sm font-extrabold uppercase tracking-wider transition-colors pb-3 -mb-3 border-b-2 whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B83B14] ${
               activeTab === tab.id
-                ? "border-[#FA8232] text-[#D25026]"
-                : "border-transparent text-zinc-500 hover:text-zinc-900"
+                ? "border-[#B83B14] text-[#B83B14]"
+                : "border-transparent text-zinc-600 hover:text-zinc-900"
             }`}
           >
             {tab.label}
@@ -46,21 +46,21 @@ export function ProductDetailInfoTabs({ activeTab, setActiveTab, product }: Prod
             <p className="text-zinc-600 leading-relaxed text-xs">
               {product.description}
             </p>
-            <p className="text-zinc-500 leading-relaxed text-xs">
-              Diproduksi khusus untuk kebutuhan jersey olahraga profesional. Memiliki sirkulasi udara mikro yang efektif menjaga suhu tubuh tetap sejuk saat beraktivitas dengan intensitas tinggi di lapangan.
+            <p className="text-zinc-600 leading-relaxed text-xs">
+              Diproduksi khusus untuk kebutuhan jersey olahraga tim dan komunitas. Memiliki sirkulasi udara mikro yang menjaga suhu tubuh tetap sejuk saat beraktivitas dengan intensitas tinggi di lapangan.
             </p>
           </div>
 
           <div className="lg:col-span-3 space-y-4 lg:border-l lg:border-zinc-200 lg:pl-6">
             <h3 className="font-extrabold text-sm text-zinc-900 flex items-center gap-1.5">
-              <Sparkles className="size-4 text-[#FA8232]" />
-              <span>Fitur Utama</span>
+              <Layers className="size-4 text-[#B83B14]" />
+              <span>Karakteristik Kain</span>
             </h3>
             <ul className="space-y-3">
               {product.features.map((featItem, idx) => (
                 <li key={idx} className="flex items-start gap-2.5 text-xs text-zinc-700 font-medium">
                   <div className="size-6 rounded-md bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check className="size-3.5 text-[#D25026]" />
+                    <Check className="size-3.5 text-[#B83B14]" />
                   </div>
                   <span className="leading-tight">{featItem}</span>
                 </li>
@@ -70,7 +70,7 @@ export function ProductDetailInfoTabs({ activeTab, setActiveTab, product }: Prod
 
           <div className="lg:col-span-3 space-y-4 lg:border-l lg:border-zinc-200 lg:pl-6">
             <h3 className="font-extrabold text-sm text-zinc-900 flex items-center gap-1.5">
-              <Truck className="size-4 text-[#FA8232]" />
+              <Truck className="size-4 text-[#B83B14]" />
               <span>Info Distribusi</span>
             </h3>
             <div className="space-y-3 text-xs">
@@ -117,7 +117,7 @@ export function ProductDetailInfoTabs({ activeTab, setActiveTab, product }: Prod
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-2 text-xs">
           <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
             <h4 className="font-bold text-sm text-zinc-900 flex items-center gap-2">
-              <Shirt className="size-4 text-[#D25026]" />
+              <Shirt className="size-4 text-[#B83B14]" />
               <span>Petunjuk Sablon Jersey</span>
             </h4>
             <ul className="space-y-2 text-zinc-600 list-disc list-inside">
@@ -129,7 +129,7 @@ export function ProductDetailInfoTabs({ activeTab, setActiveTab, product }: Prod
 
           <div className="p-5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-3">
             <h4 className="font-bold text-sm text-zinc-900 flex items-center gap-2">
-              <RotateCcw className="size-4 text-[#D25026]" />
+              <RotateCcw className="size-4 text-[#B83B14]" />
               <span>Cara Pencucian & Perawatan</span>
             </h4>
             <ul className="space-y-2 text-zinc-600 list-disc list-inside">

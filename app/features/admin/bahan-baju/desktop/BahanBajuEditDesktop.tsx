@@ -5,6 +5,7 @@ import { useBahanBajuEdit } from "~/hooks/useBahanBajuEdit";
 
 export function BahanBajuEditDesktop() {
     const {
+        id,
         backPath,
         loading,
         isSubmitting,
@@ -77,12 +78,20 @@ export function BahanBajuEditDesktop() {
                 </Button>
 
                 <div className="bg-white p-10 rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/40">
-                    <div className="mb-8">
-                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-[9px] font-black uppercase tracking-[0.2em] mb-3">
-                            Inventory Management / Update
+                    <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div>
+                            <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-[9px] font-black uppercase tracking-[0.2em] mb-3">
+                                Inventory Management / Update
+                            </div>
+                            <h1 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Edit Bahan Baku</h1>
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 italic leading-relaxed">Perbarui informasi spesifikasi atau sesuaikan stok fisik di gudang.</p>
                         </div>
-                        <h1 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Edit Bahan Baku</h1>
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 italic leading-relaxed">Perbarui informasi spesifikasi atau sesuaikan stok fisik di gudang.</p>
+                        {id && (
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-2.5 text-right shrink-0">
+                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Unique ID (UUID)</span>
+                                <span className="block text-xs font-mono font-bold text-slate-700 mt-0.5">{id}</span>
+                            </div>
+                        )}
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-8">

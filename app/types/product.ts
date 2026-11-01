@@ -21,12 +21,14 @@ export interface AdditionalInfoPayload {
 
 export interface ProductItem {
   id: number | string;
+  uuid?: string;
   sku: string;
   title: string;
   category: string;
   price: number;
   discount_price?: number;
   stock: number;
+  rasioKonversi?: number;
   low_stock_threshold?: number;
   weight?: number;
   materials?: string;

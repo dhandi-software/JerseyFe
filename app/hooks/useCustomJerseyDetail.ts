@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router";
 import { adminApi } from "~/api/admin";
+import { isSeededDummyBahan } from "~/api/productApi";
 import { formatRupiah } from "~/lib/utils";
 
 export const getSizeSurcharge = (size: string): number => {
@@ -55,11 +56,16 @@ export function useCustomJerseyDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [bahanList, setBahanList] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [selectedSleeve, setSelectedSleeve] = useState("Lengan Pendek");
-    const [selectedSize, setSelectedSize] = useState("");
+    const [selectedSleeve, setSelectedSleeve] = useState(
+        searchParams.get("sleeve") || "Lengan Pendek",
+    );
+    const [selectedSize, setSelectedSize] = useState(
+        searchParams.get("size") || "",
+    );
     const [playerName, setPlayerName] = useState("");
     const [playerNumber, setPlayerNumber] = useState("");
 
@@ -72,10 +78,24 @@ export function useCustomJerseyDetail() {
         const fetchAllBahan = async () => {
             try {
                 const res = await adminApi.getBahanBaju();
-                if (res.status === "success") {
-                    setBahanList(res.data);
-                    const idx = res.data.findIndex((b: any) => b.id === Number(id));
-                    if (idx !== -1) setCurrentIndex(idx);
+                if (res.status === "success" && Array.isArray(res.data)) {
+                    const adminItems = res.data.filter(
+                        (b: any) => !isSeededDummyBahan(b),
+                    );
+                    setBahanList(adminItems);
+                    const idx = adminItems.findIndex(
+                        (b: any) =>
+                            b.uuid === id || String(b.id) === String(id),
+                    );
+                    if (idx !== -1) {
+                        setCurrentIndex(idx);
+                        const matched = adminItems[idx];
+                        if (matched?.uuid && id !== matched.uuid) {
+                            navigate(`${basePath}/${matched.uuid}${location.search}`, {
+                                replace: true,
+                            });
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -84,24 +104,27 @@ export function useCustomJerseyDetail() {
             }
         };
         fetchAllBahan();
-    }, [id]);
+    }, [id, basePath, navigate]);
 
     const handleNext = () => {
         const nextIdx = (currentIndex + 1) % bahanList.length;
         setCurrentIndex(nextIdx);
-        navigate(`${basePath}/${bahanList[nextIdx].id}`, { replace: true });
+        const target = bahanList[nextIdx].uuid || bahanList[nextIdx].id;
+        navigate(`${basePath}/${target}`, { replace: true });
     };
 
     const handlePrev = () => {
         const prevIdx =
             (currentIndex - 1 + bahanList.length) % bahanList.length;
         setCurrentIndex(prevIdx);
-        navigate(`${basePath}/${bahanList[prevIdx].id}`, { replace: true });
+        const target = bahanList[prevIdx].uuid || bahanList[prevIdx].id;
+        navigate(`${basePath}/${target}`, { replace: true });
     };
 
     const selectBahan = (idx: number) => {
         setCurrentIndex(idx);
-        navigate(`${basePath}/${bahanList[idx].id}`, { replace: true });
+        const target = bahanList[idx].uuid || bahanList[idx].id;
+        navigate(`${basePath}/${target}`, { replace: true });
     };
 
     const currentBahan = bahanList[currentIndex] || null;
@@ -112,9 +135,14 @@ export function useCustomJerseyDetail() {
             return;
         }
         if (!currentBahan) return;
-        navigate(
-            `/customer/custom-jersey/checkout?productId=${currentBahan.id}&size=${selectedSize}&sleeve=${selectedSleeve}&name=${playerName}&number=${playerNumber}`,
-        );
+        const params = new URLSearchParams({
+            productId: String(currentBahan.id),
+            size: selectedSize,
+            sleeve: selectedSleeve,
+            name: playerName,
+            number: playerNumber,
+        });
+        navigate(`/customer/custom-jersey/checkout?${params.toString()}`);
     };
 
     return {

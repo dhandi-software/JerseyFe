@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { productApi } from "~/api/productApi";
 import type { ProductDetailData, ProductDetailTabType } from "~/types/productDetail";
 import { formatRupiah } from "~/lib/utils";
@@ -15,87 +15,92 @@ const DEFAULT_COLORS = [
 const DEFAULT_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
 function buildDetailFromApiProduct(p: any): ProductDetailData {
-  const rawPrice = Number(p.price) || 150000;
-  const isDiscount = Boolean(p.discount_price && p.discount_price > 0 && p.discount_price < p.price);
-  const finalPrice = isDiscount && p.discount_price ? p.discount_price : rawPrice;
-  const origPrice = isDiscount ? rawPrice : undefined;
+  const rawPrice = Number(p.price) || 0;
+  const stockKg = typeof p.stock === "number" ? p.stock : 0;
+  const rasioKonversi = Number(p.rasioKonversi) || 2.5;
+  const statusStr = String(p.status || "Tersedia").toLowerCase().trim();
+  const isAvailable = statusStr !== "habis" && stockKg > 0 && p.is_active !== false;
 
-  const stockKg = typeof p.stock === "number" ? p.stock : 50;
-  let availability = "Tersedia (Siap Produksi)";
-  if (stockKg <= 0 || p.is_active === false) {
+  let availability = "Tersedia";
+  if (!isAvailable) {
     availability = "Stok Habis";
-  } else if (stockKg <= 20) {
+  } else if (statusStr === "menipis" || stockKg <= 20) {
     availability = `Stok Menipis (${stockKg} kg)`;
   } else {
-    availability = `Stok Aman (${stockKg} kg)`;
+    availability = `Tersedia (${stockKg} kg)`;
   }
 
-  const primaryImage = p.image || "/images/jersey_hero.webp";
-  const galleryImages = [
-    primaryImage,
-    "/images/desain-jersey.webp",
-    "/images/desain-jersey-2.webp",
-    "/images/contoh-mockup-desain.webp",
-  ].filter((img, idx, arr) => arr.indexOf(img) === idx);
+  const primaryImage = p.image || "/images/mockup-jersey.jpg";
+  const galleryImages = Array.isArray(p.images) && p.images.length > 0
+    ? p.images
+    : [primaryImage];
 
-  const title = p.title || "Kain Jersey Custom FCSV";
-  const desc = p.description || p.short_description || 
-    "Kain bahan jersey premium pilihan konveksi FCSV. Memiliki serat sirkulasi udara mikro yang sejuk, daya serap keringat tinggi, dan sangat nyaman digunakan untuk seragam sepak bola, futsal, running, dan e-sport.";
+  const title = p.title || "Bahan Jersey FCSV";
+  const desc =
+    p.description ||
+    p.short_description ||
+    "Bahan kain jersey pilihan konveksi FCSV Apparel. Memiliki serat sirkulasi udara mikro yang sejuk, daya serap keringat tinggi, dan nyaman digunakan untuk seragam olahraga.";
+
+  const estimatedShortSleevePcs = Math.floor(stockKg * (rasioKonversi / 0.8333));
+  const estimatedLongSleevePcs = Math.floor(stockKg * (rasioKonversi / 1.25));
 
   return {
-    id: String(p.id),
+    id: String(p.uuid || p.id),
     title,
-    category: p.category || "Bahan Baju",
-    categoryId: (p.category || "bahan-baju").toLowerCase().replace(/\s+/g, "-"),
-    price: formatRupiah(finalPrice),
-    originalPrice: origPrice ? formatRupiah(origPrice) : undefined,
-    rawPrice: finalPrice,
-    rawOriginalPrice: origPrice,
-    discountBadge: isDiscount ? "PROMO KHUSUS" : undefined,
-    rating: 4.9,
-    reviewsCount: 42,
+    category: p.category || "Jersey",
+    categoryId: (p.category || "jersey").toLowerCase().replace(/\s+/g, "-"),
+    price: formatRupiah(rawPrice),
+    rawPrice,
+    rating: 0,
+    reviewsCount: 0,
     availability,
+    isAvailable,
     brand: p.brand || "FCSV Authentic",
-    sku: p.sku || `FCSV-${p.id}`,
+    sku: p.sku || `BAHAN-${String(p.uuid || p.id).slice(0, 8).toUpperCase()}`,
     description: desc,
     shortDescription: p.short_description || desc,
     stockKg,
+    rasioKonversi,
+    estimatedShortSleevePcs,
+    estimatedLongSleevePcs,
     features: [
       "Serat mikro berpori lembut dengan sirkulasi udara optimal",
-      "Cepat kering (Quick Dry) dan menyerap keringat tanpa rasa lengket",
-      "Elastisitas tinggi, tahan tarikan, dan tidak mudah kusut",
-      "Optimal untuk sablon Sublimasi Full Print warna tajam & Polyflex DTF",
-      "Kualitas grade industri apparel jersey profesional",
+      "Cepat kering (Quick Dry) dan menyerap keringat dengan baik",
+      "Elastisitas terjaga, tahan tarikan, dan tidak mudah kusut",
+      "Mendukung sablon Sublimasi Full Print warna tajam & Polyflex DTF",
+      "Standar produksi konveksi apparel olahraga FCSV",
     ],
     images: galleryImages,
     colors: DEFAULT_COLORS,
     sizes: DEFAULT_SIZES,
     specs: {
-      "Tipe Bahan": title,
-      "Kategori": p.category || "Bahan Jersey Olahraga",
-      "Stok Bahan": `${stockKg} kg`,
-      "Teknologi Kain": "Moisture Wicking & Quick Dry",
-      "Rekomendasi Pemakaian": "Sepak Bola, Futsal, Basket, Badminton, E-Sport",
-      "Sertifikasi Mutu": "Standar Konveksi Garment FCSV Sportswear",
+      "Nama Bahan": title,
+      "Kategori": p.category || "Jersey",
+      "Status Ketersediaan": availability,
+      "Stok Gudang": `${stockKg} kg (~${(stockKg * rasioKonversi).toFixed(1)} meter)`,
+      "Rasio Konversi": `${rasioKonversi} meter / kg`,
+      "Estimasi Produksi Lengan Pendek (S-2XL)": `${estimatedShortSleevePcs} pcs`,
+      "Estimasi Produksi Lengan Panjang (S-2XL)": `${estimatedLongSleevePcs} pcs`,
     },
     additionalInfo: {
       weight: `${stockKg} kg (Gudang FCSV)`,
-      dimensions: "Lebar setting kain 180 cm",
-      colorOptions: "Dapat dicustom warna dan sublimasi sesuai permintaan",
-      warranty: "Garansi retur bila cacat kain atau cacat produksi sablon",
-      modelNumber: p.sku || `FCSV-PROD-${p.id}`,
+      dimensions: `Rasio konversi ${rasioKonversi} meter per kg`,
+      colorOptions: "Dapat dicustom warna dan desain sublimasi sesuai permintaan tim",
+      warranty: "Garansi retur bila terdapat cacat kain atau cacat produksi sablon",
+      modelNumber: p.sku || `BAHAN-${p.id}`,
     },
     shippingWarranty: {
-      courier: "J&T Cargo, SiCepat, JNE, Ekspedisi Truk (Partai Besar)",
-      deliveryTime: "Pengiriman cepat 1-3 hari kerja ke seluruh Indonesia",
-      guarantee: "100% Produk Bahan Resmi FCSV Apparel",
+      courier: "J&T Cargo, SiCepat, JNE, Ekspedisi Kargo",
+      deliveryTime: "Pengiriman ke seluruh wilayah Indonesia",
+      guarantee: "Bahan Resmi Standar FCSV Apparel",
     },
   };
 }
 
 export function useProductDetail(customId?: string | number) {
   const { id: routeId } = useParams();
-  const targetId = customId !== undefined ? String(customId) : (routeId || "1");
+  const navigate = useNavigate();
+  const targetId = customId !== undefined ? String(customId) : (routeId || "");
 
   const [product, setProduct] = useState<ProductDetailData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,30 +116,31 @@ export function useProductDetail(customId?: string | number) {
     setLoading(true);
     setError(null);
     try {
+      if (!targetId) {
+        setProduct(null);
+        setError("ID produk tidak valid.");
+        return;
+      }
       const found = await productApi.getById(targetId);
       if (found) {
+        if (customId === undefined && found.uuid && routeId !== found.uuid) {
+          navigate(`/product/${found.uuid}`, { replace: true });
+        }
         const detail = buildDetailFromApiProduct(found);
         setProduct(detail);
         setSelectedImage(detail.images[0] || "");
       } else {
-        // Fallback to first available if not found
-        const allRes = await productApi.getAll();
-        const first = allRes?.data?.[0];
-        if (first) {
-          const detail = buildDetailFromApiProduct(first);
-          setProduct(detail);
-          setSelectedImage(detail.images[0] || "");
-        } else {
-          setError("Produk tidak ditemukan");
-        }
+        setProduct(null);
+        setError("Produk tidak ditemukan atau belum dibuat oleh admin.");
       }
     } catch (err: any) {
       console.error("Gagal memuat detail produk:", err);
-      setError(err?.message || "Gagal memuat detail produk");
+      setProduct(null);
+      setError(err?.message || "Gagal memuat detail produk dari server.");
     } finally {
       setLoading(false);
     }
-  }, [targetId]);
+  }, [targetId, customId, routeId, navigate]);
 
   useEffect(() => {
     fetchDetail();

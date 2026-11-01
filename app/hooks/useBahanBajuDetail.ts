@@ -16,8 +16,19 @@ export function useBahanBajuDetail() {
                 const res = await adminApi.getBahanBaju();
                 if (res.status === "success") {
                     setBahanList(res.data);
-                    const idx = res.data.findIndex((b: any) => b.id === Number(id));
-                    if (idx !== -1) setCurrentIndex(idx);
+                    const idx = res.data.findIndex(
+                        (b: any) =>
+                            b.uuid === id || String(b.id) === String(id),
+                    );
+                    if (idx !== -1) {
+                        setCurrentIndex(idx);
+                        const matched = res.data[idx];
+                        if (matched?.uuid && id !== matched.uuid) {
+                            navigate(`/admin/bahan-baju/detail/${matched.uuid}`, {
+                                replace: true,
+                            });
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -26,7 +37,7 @@ export function useBahanBajuDetail() {
             }
         };
         fetchAllBahan();
-    }, [id]);
+    }, [id, navigate]);
 
     const currentBahan = bahanList[currentIndex] || null;
 
@@ -34,20 +45,23 @@ export function useBahanBajuDetail() {
         if (bahanList.length === 0) return;
         const nextIdx = (currentIndex + 1) % bahanList.length;
         setCurrentIndex(nextIdx);
-        navigate(`/admin/bahan-baju/detail/${bahanList[nextIdx].id}`, { replace: true });
+        const nextTarget = bahanList[nextIdx].uuid || bahanList[nextIdx].id;
+        navigate(`/admin/bahan-baju/detail/${nextTarget}`, { replace: true });
     };
 
     const handlePrev = () => {
         if (bahanList.length === 0) return;
         const prevIdx = (currentIndex - 1 + bahanList.length) % bahanList.length;
         setCurrentIndex(prevIdx);
-        navigate(`/admin/bahan-baju/detail/${bahanList[prevIdx].id}`, { replace: true });
+        const prevTarget = bahanList[prevIdx].uuid || bahanList[prevIdx].id;
+        navigate(`/admin/bahan-baju/detail/${prevTarget}`, { replace: true });
     };
 
     const selectBahan = (idx: number) => {
         if (!bahanList[idx]) return;
         setCurrentIndex(idx);
-        navigate(`/admin/bahan-baju/detail/${bahanList[idx].id}`, { replace: true });
+        const target = bahanList[idx].uuid || bahanList[idx].id;
+        navigate(`/admin/bahan-baju/detail/${target}`, { replace: true });
     };
 
     return {

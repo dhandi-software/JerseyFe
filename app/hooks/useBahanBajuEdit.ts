@@ -8,13 +8,15 @@ export function useBahanBajuEdit() {
     const navigate = useNavigate();
     const location = useLocation();
     const { id } = useParams<{ id: string }>();
-    
+
     const isGudang = location.pathname.startsWith("/gudang");
     const backPath = isGudang ? "/gudang" : "/admin/bahan-baju";
 
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState<BahanBajuToast | null>(null);
+    const [numericId, setNumericId] = useState<number | null>(null);
+    const [bahanUuid, setBahanUuid] = useState<string>("");
 
     const [nama, setNama] = useState("");
     const [deskripsi, setDeskripsi] = useState("");
@@ -44,8 +46,21 @@ export function useBahanBajuEdit() {
             try {
                 const res = await adminApi.getBahanBaju();
                 if (res.status === "success") {
-                    const bahan = res.data.find((b: any) => b.id === Number(id));
+                    const bahan = res.data.find(
+                        (b: any) =>
+                            b.uuid === id || String(b.id) === String(id),
+                    );
                     if (bahan) {
+                        setNumericId(bahan.id);
+                        setBahanUuid(bahan.uuid || String(bahan.id));
+                        if (bahan.uuid && id !== bahan.uuid) {
+                            const editPrefix = isGudang
+                                ? "/gudang/bahan-baju/edit"
+                                : "/admin/bahan-baju/edit";
+                            navigate(`${editPrefix}/${bahan.uuid}`, {
+                                replace: true,
+                            });
+                        }
                         setNama(bahan.nama);
                         setDeskripsi(bahan.deskripsi || "");
                         setKuantitasKg(bahan.kuantitasKg ? String(bahan.kuantitasKg).replace(".", ",") : "");
@@ -71,7 +86,7 @@ export function useBahanBajuEdit() {
             }
         };
         fetchBahan();
-    }, [id, navigate, backPath]);
+    }, [id, navigate, backPath, isGudang]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -160,7 +175,7 @@ export function useBahanBajuEdit() {
                 formData.append("buktiNota", buktiNotaFile);
             }
 
-            await adminApi.updateBahanBaju(Number(id), formData);
+            await adminApi.updateBahanBaju(numericId ?? id!, formData);
             setToast({ title: "Bahan baju berhasil diperbarui!", variant: "success" });
             setTimeout(() => navigate(backPath), 1500);
         } catch (error) {
@@ -172,7 +187,7 @@ export function useBahanBajuEdit() {
     };
 
     return {
-        id,
+        id: bahanUuid || id,
         isGudang,
         backPath,
         loading,

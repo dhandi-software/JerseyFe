@@ -106,23 +106,45 @@ export function useMonitoringPesanan() {
         return () => clearTimeout(timer);
     }, [searchQuery, fetchOrders]);
 
-    // Fetch initial metadata: designers and fabrics
+    // Fetch initial metadata: designers and fabrics (independent so one failure doesn't block the other)
+    const fetchDesignersList = useCallback(async () => {
+        try {
+            const designersRes = await adminApi.getDesigners();
+            if (Array.isArray(designersRes?.data)) {
+                setDesigners(designersRes.data);
+            } else if (Array.isArray(designersRes)) {
+                setDesigners(designersRes);
+            }
+        } catch (error) {
+            console.error("Error fetching designers:", error);
+        }
+    }, []);
+
     useEffect(() => {
         const fetchInitialData = async () => {
-            try {
-                const [designersRes, bahanRes] = await Promise.all([
-                    adminApi.getDesigners(),
-                    adminApi.getBahanBaju()
-                ]);
-                if (designersRes?.data) setDesigners(designersRes.data);
-                if (bahanRes?.status === "success") setBahanList(bahanRes.data);
-            } catch (error) {
-                console.error("Error fetching initial metadata:", error);
+            const [designersResult, bahanResult] = await Promise.allSettled([
+                adminApi.getDesigners(),
+                adminApi.getBahanBaju()
+            ]);
+
+            if (designersResult.status === "fulfilled") {
+                const dData = designersResult.value?.data ?? designersResult.value;
+                if (Array.isArray(dData)) setDesigners(dData);
+            }
+            if (bahanResult.status === "fulfilled" && bahanResult.value?.status === "success") {
+                setBahanList(bahanResult.value.data);
             }
         };
 
         fetchInitialData();
     }, []);
+
+    // Re-fetch designers when assign modal opens if list is still empty
+    useEffect(() => {
+        if (isAssignModalOpen && designers.length === 0) {
+            fetchDesignersList();
+        }
+    }, [isAssignModalOpen, designers.length, fetchDesignersList]);
 
     // Auto-expand row when search matches member name or number
     useEffect(() => {
@@ -265,7 +287,26 @@ export function useMonitoringPesanan() {
                 targetSlot,
                 res.url
             );
-            await orderService.updatePaymentUrl(selectedOrder.rawId, newPaymentUrl);
+
+            const total = selectedOrder.totalAmount || 0;
+            const currentPaid = selectedOrder.paidAmount || 0;
+            const paymentUpdatePayload: {
+                paymentUrl: string;
+                paymentType?: string;
+                paidAmount?: number;
+                remainingAmount?: number;
+            } = {
+                paymentUrl: newPaymentUrl
+            };
+
+            if (targetSlot === "FULL") {
+                paymentUpdatePayload.paidAmount = total;
+                paymentUpdatePayload.remainingAmount = 0;
+            } else if (targetSlot === "DP") {
+                paymentUpdatePayload.paymentType = "DP";
+            }
+
+            await orderService.updatePaymentDetails(selectedOrder.rawId, paymentUpdatePayload);
             
             setToast({
                 title: targetSlot === "DP"
@@ -273,8 +314,25 @@ export function useMonitoringPesanan() {
                     : "Bukti pembayaran Full berhasil diunggah!",
                 variant: "success"
             });
-            setSelectedOrder(prev => prev ? { ...prev, paymentProofUrl: newPaymentUrl } : null);
-            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, paymentProofUrl: newPaymentUrl } : o));
+
+            const nextPaymentType = (paymentUpdatePayload.paymentType as "DP" | "FULL") || selectedOrder.paymentType;
+            const nextPaidAmount = paymentUpdatePayload.paidAmount !== undefined ? paymentUpdatePayload.paidAmount : selectedOrder.paidAmount;
+            const nextRemainingAmount = paymentUpdatePayload.remainingAmount !== undefined ? paymentUpdatePayload.remainingAmount : selectedOrder.remainingAmount;
+
+            setSelectedOrder(prev => prev ? {
+                ...prev,
+                paymentProofUrl: newPaymentUrl,
+                paymentType: nextPaymentType,
+                paidAmount: nextPaidAmount,
+                remainingAmount: nextRemainingAmount
+            } : null);
+            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? {
+                ...o,
+                paymentProofUrl: newPaymentUrl,
+                paymentType: nextPaymentType,
+                paidAmount: nextPaidAmount,
+                remainingAmount: nextRemainingAmount
+            } : o));
         } catch (error) {
             console.error("Gagal mengunggah bukti pembayaran", error);
             setToast({ title: "Gagal mengunggah bukti pembayaran", variant: "destructive" });
@@ -331,13 +389,43 @@ export function useMonitoringPesanan() {
         }
     };
 
-    // Action: Update status (with optional designer assignment)
-    const handleUpdateStatus = async (id: number, newStatus: string, designerId?: number) => {
+    const handleUpdateStatus = async (
+        id: number,
+        newStatus: string,
+        designerId?: number,
+        paymentConfirmation?: { paymentType?: string; paidAmount?: number; remainingAmount?: number }
+    ) => {
         try {
-            await orderService.updateOrderStatus(id, newStatus, designerId);
-            setOrders(prev => prev.map(o => o.rawId === id ? { ...o, status: newStatus } : o));
+            const updatedRes = await orderService.updateOrderStatus(id, newStatus, designerId, undefined, paymentConfirmation);
+            const assignedDesigner = designerId ? designers.find(d => d.id === designerId) : undefined;
+
+            const applyUpdates = (o: MonitoringOrder): MonitoringOrder => {
+                const total = o.totalAmount || 0;
+                const nextType = (paymentConfirmation?.paymentType || updatedRes?.paymentType || o.paymentType) as "DP" | "FULL";
+                const nextPaid = newStatus === "SELESAI"
+                    ? total
+                    : (paymentConfirmation?.paidAmount !== undefined
+                        ? paymentConfirmation.paidAmount
+                        : (updatedRes?.paidAmount !== undefined ? updatedRes.paidAmount : o.paidAmount));
+                const nextRemaining = newStatus === "SELESAI"
+                    ? 0
+                    : (paymentConfirmation?.remainingAmount !== undefined
+                        ? paymentConfirmation.remainingAmount
+                        : (updatedRes?.remainingAmount !== undefined ? updatedRes.remainingAmount : Math.max(0, total - (nextPaid || 0))));
+
+                return {
+                    ...o,
+                    status: newStatus,
+                    paymentType: nextType,
+                    paidAmount: nextPaid,
+                    remainingAmount: nextRemaining,
+                    ...(assignedDesigner ? { designer: assignedDesigner.nama } : {})
+                };
+            };
+
+            setOrders(prev => prev.map(o => o.rawId === id ? applyUpdates(o) : o));
             if (selectedOrder?.rawId === id) {
-                setSelectedOrder(prev => prev ? ({ ...prev, status: newStatus }) : null);
+                setSelectedOrder(prev => prev ? applyUpdates(prev) : null);
             }
             
             if (newStatus === "DESAIN") {

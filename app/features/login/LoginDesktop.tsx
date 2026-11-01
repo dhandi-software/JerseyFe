@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { Eye, EyeOff, ShieldCheck, Mail, Lock } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "~/lib/utils";
 
 export function LoginDesktop() {
+    const location = useLocation();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
@@ -150,7 +151,7 @@ export function LoginDesktop() {
                     </Button>
 
                     <div className="text-center pt-4 px-1">
-                        <Link to="/register" className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
+                        <Link to="/register" state={location.state} className="text-[11px] font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-tighter italic">
                             Belum punya akun? Daftar di sini
                         </Link>
                     </div>

@@ -4,6 +4,7 @@ import {
     RotateCcw,
     AlertCircle,
     PackageSearch,
+    PackageOpen,
     ChevronDown,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
@@ -92,7 +93,7 @@ export function HomeMobile() {
                         <h2 className="text-xl font-extrabold text-slate-950 tracking-tight">
                             Total Katalog Produk
                         </h2>
-                        <span className="text-xl font-bold text-slate-400">
+                        <span className="text-xl font-bold text-slate-600">
                             {allCatalogItems.length}
                         </span>
                     </div>
@@ -100,7 +101,7 @@ export function HomeMobile() {
                     <button
                         type="button"
                         onClick={() => setMobileFilterOpen((prev) => !prev)}
-                        className="min-h-[44px] px-3.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-800 inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                        className="min-h-[44px] px-3.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-800 inline-flex items-center gap-1.5 shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99]"
                     >
                         <SlidersHorizontal className="w-4 h-4 text-[#5B1D99]" />
                         <span>Filter</span>
@@ -114,13 +115,14 @@ export function HomeMobile() {
                 </div>
 
                 <div className="relative w-full">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                         type="text"
+                        aria-label="Cari bahan atau model jersey"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Cari bahan atau model jersey..."
-                        className="w-full h-11 pl-10 pr-4 rounded-2xl bg-white border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#5B1D99]"
+                        className="w-full min-h-[44px] pl-10 pr-4 rounded-2xl bg-white border border-slate-300 text-xs font-medium text-slate-900 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99] focus-visible:border-[#5B1D99]"
                     />
                 </div>
 
@@ -156,7 +158,7 @@ export function HomeMobile() {
 
                 {loading ? (
                     <div className="space-y-3">
-                        <p className="text-xs font-medium text-slate-500">
+                        <p className="text-xs font-medium text-slate-600">
                             Memuat daftar produk katalog yang diunggah admin...
                         </p>
                         <div className="grid grid-cols-1 gap-4">
@@ -183,7 +185,7 @@ export function HomeMobile() {
                     </div>
                 ) : error ? (
                     <div className="bg-white border border-rose-200 rounded-3xl p-6 text-center space-y-3">
-                        <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+                        <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center mx-auto">
                             <AlertCircle className="w-5 h-5" />
                         </div>
                         <h3 className="text-sm font-bold text-slate-900">
@@ -195,11 +197,23 @@ export function HomeMobile() {
                         <button
                             type="button"
                             onClick={fetchProducts}
-                            className="min-h-[44px] px-4 py-2 rounded-xl bg-[#240B36] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+                            className="min-h-[44px] px-4 py-2 rounded-xl bg-[#240B36] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99]"
                         >
                             <RotateCcw className="w-4 h-4" />
                             <span>Muat Ulang</span>
                         </button>
+                    </div>
+                ) : allCatalogItems.length === 0 ? (
+                    <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-8 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#5B1D99] flex items-center justify-center mx-auto">
+                            <PackageOpen className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-base font-extrabold text-slate-900">
+                            Belum Ada Produk Katalog
+                        </h3>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                            Saat ini belum ada produk atau bahan jersey yang dibuat oleh admin. Produk akan tampil secara otomatis setelah admin menambahkannya.
+                        </p>
                     </div>
                 ) : filteredCatalogItems.length === 0 ? (
                     <div className="bg-white border border-slate-200/80 rounded-3xl p-6 text-center space-y-3">
@@ -215,7 +229,7 @@ export function HomeMobile() {
                         <button
                             type="button"
                             onClick={handleResetFilters}
-                            className="min-h-[44px] px-4 py-2 rounded-xl bg-[#240B36] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+                            className="min-h-[44px] px-4 py-2 rounded-xl bg-[#240B36] text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B1D99]"
                         >
                             <RotateCcw className="w-4 h-4" />
                             <span>Reset Semua Filter</span>

@@ -35,10 +35,21 @@ export const orderService = {
         return (response.data || []).map(mapOrder);
     },
     
-    async updateOrderStatus(id: number, status: string, designerId?: number, isWorking?: boolean) {
+    async updateOrderStatus(
+        id: number,
+        status: string,
+        designerId?: number,
+        isWorking?: boolean,
+        paymentConfirmation?: { paymentType?: string; paidAmount?: number; remainingAmount?: number }
+    ) {
         const payload: any = { status };
         if (designerId) payload.designerId = designerId;
         if (isWorking !== undefined) payload.isWorking = isWorking;
+        if (paymentConfirmation) {
+            if (paymentConfirmation.paymentType !== undefined) payload.paymentType = paymentConfirmation.paymentType;
+            if (paymentConfirmation.paidAmount !== undefined) payload.paidAmount = paymentConfirmation.paidAmount;
+            if (paymentConfirmation.remainingAmount !== undefined) payload.remainingAmount = paymentConfirmation.remainingAmount;
+        }
         const response = await client.patch(`/orders/${id}/status`, payload);
         return mapOrder(response.data);
     },

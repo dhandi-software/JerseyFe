@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { adminApi } from "~/api/admin";
+import { orderService } from "~/services/orderService";
+import { computeOmsetReportFromOrders } from "~/lib/omsetRevenueUtils";
 import {
     TrendingUp, TrendingDown, Coins, FileText, ZoomIn, X, Printer, Image as ImageIcon,
     Box, Receipt, CheckCircle2, Factory, BarChart3, Calculator
@@ -55,14 +57,24 @@ export function FinancialReportModal({ isOpen, onClose }: FinancialReportModalPr
         setLoading(true);
         try {
             const params = (startDate && endDate) ? { startDate, endDate } : undefined;
-            const res = await adminApi.getOmsetReport(params);
-            if (res.status === "success" && res.data) {
+            const [res, ordersRes] = await Promise.allSettled([
+                adminApi.getOmsetReport(params),
+                orderService.getOrders()
+            ]);
+
+            const reportPayload = res.status === "fulfilled" && res.value?.status === "success" ? res.value.data : null;
+            const rawOrders = ordersRes.status === "fulfilled" && Array.isArray(ordersRes.value) ? ordersRes.value : [];
+            const computed = rawOrders.length > 0 ? computeOmsetReportFromOrders(rawOrders, params) : null;
+
+            if (reportPayload || computed) {
+                const totalPemasukan = computed ? computed.totalPemasukan : (reportPayload?.totalPemasukan || 0);
+                const totalPengeluaran = reportPayload?.totalPengeluaran || 0;
                 setReportData({
-                    totalPemasukan: res.data.totalPemasukan || 0,
-                    totalPengeluaran: res.data.totalPengeluaran || 0,
-                    netProfit: res.data.netProfit || 0,
-                    bahanPerformance: res.data.bahanPerformance || [],
-                    revenueBreakdown: res.data.revenueBreakdown || []
+                    totalPemasukan,
+                    totalPengeluaran,
+                    netProfit: totalPemasukan - totalPengeluaran,
+                    bahanPerformance: reportPayload?.bahanPerformance || [],
+                    revenueBreakdown: computed ? computed.revenueBreakdown : (reportPayload?.revenueBreakdown || [])
                 });
             }
         } catch (error) {
@@ -299,7 +311,7 @@ export function FinancialReportModal({ isOpen, onClose }: FinancialReportModalPr
                                     <div className="p-4 flex-1 flex flex-col justify-between">
                                         <div className="space-y-4 text-xs font-medium text-slate-600 print:text-[11px]">
                                             <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
-                                                <span className="text-emerald-700 font-bold">Total Penjualan (Pesanan Selesai)</span>
+                                                <span className="text-emerald-700 font-bold">Total Penerimaan Penjualan (Lunas & DP)</span>
                                                 <span className="font-bold text-slate-800">{formatCurrency(reportData.totalPemasukan)}</span>
                                             </div>
                                             {reportData.revenueBreakdown && reportData.revenueBreakdown.map((r: any, idx: number) => (

@@ -130,7 +130,7 @@ export function useHomeCatalog(): UseHomeCatalogReturn {
             }
 
             return {
-                id: String(p.id),
+                id: String(p.uuid || p.id),
                 sku: p.sku || `BAHAN-${p.id}`,
                 title: p.title,
                 brand: p.brand || "FCSV Authentic",

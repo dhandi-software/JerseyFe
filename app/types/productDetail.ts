@@ -31,6 +31,7 @@ export interface ProductDetailData {
   rating: number;
   reviewsCount: number;
   availability: string;
+  isAvailable: boolean;
   brand: string;
   sku: string;
   description: string;
@@ -41,6 +42,9 @@ export interface ProductDetailData {
   sizes: string[];
   specs: Record<string, string>;
   stockKg?: number;
+  rasioKonversi?: number;
+  estimatedShortSleevePcs?: number;
+  estimatedLongSleevePcs?: number;
   additionalInfo?: ProductAdditionalInfo;
   shippingWarranty?: ProductShippingWarranty;
 }

@@ -36,7 +36,12 @@ export interface OrderDetailViewDesktopProps {
     handleUploadPrint: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
     isUploadingFinishing: boolean;
     handleUploadFinishing: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-    handleUpdateStatus: (id: number, newStatus: string, designerId?: number) => Promise<void>;
+    handleUpdateStatus: (
+        id: number,
+        newStatus: string,
+        designerId?: number,
+        paymentConfirmation?: { paymentType?: string; paidAmount?: number; remainingAmount?: number }
+    ) => Promise<void>;
     handleApproveDesign: (id: number) => Promise<void>;
     handleRevisiDesign: (id: number, feedback: string) => Promise<void>;
     handleApproveLayout: (id: number) => Promise<void>;
@@ -236,6 +241,7 @@ export function OrderDetailViewDesktop({
                     selectedDesignerId={selectedDesignerId}
                     setSelectedDesignerId={setSelectedDesignerId}
                     orderToAssign={orderToAssign}
+                    order={selectedOrder}
                     handleUpdateStatus={handleUpdateStatus}
                 />
             </div>
