@@ -1,10 +1,29 @@
 import axios from "axios";
 
-const getEnvUrl = () => {
-    if (typeof window === "undefined" && typeof process !== "undefined" && process?.env?.INTERNAL_API_URL) {
-        return process.env.INTERNAL_API_URL;
+export const normalizeBaseUrl = (rawUrl?: string): string => {
+    const trimmed = (rawUrl || "").trim().replace(/\/$/, "");
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (trimmed.startsWith("/")) return trimmed;
+    if (trimmed.startsWith("localhost") || trimmed.startsWith("127.0.0.1")) {
+        return `http://${trimmed}`;
     }
-    return import.meta.env.VITE_API_BASE_URL || "";
+    return `https://${trimmed}`;
+};
+
+export const getEnvUrl = (): string => {
+    if (typeof window === "undefined" && typeof process !== "undefined") {
+        if (process?.env?.INTERNAL_API_URL) {
+            return normalizeBaseUrl(process.env.INTERNAL_API_URL);
+        }
+        if (process?.env?.VITE_API_BASE_URL) {
+            return normalizeBaseUrl(process.env.VITE_API_BASE_URL);
+        }
+    }
+    if (typeof window !== "undefined" && (window as any).__API_BASE_URL__) {
+        return normalizeBaseUrl((window as any).__API_BASE_URL__);
+    }
+    return normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || "");
 };
 
 const envUrl = getEnvUrl();
@@ -13,9 +32,14 @@ const baseUrl = envUrl.replace(/\/$/, "");
 export const API_URL = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
 export const UPLOADS_URL = baseUrl || "";
 
+export const getUploadsUrl = (): string => {
+    const currentBase = getEnvUrl().replace(/\/$/, "");
+    return currentBase.endsWith("/api") ? currentBase.slice(0, -4) : currentBase;
+};
+
 export const client = axios.create({
     baseURL: API_URL,
-    timeout: 3500,
+    timeout: 30000,
     headers: {
         "Content-Type": "application/json",
     },
@@ -23,6 +47,11 @@ export const client = axios.create({
 });
 
 client.interceptors.request.use((config) => {
+    const runtimeBase = getEnvUrl().replace(/\/$/, "");
+    if (runtimeBase) {
+        config.baseURL = runtimeBase.endsWith("/api") ? runtimeBase : `${runtimeBase}/api`;
+    }
+
     if (config.data instanceof FormData) {
         delete config.headers["Content-Type"];
     }

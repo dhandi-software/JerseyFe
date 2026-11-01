@@ -7,6 +7,7 @@ import {
     Scripts,
     ScrollRestoration,
     useLoaderData,
+    useRouteLoaderData,
 } from "react-router";
 import { UAParser } from "ua-parser-js";
 import type { Route } from "./+types/root";
@@ -19,8 +20,9 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { AuthProvider } from "~/context/AuthContext";
-// Tambahkan import PasswordProvider
 import { PasswordProvider } from "~/context/PasswordContext";
+import { CartProvider } from "~/context/CartContext";
+import { WishlistProvider } from "~/context/WishlistContext";
 
 import "~/app.css";
 
@@ -46,14 +48,17 @@ export async function loader({ context, request }: Route.LoaderArgs) {
     const userAgent = request.headers.get("user-agent");
     const ua = new UAParser(userAgent || "");
     const isMobile = ua.getDevice().type === "mobile";
+    const apiBaseUrl = process.env.VITE_API_BASE_URL || "";
     return data(
-        { locale, isMobile },
+        { locale, isMobile, apiBaseUrl },
         { headers: { "Set-Cookie": await localeCookie.serialize(locale) } },
     );
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
     let { i18n } = useTranslation();
+    const rootData = useRouteLoaderData<typeof loader>("root");
+    const apiBaseUrl = rootData?.apiBaseUrl || "";
     return (
         <html lang={i18n.language} dir={i18n.dir(i18n.language)}>
             <head>
@@ -64,11 +69,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 />
                 <Meta />
                 <Links />
+                {apiBaseUrl ? (
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `window.__API_BASE_URL__ = ${JSON.stringify(apiBaseUrl)};`,
+                        }}
+                    />
+                ) : null}
             </head>
             <body>
-                {/* <Header isMobile={isMobile} /> */}
                 {children}
-                {/* <Footer isMobile={isMobile} /> */}
                 <ScrollRestoration />
                 <Scripts />
             </body>
@@ -78,15 +88,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export type ContextType = { isMobile: boolean | false };
 
-import { CartProvider } from "~/context/CartContext";
-import { WishlistProvider } from "~/context/WishlistContext";
-
 export default function App() {
-    const { isMobile, locale } = useLoaderData<typeof loader>();
+    const { isMobile, locale, apiBaseUrl } = useLoaderData<typeof loader>();
     useChangeLanguage(locale);
+
+    if (typeof window !== "undefined" && apiBaseUrl) {
+        (window as any).__API_BASE_URL__ = apiBaseUrl;
+    }
 
     return (
         <AuthProvider>
+            {apiBaseUrl ? (
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `window.__API_BASE_URL__ = ${JSON.stringify(apiBaseUrl)};`,
+                    }}
+                />
+            ) : null}
             <PasswordProvider>
                 <CartProvider>
                     <WishlistProvider>
