@@ -23,7 +23,7 @@ export function PlayerTableDesktop({
 }: PlayerTableDesktopProps) {
     if (customDetails.length === 0 && !hasPdfFile) {
         return (
-            <div className="bg-white border-2 border-dashed border-neutral-100 rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4">
+            <div id="field-player-table" className="bg-white border-2 border-dashed border-neutral-100 rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4">
                 <div className="w-16 h-16 bg-neutral-50 rounded-2xl flex items-center justify-center">
                     <ShoppingCart className="w-8 h-8 text-neutral-200" />
                 </div>
@@ -64,7 +64,7 @@ export function PlayerTableDesktop({
                         </thead>
                         <tbody className="divide-y divide-neutral-100">
                             {customDetails.map((detail, index) => (
-                                <tr key={detail.id} className="hover:bg-neutral-50/50 transition-all duration-300 group">
+                                <tr key={detail.id} id={`field-player-row-${detail.id}`} className="hover:bg-neutral-50/50 transition-all duration-300 group">
                                     <td className="p-5 pl-10 text-center">
                                         <span className="text-sm font-black text-neutral-400">{index + 1}</span>
                                     </td>
@@ -72,25 +72,27 @@ export function PlayerTableDesktop({
                                         <div className="relative group/input">
                                             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-800 group-focus-within/input:text-[#D25026] transition-colors" />
                                             <Input 
+                                                id={`field-player-name-${detail.id}`}
                                                 value={detail.name}
                                                 onChange={(e) => onDetailChange(detail.id, "name", e.target.value)}
                                                 placeholder="NAMA" 
                                                 className={cn(
                                                     "h-12 rounded-2xl border-neutral-200 focus:border-[#D25026]/50 focus:ring-[#D25026]/20 bg-white text-sm font-black uppercase tracking-wider text-black placeholder:text-neutral-800 pl-11 transition-all duration-300",
-                                                    showValidation && !detail.name.trim() && "border-red-500 bg-red-50/30"
+                                                    showValidation && !detail.name.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
                                                 )}
                                             />
                                         </div>
                                     </td>
                                     <td className="p-5">
                                         <Input 
+                                            id={`field-player-number-${detail.id}`}
                                             value={detail.number}
                                             onChange={(e) => onDetailChange(detail.id, "number", e.target.value)}
                                             placeholder="00" 
                                             maxLength={3}
                                             className={cn(
                                                 "w-20 mx-auto h-12 rounded-2xl border-neutral-200 focus:border-[#D25026]/50 focus:ring-[#D25026]/20 bg-white text-base font-black text-center text-black placeholder:text-neutral-800 transition-all duration-300",
-                                                showValidation && !detail.number.trim() && "border-red-500 bg-red-50/30"
+                                                showValidation && !detail.number.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
                                             )}
                                         />
                                     </td>

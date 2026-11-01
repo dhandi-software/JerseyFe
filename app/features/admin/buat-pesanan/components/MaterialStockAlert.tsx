@@ -33,7 +33,7 @@ export function MaterialStockAlert({
                 )}
 
                 {isOverLimit && (
-                    <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-2.5">
+                    <div id="field-stock-alert" className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-2.5">
                         <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                         <div className="text-[10px] font-bold uppercase tracking-tight text-red-800 leading-relaxed">
                             Kebutuhan bahan baku melebihi ketersediaan di gudang! (Dibutuhkan: {totalRequiredKg.toFixed(2)} kg, Tersedia: {availableKg.toFixed(2)} kg).
@@ -56,7 +56,7 @@ export function MaterialStockAlert({
             )}
 
             {isOverLimit && (
-                <div className="bg-red-50 border border-red-200 p-5 rounded-2xl flex items-start gap-3">
+                <div id="field-stock-alert" className="bg-red-50 border border-red-200 p-5 rounded-2xl flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div className="text-xs font-bold uppercase tracking-tight text-red-800">
                         Kebutuhan bahan baku melebihi ketersediaan di gudang! (Dibutuhkan: {totalRequiredKg.toFixed(2)} kg, Tersedia: {availableKg.toFixed(2)} kg).

@@ -37,6 +37,7 @@ export function BuatPesananDesktop({ title }: { title: string }) {
         customerPhone,
         setCustomerPhone,
         customDetails,
+        handleSelectBahan,
         handleDetailChange,
         handleAddMember,
         handleRemoveMember,
@@ -201,12 +202,8 @@ export function BuatPesananDesktop({ title }: { title: string }) {
                                     onCustomerPhoneChange={setCustomerPhone}
                                     allBahan={allBahan}
                                     selectedBahanId={activeProduct?.id?.toString() || ""}
-                                    onSelectBahan={(val) => {
-                                        const found = allBahan.find(b => b.id.toString() === val);
-                                        if (found) {
-                                            setToast({ show: true, message: `Bahan ${found.nama} dipilih`, variant: "success" });
-                                        }
-                                    }}
+                                    onSelectBahan={handleSelectBahan}
+                                    showValidation={showValidation}
                                     variant="desktop"
                                 />
 

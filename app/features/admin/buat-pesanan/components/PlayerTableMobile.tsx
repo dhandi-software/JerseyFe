@@ -150,29 +150,31 @@ export function PlayerTableMobile({
                             </thead>
                             <tbody>
                                 {customDetails.map((detail, index) => (
-                                    <tr key={detail.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+                                    <tr key={detail.id} id={`field-player-row-${detail.id}`} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
                                         <td className="p-3 pl-5 text-center">
                                             <span className="text-[11px] font-black text-neutral-400">{index + 1}</span>
                                         </td>
                                         <td className="p-3">
                                             <Input 
+                                                id={`field-player-name-${detail.id}`}
                                                 value={detail.name}
                                                 onChange={(e) => onDetailChange(detail.id, "name", e.target.value)}
                                                 placeholder="NAMA" 
                                                 className={cn(
                                                     "h-9 rounded-xl border-neutral-200 focus:ring-[#D25026]/10 focus:border-[#D25026]/30 bg-white text-xs font-black uppercase text-black placeholder:text-neutral-800 px-3 transition-all",
-                                                    showValidation && !detail.name.trim() && "border-red-500 bg-red-50/30"
+                                                    showValidation && !detail.name.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
                                                 )}
                                             />
                                         </td>
                                         <td className="p-3">
                                             <Input 
+                                                id={`field-player-number-${detail.id}`}
                                                 value={detail.number}
                                                 onChange={(e) => onDetailChange(detail.id, "number", e.target.value)}
                                                 placeholder="00" 
                                                 className={cn(
                                                     "h-9 rounded-xl border-neutral-200 focus:ring-[#D25026]/10 focus:border-[#D25026]/30 bg-white text-sm font-black text-center text-black placeholder:text-neutral-800 px-2 transition-all",
-                                                    showValidation && !detail.number.trim() && "border-red-500 bg-red-50/30"
+                                                    showValidation && !detail.number.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
                                                 )}
                                             />
                                         </td>
@@ -235,7 +237,7 @@ export function PlayerTableMobile({
             )}
 
             {customDetails.length === 0 && !pdfFile && (
-                <div className="bg-white border-2 border-dashed border-neutral-100 rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
+                <div id="field-player-table" className="bg-white border-2 border-dashed border-neutral-100 rounded-2xl p-8 flex flex-col items-center justify-center gap-3">
                     <ShoppingCart className="w-8 h-8 text-neutral-200" />
                     <p className="text-xs font-black uppercase italic text-neutral-900">List masih kosong</p>
                     <Button 

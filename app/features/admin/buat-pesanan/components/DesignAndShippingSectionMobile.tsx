@@ -71,9 +71,12 @@ export function DesignAndShippingSectionMobile({
                     />
                 </div>
                 
-                <div className="space-y-2">
+                <div id="field-design-reference" className="space-y-2">
                     <Label className="text-[10px] font-black uppercase italic text-neutral-400">Referensi Gambar</Label>
-                    <div className="h-48 border-2 border-dashed border-neutral-100 rounded-3xl bg-white flex flex-col items-center justify-center gap-3 relative overflow-hidden group transition-all active:scale-95">
+                    <div className={cn(
+                        "h-48 border-2 border-dashed border-neutral-100 rounded-3xl bg-white flex flex-col items-center justify-center gap-3 relative overflow-hidden group transition-all active:scale-95",
+                        showValidation && !designReferenceFile && !hasExistingDesign && "border-red-500 bg-red-50/20 ring-2 ring-red-500/20"
+                    )}>
                         {designReferenceFile || hasExistingDesign ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-white p-4">
                                 {designReferenceFile ? (
@@ -185,12 +188,13 @@ export function DesignAndShippingSectionMobile({
                         <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
                             <Label className="text-[9px] font-black uppercase tracking-wider text-neutral-400 italic">Alamat Tujuan COD</Label>
                             <Textarea
+                                id="field-shipping-address"
                                 value={shippingAddress}
                                 onChange={(e) => onShippingAddressChange(e.target.value)}
                                 placeholder="Tulis alamat pengiriman secara detail..."
                                 className={cn(
                                     "min-h-[80px] rounded-xl border-neutral-150 p-4 bg-neutral-50/50 text-xs font-medium leading-normal",
-                                    showValidation && shippingAddress.trim() === "" && "border-red-500 bg-red-50/20"
+                                    showValidation && shippingAddress.trim() === "" && "border-red-500 bg-red-50/20 ring-2 ring-red-500/20"
                                 )}
                             />
                         </div>

@@ -13,6 +13,7 @@ import {
     getJerseyKgRequirement,
     compressImage,
     parseSizeAndSleeve,
+    parsePasteData as parsePastePlayerList,
 } from "~/features/admin/buat-pesanan/utils";
 import type {
     CustomJerseyDetailItem,
@@ -357,127 +358,23 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
     };
 
     const parsePasteData = () => {
-        const lines = pasteText.split("\n").filter((l) => l.trim());
-        if (!activeProduct) return;
-
-        const validSizes = [
-            "5XL",
-            "4XL",
-            "3XL",
-            "2XL",
-            "XXXL",
-            "XXL",
-            "XL",
-            "XS",
-            "XXS",
-            "S",
-            "M",
-            "L",
-        ];
-        const isSize = (val: string) =>
-            validSizes.includes(val.toUpperCase().trim());
-        const normalizeSize = (rawSize: string) => {
-            const s = rawSize.toUpperCase().trim();
-            if (s === "XXL") return "2XL";
-            if (s === "XXXL") return "3XL";
-            if (s === "XXXXL") return "4XL";
-            return s;
-        };
-        const isNumeric = (val: string) => /^\d+$/.test(val.trim());
-
-        const newDetails: CustomJerseyDetailItem[] = lines.map((line, idx) => {
-            let tempLine = line.trim();
-
-            let sleeve = "Lengan Pendek";
-            const panjangRegex = /\b(panjang|pjg|long|lengan\s*panjang)\b/i;
-            const pendekRegex = /\b(pendek|pdk|short|lengan\s*pendek)\b/i;
-
-            if (panjangRegex.test(tempLine)) {
-                sleeve = "Lengan Panjang";
-                tempLine = tempLine.replace(panjangRegex, " ");
-            } else if (pendekRegex.test(tempLine)) {
-                sleeve = "Lengan Pendek";
-                tempLine = tempLine.replace(pendekRegex, " ");
-            }
-
-            tempLine = tempLine.replace(
-                /^\s*(?:no\.?|nomor)?\s*\d+\s*[\.\)\:\-]\s*/i,
-                "",
-            );
-
-            let name = "";
-            let number = "";
-            let size = "L";
-
-            const hasDelimiter = /[\/\t\|;,]|\s+-\s+/.test(tempLine);
-
-            if (hasDelimiter) {
-                const parts = tempLine
-                    .split(/(?:[\/\t\|;,]+|\s+-\s+)/)
-                    .map((p) => p.trim())
-                    .filter(Boolean);
-
-                const nameParts: string[] = [];
-                let sizeFound = false;
-
-                for (const part of parts) {
-                    if (!sizeFound && isSize(part)) {
-                        size = normalizeSize(part);
-                        sizeFound = true;
-                    } else if (!number && isNumeric(part)) {
-                        number = part;
-                    } else {
-                        nameParts.push(part);
-                    }
-                }
-
-                name = nameParts.join(" ");
-            } else {
-                const tokens = tempLine.split(/\s+/).filter(Boolean);
-                let sizeFound = false;
-
-                for (let i = tokens.length - 1; i >= 0; i--) {
-                    const token = tokens[i];
-                    if (!sizeFound && isSize(token)) {
-                        size = normalizeSize(token);
-                        sizeFound = true;
-                        tokens.splice(i, 1);
-                    } else if (!number && isNumeric(token)) {
-                        number = token;
-                        tokens.splice(i, 1);
-                    }
-                }
-
-                name = tokens.join(" ");
-            }
-
-            name = name
-                .replace(/["'\(\)\[\]\{\}]/g, "")
-                .replace(/[\/\\|;,]/g, " ")
-                .replace(/\s+/g, " ")
-                .trim();
-
-            return {
-                id: `pasted-${idx}-${Date.now()}`,
-                productId: activeProduct?.id || 101,
-                productTitle: activeProduct?.title || "Custom Jersey",
-                price: activeProduct?.price || 150000,
-                image: activeProduct?.image || "",
-                name: name.toUpperCase(),
-                number: number,
-                size: size,
-                sleeve: sleeve,
-            };
-        });
-
-        setCustomDetails(newDetails);
-        setIsPasteDialogOpen(false);
-        setPasteText("");
-        setToast({
-            show: true,
-            message: `Successfully parsed ${newDetails.length} players!`,
-            variant: "success",
-        });
+        const parsed = parsePastePlayerList(pasteText, activeProduct);
+        if (parsed.length > 0) {
+            setCustomDetails(parsed);
+            setIsPasteDialogOpen(false);
+            setPasteText("");
+            setToast({
+                show: true,
+                message: `Successfully parsed ${parsed.length} players!`,
+                variant: "success",
+            });
+        } else {
+            setToast({
+                show: true,
+                message: "Tidak ada data pemain yang valid terdeteksi",
+                variant: "destructive",
+            });
+        }
     };
 
     const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

@@ -257,6 +257,30 @@ export function useBuatPesanan() {
 
     const effectiveRemainingAmount = Math.max(0, totalCalculated - effectivePaidAmount);
 
+    const handleSelectBahan = (val: string) => {
+        const found = allBahan.find(b => b.id.toString() === val);
+        if (found) {
+            const newProduct: BuatPesananProduct = {
+                id: found.id,
+                title: found.nama,
+                price: found.harga || 150000,
+                status: found.status,
+                kuantitasKg: found.kuantitasKg || 0,
+                rasioKonversi: found.rasioKonversi || 2.5,
+                image: found.imageUrl ? `${UPLOADS_URL}${found.imageUrl}` : ""
+            };
+            setDirectProduct(newProduct);
+            setCustomDetails(prev => prev.map(detail => ({
+                ...detail,
+                productId: newProduct.id,
+                productTitle: newProduct.title,
+                price: newProduct.price,
+                image: newProduct.image || ""
+            })));
+            setToast({ show: true, message: `Bahan ${found.nama} dipilih`, variant: "success" });
+        }
+    };
+
     const handleDetailChange = (id: string, field: keyof CustomDetailItem, value: string) => {
         setCustomDetails(prev => prev.map(detail =>
             detail.id === id ? { ...detail, [field]: value } : detail
@@ -289,17 +313,19 @@ export function useBuatPesanan() {
             return;
         }
 
-        if (!activeProduct) {
-            setToast({ show: true, message: "Pilih produk terlebih dahulu", variant: "destructive" });
-            return;
-        }
+        const product = activeProduct || {
+            id: 0,
+            title: "Custom Jersey",
+            price: 150000,
+            image: ""
+        };
 
         const newDetails: CustomDetailItem[] = Array.from({ length: count }).map((_, idx) => ({
             id: `gen-${idx}-${Date.now()}`,
-            productId: activeProduct.id,
-            productTitle: activeProduct.title,
-            price: activeProduct.price,
-            image: activeProduct.image,
+            productId: product.id,
+            productTitle: product.title,
+            price: product.price,
+            image: product.image || "",
             name: "",
             number: "",
             size: "L",
@@ -479,8 +505,50 @@ export function useBuatPesanan() {
         }
     };
 
+    const scrollToElementAndFocus = (
+        elementId: string,
+        options?: { focusSelector?: string; clickTrigger?: boolean }
+    ) => {
+        if (typeof document === "undefined") return;
+        setTimeout(() => {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+            setTimeout(() => {
+                if (options?.focusSelector) {
+                    const target = el.querySelector<HTMLElement>(options.focusSelector);
+                    if (target) {
+                        target.focus();
+                        if (options.clickTrigger) {
+                            target.click();
+                        }
+                        return;
+                    }
+                }
+                if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLButtonElement) {
+                    el.focus();
+                    if (options?.clickTrigger) {
+                        el.click();
+                    }
+                } else {
+                    const focusable = el.querySelector<HTMLElement>("input, textarea, button, [role='combobox']");
+                    if (focusable) {
+                        focusable.focus();
+                        if (options?.clickTrigger) {
+                            focusable.click();
+                        }
+                    }
+                }
+            }, 350);
+        }, 50);
+    };
+
     const isStepValid = () => {
         if (step === 1) {
+            if (!customerName.trim() || !customerPhone.trim()) return false;
+            if (!activeProduct) return false;
             if (pdfFile) return true;
             if (customDetails.length === 0) return false;
             if (isOverLimit) return false;
@@ -494,31 +562,114 @@ export function useBuatPesanan() {
         return true;
     };
 
-    const handleNextStep = () => {
-        if (step === 1 && isOverLimit) {
-            const supported = Math.floor(availableKg / (totalRequiredKg / customDetails.length));
-            const reduce = Math.max(1, customDetails.length - supported);
-            setToast({
-                show: true,
-                message: `Stok bahan tidak cukup! Silakan kurangi pesanan Anda sebanyak ${reduce} pcs atau ubah ukuran/lengan agar sesuai ketersediaan.`,
-                variant: "destructive"
-            });
-            return;
-        }
-        if (!isStepValid()) {
-            setShowValidation(true);
-            let msg = "Lengkapi langkah ini terlebih dahulu";
-            if (step === 1) {
-                msg = "Mohon lengkapi detail pemain (Nama, Nomor, Size)";
-            } else if (step === 2) {
-                const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
-                if (!hasDesign) {
-                    msg = "Mohon unggah referensi desain jersey Anda";
-                } else {
-                    msg = "Mohon isi alamat pengiriman untuk metode COD";
+    const validateAndFocusCurrentStep = (): boolean => {
+        if (step === 1) {
+            if (!activeProduct) {
+                setShowValidation(true);
+                setToast({
+                    show: true,
+                    message: "Mohon pilih Bahan Baku terlebih dahulu",
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-bahan-baku", {
+                    focusSelector: "button[role='combobox']",
+                    clickTrigger: true
+                });
+                return false;
+            }
+            if (!customerName.trim()) {
+                setShowValidation(true);
+                setToast({
+                    show: true,
+                    message: "Mohon isi Nama Pelanggan terlebih dahulu",
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-customer-name");
+                return false;
+            }
+            if (!customerPhone.trim()) {
+                setShowValidation(true);
+                setToast({
+                    show: true,
+                    message: "Mohon isi Nomor Telepon Pelanggan terlebih dahulu",
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-customer-phone");
+                return false;
+            }
+            if (isOverLimit) {
+                const supported = Math.floor(availableKg / (totalRequiredKg / customDetails.length));
+                const reduce = Math.max(1, customDetails.length - supported);
+                setToast({
+                    show: true,
+                    message: `Stok bahan tidak cukup! Silakan kurangi pesanan Anda sebanyak ${reduce} pcs atau ubah ukuran/lengan agar sesuai ketersediaan.`,
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-stock-alert");
+                return false;
+            }
+            if (!pdfFile && customDetails.length === 0) {
+                setShowValidation(true);
+                setToast({
+                    show: true,
+                    message: "Mohon tambahkan daftar pemain terlebih dahulu",
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-player-table");
+                return false;
+            }
+            if (!pdfFile) {
+                const invalidIndex = customDetails.findIndex(
+                    d => !d.name.trim() || !d.number.trim() || !d.size
+                );
+                if (invalidIndex !== -1) {
+                    const invalidItem = customDetails[invalidIndex];
+                    setShowValidation(true);
+                    setToast({
+                        show: true,
+                        message: `Mohon lengkapi detail pemain baris ke-${invalidIndex + 1} (Nama, Nomor, Size)`,
+                        variant: "destructive"
+                    });
+                    const targetInputId = !invalidItem.name.trim()
+                        ? `field-player-name-${invalidItem.id}`
+                        : `field-player-number-${invalidItem.id}`;
+                    scrollToElementAndFocus(targetInputId);
+                    return false;
                 }
             }
-            setToast({ show: true, message: msg, variant: "destructive" });
+            return true;
+        }
+
+        if (step === 2) {
+            const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
+            if (!hasDesign) {
+                setShowValidation(true);
+                setToast({
+                    show: true,
+                    message: "Mohon unggah referensi desain jersey Anda",
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-design-reference");
+                return false;
+            }
+            if (shippingMethod === "COD" && !shippingAddress.trim()) {
+                setShowValidation(true);
+                setToast({
+                    show: true,
+                    message: "Mohon isi alamat pengiriman untuk metode COD",
+                    variant: "destructive"
+                });
+                scrollToElementAndFocus("field-shipping-address");
+                return false;
+            }
+            return true;
+        }
+
+        return true;
+    };
+
+    const handleNextStep = () => {
+        if (!validateAndFocusCurrentStep()) {
             return;
         }
         setShowValidation(false);
@@ -526,9 +677,7 @@ export function useBuatPesanan() {
     };
 
     const handleSubmit = async () => {
-        if (!isStepValid()) {
-            setShowValidation(true);
-            setToast({ show: true, message: "Mohon lengkapi seluruh data pemain.", variant: "destructive" });
+        if (!validateAndFocusCurrentStep()) {
             return;
         }
 
@@ -566,8 +715,8 @@ export function useBuatPesanan() {
                     customerName,
                     customerPhone,
                     details: customDetails.map(d => ({
-                        productId: d.productId,
-                        productTitle: d.productTitle,
+                        productId: activeProduct?.id || d.productId,
+                        productTitle: activeProduct?.title || d.productTitle,
                         playerName: d.name,
                         playerNumber: d.number,
                         playerSize: `${d.size} (${d.sleeve || "Lengan Pendek"})`
@@ -604,6 +753,7 @@ export function useBuatPesanan() {
         setCustomerPhone,
         customDetails,
         setCustomDetails,
+        handleSelectBahan,
         handleDetailChange,
         handleAddMember,
         handleRemoveMember,

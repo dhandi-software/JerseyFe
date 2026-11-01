@@ -6,3 +6,4 @@
 /build/
 .env
 .env.prod
+.gemini/

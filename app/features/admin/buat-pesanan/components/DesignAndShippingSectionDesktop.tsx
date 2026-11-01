@@ -80,11 +80,14 @@ export function DesignAndShippingSectionDesktop({
                         className="min-h-[22rem] rounded-[2.5rem] border-neutral-100 p-8 focus:ring-[#D25026]/10 focus:border-[#D25026] bg-white shadow-sm ring-1 ring-black/5 text-sm font-medium leading-relaxed"
                     />
                 </div>
-                <div className="space-y-3">
+                <div id="field-design-reference" className="space-y-3">
                     <Label className="text-[11px] font-black uppercase tracking-widest italic text-neutral-900">
                         Upload Referensi
                     </Label>
-                    <div className="h-[15.625rem] border-2 border-dashed border-neutral-200 rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 bg-white hover:bg-neutral-50 hover:border-[#D25026]/30 transition-all cursor-pointer group relative overflow-hidden shadow-sm ring-1 ring-black/5">
+                    <div className={cn(
+                        "h-[15.625rem] border-2 border-dashed border-neutral-200 rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-4 bg-white hover:bg-neutral-50 hover:border-[#D25026]/30 transition-all cursor-pointer group relative overflow-hidden shadow-sm ring-1 ring-black/5",
+                        showValidation && !designReferenceFile && !hasExistingDesign && "border-red-500 bg-red-50/20 ring-2 ring-red-500/20"
+                    )}>
                         {designReferenceFile || hasExistingDesign ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-white p-4">
                                 {designReferenceFile ? (
@@ -204,12 +207,13 @@ export function DesignAndShippingSectionDesktop({
                             Alamat yang Dituju (Penerima)
                         </Label>
                         <Textarea
+                            id="field-shipping-address"
                             value={shippingAddress}
                             onChange={(e) => onShippingAddressChange(e.target.value)}
                             placeholder="Tulis alamat pengiriman secara detail (Nama penerima, No HP, Nama Jalan, RT/RW, Kecamatan, Kabupaten, Kode Pos)..."
                             className={cn(
                                 "min-h-[8rem] rounded-2xl border-neutral-100 p-6 focus:ring-[#D25026]/10 focus:border-[#D25026] bg-neutral-50/50 text-sm font-medium leading-relaxed",
-                                showValidation && shippingAddress.trim() === "" && "border-red-500 bg-red-50/20"
+                                showValidation && shippingAddress.trim() === "" && "border-red-500 bg-red-50/20 ring-2 ring-red-500/20"
                             )}
                         />
                     </div>

@@ -64,26 +64,47 @@ export const parsePasteData = (
     text: string,
     activeProduct: BuatPesananProduct | null
 ): CustomDetailItem[] => {
-    const lines = text.split("\n").filter(l => l.trim());
-    if (!activeProduct || lines.length === 0) return [];
+    const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (rawLines.length === 0) return [];
 
-    const validSizes = ["5XL", "4XL", "3XL", "2XL", "XXXL", "XXL", "XL", "XS", "XXS", "S", "M", "L"];
+    const fallbackProduct: BuatPesananProduct = activeProduct || {
+        id: 0,
+        title: "Custom Jersey",
+        price: 150000,
+        image: ""
+    };
+
+    const validSizes = [
+        "6XL", "5XL", "4XL", "3XL", "2XL",
+        "XXXXXXL", "XXXXXL", "XXXXL", "XXXL", "XXL",
+        "XL", "XS", "XXS", "S", "M", "L", "ALLSIZE", "ALL SIZE"
+    ];
     const isSize = (val: string) => validSizes.includes(val.toUpperCase().trim());
     const normalizeSize = (rawSize: string) => {
         const s = rawSize.toUpperCase().trim();
         if (s === "XXL") return "2XL";
         if (s === "XXXL") return "3XL";
         if (s === "XXXXL") return "4XL";
+        if (s === "XXXXXL") return "5XL";
+        if (s === "XXXXXXL") return "6XL";
+        if (s === "ALLSIZE" || s === "ALL SIZE") return "L";
         return s;
     };
-    const isNumeric = (val: string) => /^\d+$/.test(val.trim());
+    const isNumeric = (val: string) => /^#?\d+$/.test(val.trim());
+    const cleanNumeric = (val: string) => val.trim().replace(/^#/, "");
 
-    return lines.map((line, idx) => {
+    const results: CustomDetailItem[] = [];
+
+    rawLines.forEach((line, idx) => {
         let tempLine = line.trim();
 
+        // Strip leading list numbering like "1.", "1)", "1 -", "No. 1."
+        tempLine = tempLine.replace(/^\s*(?:no\.?|nomor)?\s*\d+\s*[\.\)\:\-]\s*/i, "").trim();
+        if (!tempLine) return;
+
         let sleeve = "Lengan Pendek";
-        const panjangRegex = /\b(panjang|pjg|long|lengan\s*panjang)\b/i;
-        const pendekRegex = /\b(pendek|pdk|short|lengan\s*pendek)\b/i;
+        const panjangRegex = /\b(lengan\s*panjang|panjang|pjg|long\s*sleeve|long|ls)\b/i;
+        const pendekRegex = /\b(lengan\s*pendek|pendek|pdk|short\s*sleeve|short|ss)\b/i;
 
         if (panjangRegex.test(tempLine)) {
             sleeve = "Lengan Panjang";
@@ -92,8 +113,6 @@ export const parsePasteData = (
             sleeve = "Lengan Pendek";
             tempLine = tempLine.replace(pendekRegex, " ");
         }
-
-        tempLine = tempLine.replace(/^\s*(?:no\.?|nomor)?\s*\d+\s*[\.\)\:\-]\s*/i, "");
 
         let name = "";
         let number = "";
@@ -115,13 +134,31 @@ export const parsePasteData = (
                     size = normalizeSize(part);
                     sizeFound = true;
                 } else if (!number && isNumeric(part)) {
-                    number = part;
+                    number = cleanNumeric(part);
                 } else {
+                    // Check if a slash-separated part still contains multiple tokens (e.g. "ROPAI 10")
                     nameParts.push(part);
                 }
             }
 
-            name = nameParts.join(" ");
+            // If number or size wasn't separated by delimiter, check tokens in nameParts
+            if (!number || !sizeFound) {
+                const combinedTokens = nameParts.join(" ").split(/\s+/).filter(Boolean);
+                for (let i = combinedTokens.length - 1; i >= 0; i--) {
+                    const token = combinedTokens[i];
+                    if (!sizeFound && isSize(token)) {
+                        size = normalizeSize(token);
+                        sizeFound = true;
+                        combinedTokens.splice(i, 1);
+                    } else if (!number && isNumeric(token)) {
+                        number = cleanNumeric(token);
+                        combinedTokens.splice(i, 1);
+                    }
+                }
+                name = combinedTokens.join(" ");
+            } else {
+                name = nameParts.join(" ");
+            }
         } else {
             const tokens = tempLine.split(/\s+/).filter(Boolean);
             let sizeFound = false;
@@ -133,7 +170,7 @@ export const parsePasteData = (
                     sizeFound = true;
                     tokens.splice(i, 1);
                 } else if (!number && isNumeric(token)) {
-                    number = token;
+                    number = cleanNumeric(token);
                     tokens.splice(i, 1);
                 }
             }
@@ -147,16 +184,20 @@ export const parsePasteData = (
             .replace(/\s+/g, " ")
             .trim();
 
-        return {
+        if (!name && !number) return;
+
+        results.push({
             id: `pasted-${idx}-${Date.now()}`,
-            productId: activeProduct.id,
-            productTitle: activeProduct.title,
-            price: activeProduct.price,
-            image: activeProduct.image || "",
+            productId: fallbackProduct.id,
+            productTitle: fallbackProduct.title,
+            price: fallbackProduct.price,
+            image: fallbackProduct.image || "",
             name: name.toUpperCase(),
             number: number,
             size: size,
             sleeve: sleeve
-        };
+        });
     });
+
+    return results;
 };

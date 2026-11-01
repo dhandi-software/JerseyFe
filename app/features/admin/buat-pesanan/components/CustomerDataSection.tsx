@@ -1,6 +1,7 @@
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { cn } from "~/lib/utils";
 import type { BahanOption } from "~/types/buatPesanan";
 
 interface CustomerDataSectionProps {
@@ -11,6 +12,7 @@ interface CustomerDataSectionProps {
     allBahan: BahanOption[];
     selectedBahanId: string;
     onSelectBahan: (bahanId: string) => void;
+    showValidation?: boolean;
     variant?: "desktop" | "mobile";
 }
 
@@ -22,6 +24,7 @@ export function CustomerDataSection({
     allBahan,
     selectedBahanId,
     onSelectBahan,
+    showValidation = false,
     variant = "desktop"
 }: CustomerDataSectionProps) {
     if (variant === "mobile") {
@@ -31,27 +34,41 @@ export function CustomerDataSection({
                     Data Pelanggan
                 </h3>
                 <div className="space-y-4">
-                    <div>
+                    <div id="field-customer-name-container">
                         <Label className="text-[10px] font-bold mb-1.5 block">Nama Pelanggan</Label>
                         <Input 
+                            id="field-customer-name"
                             value={customerName}
                             onChange={e => onCustomerNameChange(e.target.value)}
                             placeholder="Contoh: Budi"
-                            className="w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium"
+                            className={cn(
+                                "w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium transition-all",
+                                showValidation && !customerName.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
+                            )}
                             required
                         />
+                        {showValidation && !customerName.trim() && (
+                            <p className="text-[10px] font-bold text-red-500 mt-1">* Mohon isi nama pelanggan</p>
+                        )}
                     </div>
-                    <div>
+                    <div id="field-customer-phone-container">
                         <Label className="text-[10px] font-bold mb-1.5 block">Nomor Telepon</Label>
                         <Input 
+                            id="field-customer-phone"
                             value={customerPhone}
                             onChange={e => onCustomerPhoneChange(e.target.value)}
                             placeholder="Contoh: 08123456789"
-                            className="w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium"
+                            className={cn(
+                                "w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium transition-all",
+                                showValidation && !customerPhone.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
+                            )}
                             required
                         />
+                        {showValidation && !customerPhone.trim() && (
+                            <p className="text-[10px] font-bold text-red-500 mt-1">* Mohon isi nomor telepon</p>
+                        )}
                     </div>
-                    <div>
+                    <div id="field-bahan-baku">
                         <Label className="text-[10px] font-bold mb-1.5 block">Pilih Bahan Baku</Label>
                         <CustomSelect 
                             options={allBahan.map(b => ({
@@ -62,8 +79,14 @@ export function CustomerDataSection({
                             value={selectedBahanId}
                             onChange={onSelectBahan}
                             placeholder="Pilih Bahan"
-                            className="w-full h-11 bg-neutral-50 border-none text-xs"
+                            className={cn(
+                                "w-full h-11 bg-neutral-50 border-none text-xs transition-all",
+                                showValidation && !selectedBahanId && "!border !border-red-500 !bg-red-50/40 ring-2 ring-red-500/20"
+                            )}
                         />
+                        {showValidation && !selectedBahanId && (
+                            <p className="text-[10px] font-bold text-red-500 mt-1">* Mohon pilih bahan baku terlebih dahulu</p>
+                        )}
                     </div>
                 </div>
             </div>
@@ -76,27 +99,41 @@ export function CustomerDataSection({
                 Data Pelanggan & Bahan
             </h2>
             <div className="grid grid-cols-3 gap-6">
-                <div>
+                <div id="field-customer-name-container">
                     <Label className="text-xs font-bold mb-2 block">Nama Pelanggan</Label>
                     <Input 
+                        id="field-customer-name"
                         value={customerName}
                         onChange={e => onCustomerNameChange(e.target.value)}
                         placeholder="Contoh: Budi Santoso"
-                        className="w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium"
+                        className={cn(
+                            "w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium transition-all",
+                            showValidation && !customerName.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
+                        )}
                         required
                     />
+                    {showValidation && !customerName.trim() && (
+                        <p className="text-[11px] font-bold text-red-500 mt-1.5">* Mohon isi nama pelanggan</p>
+                    )}
                 </div>
-                <div>
+                <div id="field-customer-phone-container">
                     <Label className="text-xs font-bold mb-2 block">Nomor Telepon</Label>
                     <Input 
+                        id="field-customer-phone"
                         value={customerPhone}
                         onChange={e => onCustomerPhoneChange(e.target.value)}
                         placeholder="Contoh: 08123456789"
-                        className="w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium"
+                        className={cn(
+                            "w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium transition-all",
+                            showValidation && !customerPhone.trim() && "border-red-500 bg-red-50/30 ring-2 ring-red-500/20"
+                        )}
                         required
                     />
+                    {showValidation && !customerPhone.trim() && (
+                        <p className="text-[11px] font-bold text-red-500 mt-1.5">* Mohon isi nomor telepon</p>
+                    )}
                 </div>
-                <div>
+                <div id="field-bahan-baku">
                     <Label className="text-xs font-bold mb-2 block">Pilih Bahan Baku</Label>
                     <CustomSelect 
                         options={allBahan.map(b => ({
@@ -107,8 +144,14 @@ export function CustomerDataSection({
                         value={selectedBahanId}
                         onChange={onSelectBahan}
                         placeholder="Pilih Bahan"
-                        className="w-full h-[3.25rem] bg-neutral-50 border-none"
+                        className={cn(
+                            "w-full h-[3.25rem] bg-neutral-50 border-none transition-all",
+                            showValidation && !selectedBahanId && "!border !border-red-500 !bg-red-50/40 ring-2 ring-red-500/20"
+                        )}
                     />
+                    {showValidation && !selectedBahanId && (
+                        <p className="text-[11px] font-bold text-red-500 mt-1.5">* Mohon pilih bahan baku terlebih dahulu</p>
+                    )}
                 </div>
             </div>
         </div>
