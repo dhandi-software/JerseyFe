@@ -87,7 +87,7 @@ export function ChatWindow(props: UseChatWindowProps & { onBack?: () => void; in
 
             {/* Active Order Reference Banner */}
             <ChatActiveOrderBanner
-                activeOrder={activeOrder}
+                activeOrder={isOrderDismissed ? null : activeOrder}
                 currentUserRole={props.currentUser?.role}
                 onDismiss={() => setIsOrderDismissed(true)}
                 onSendOrderReference={handleSendOrderReference}

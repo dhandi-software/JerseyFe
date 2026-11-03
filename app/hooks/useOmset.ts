@@ -87,12 +87,18 @@ export function useOmset() {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
-    // Prevent selecting a future month for the current calendar year
+    // Prevent selecting a future month for the current calendar year & sync timeView
     useEffect(() => {
         const curYear = new Date().getFullYear();
         const curMonth = new Date().getMonth() + 1;
         if (selectedYear === curYear && selectedMonth && selectedMonth > curMonth) {
             setSelectedMonth(undefined);
+            setTimeView('monthly');
+            return;
+        }
+        if (selectedYear && selectedMonth) {
+            setTimeView('daily');
+        } else if (selectedYear) {
             setTimeView('monthly');
         }
     }, [selectedYear, selectedMonth]);

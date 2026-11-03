@@ -765,6 +765,7 @@ export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
 
                 const payload = {
                     customerId: user?.id || 0,
+                    customerName: user?.name || user?.username || "",
                     bahanBajuId: activeProduct?.id,
                     totalAmount: totalCalculated,
                     paymentType: paymentType,

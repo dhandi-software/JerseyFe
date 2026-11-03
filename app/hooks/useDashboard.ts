@@ -56,17 +56,36 @@ export function useDashboard() {
 
             const statsPayload = statsRes.status === "fulfilled" ? statsRes.value?.data : null;
             const adminCount = adminRes.status === "fulfilled" ? adminRes.value?.data?.count : 0;
-            const rawOrders = ordersRes.status === "fulfilled" && Array.isArray(ordersRes.value) ? ordersRes.value : [];
-            const computed = rawOrders.length > 0 ? computeDashboardStatsFromOrders(rawOrders) : null;
+            const rawOrders = ordersRes.status === "fulfilled" && Array.isArray(ordersRes.value) ? ordersRes.value : null;
+            const computed = rawOrders !== null ? computeDashboardStatsFromOrders(rawOrders) : null;
+
+            const mergedRecentCustomers = computed
+                ? computed.recentCustomers.map((rc) => {
+                      const backendMatch = Array.isArray(statsPayload?.recentCustomers)
+                          ? statsPayload.recentCustomers.find(
+                                (bc: any) =>
+                                    (!rc.isAdminOrder && Number(bc.id) === Number(rc.id)) ||
+                                    (bc.nama || "").trim().toUpperCase() === rc.nama.trim().toUpperCase()
+                            )
+                          : null;
+                      return backendMatch
+                          ? {
+                                ...rc,
+                                lastMessageAt: backendMatch.lastMessageAt || rc.lastMessageAt,
+                                lastMessageContent: backendMatch.lastMessageContent || rc.lastMessageContent
+                            }
+                          : rc;
+                  })
+                : (statsPayload?.recentCustomers || []);
 
             setStatsData(prev => ({
                 ...prev,
-                totalCustomer: Number(statsPayload?.totalCustomer || 0),
+                totalCustomer: computed ? computed.totalCustomer : Number(statsPayload?.totalCustomer || 0),
                 totalStaff: Number(statsPayload?.totalStaff || 0),
                 totalAdmin: Number(statsPayload?.totalAdmin || adminCount || 0),
                 totalRevenue: computed ? computed.totalRevenue : Number(statsPayload?.totalRevenue || 0),
                 salesData: computed ? computed.salesData : (statsPayload?.salesData || prev.salesData),
-                recentCustomers: statsPayload?.recentCustomers || [],
+                recentCustomers: mergedRecentCustomers,
                 recentChats: statsPayload?.recentChats || [],
                 totalUnreadChat: statsPayload?.totalUnreadChat || 0,
                 bestMonth: computed ? computed.bestMonth : (statsPayload?.bestMonth || prev.bestMonth),

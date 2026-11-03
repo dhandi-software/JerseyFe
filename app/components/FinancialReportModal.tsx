@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { adminApi } from "~/api/admin";
 import { orderService } from "~/services/orderService";
-import { computeOmsetReportFromOrders } from "~/lib/omsetRevenueUtils";
+import { computeOmsetReportFromOrders, toLocalDateKey } from "~/lib/omsetRevenueUtils";
 import {
     TrendingUp, TrendingDown, Coins, FileText, ZoomIn, X, Printer, Image as ImageIcon,
     Box, Receipt, CheckCircle2, Factory, BarChart3, Calculator
@@ -36,19 +36,21 @@ export function FinancialReportModal({ isOpen, onClose }: FinancialReportModalPr
         if (!isOpen) return;
         const today = new Date();
         if (filterPreset === 'hari_ini') {
-            const dStr = today.toISOString().split('T')[0];
+            const dStr = toLocalDateKey(today);
             setStartDate(dStr);
             setEndDate(dStr);
         } else if (filterPreset === 'minggu_ini') {
-            const firstDay = new Date(today.setDate(today.getDate() - today.getDay() + 1));
-            const lastDay = new Date(today.setDate(today.getDate() - today.getDay() + 7));
-            setStartDate(firstDay.toISOString().split('T')[0]);
-            setEndDate(lastDay.toISOString().split('T')[0]);
+            const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+            const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diffToMonday);
+            const lastDay = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + 6);
+            setStartDate(toLocalDateKey(firstDay));
+            setEndDate(toLocalDateKey(lastDay));
         } else if (filterPreset === 'bulan_ini') {
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
             const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            setStartDate(firstDay.toISOString().split('T')[0]);
-            setEndDate(lastDay.toISOString().split('T')[0]);
+            setStartDate(toLocalDateKey(firstDay));
+            setEndDate(toLocalDateKey(lastDay));
         }
     }, [filterPreset, isOpen]);
 

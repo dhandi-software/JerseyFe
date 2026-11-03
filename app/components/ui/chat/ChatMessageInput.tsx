@@ -65,6 +65,7 @@ export function ChatMessageInput({
                         />
 
                         <Button
+                            type="button"
                             variant="ghost"
                             size="icon"
                             className="mb-1 text-[#A1A1A1] hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-all"
@@ -78,7 +79,7 @@ export function ChatMessageInput({
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !e.repeat) {
                                     e.preventDefault();
                                     onSend();
                                 }
@@ -95,6 +96,7 @@ export function ChatMessageInput({
                     </div>
 
                     <Button
+                        type="button"
                         onClick={onSend}
                         disabled={!inputValue.trim()}
                         className={cn(

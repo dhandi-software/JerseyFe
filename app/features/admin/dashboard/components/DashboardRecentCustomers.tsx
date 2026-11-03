@@ -1,9 +1,9 @@
-import { ChevronDown, MessageCircle, Star, MoreVertical, ArrowUpRight } from "lucide-react";
+import { MessageCircle, ArrowUpRight, ShoppingBag } from "lucide-react";
 import { cn } from "~/lib/utils";
 import type { DashboardRecentCustomer } from "~/types";
 
 interface DashboardRecentCustomersProps {
-    recentCustomers: DashboardRecentCustomer[];
+    recentCustomers: (DashboardRecentCustomer & { isAdminOrder?: boolean })[];
     isMobile?: boolean;
 }
 
@@ -15,18 +15,21 @@ export function DashboardRecentCustomers({ recentCustomers, isMobile }: Dashboar
         )}>
             <div className={cn("flex justify-between items-center mb-6", !isMobile && "px-6")}>
                 <div className="text-slate-900 text-xl font-semibold">Customers</div>
-                <div className="flex items-center gap-1 cursor-pointer">
-                    <span className="text-slate-500 text-sm">Sort by </span>
-                    <span className="text-slate-700 text-sm font-medium">Newest</span>
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                </div>
+                <span className="text-slate-400 text-xs font-medium">Berdasarkan Pesanan Terbaru</span>
             </div>
             
             <div className={cn("flex-1 flex flex-col overflow-y-auto gap-1", !isMobile && "px-4")}>
                 {recentCustomers.length > 0 ? (
                     recentCustomers.map((customer, index) => (
                         <div
-                            key={customer.id}
+                            key={`${customer.nama}-${customer.id}-${index}`}
+                            onClick={() => {
+                                if (customer.isAdminOrder) {
+                                    window.location.href = "/admin/monitoring-pesanan";
+                                } else {
+                                    window.location.href = `/admin/chat?userId=${customer.id}`;
+                                }
+                            }}
                             className={cn(
                                 "p-4 rounded-2xl flex items-center gap-3 transition-all group cursor-pointer",
                                 index === 0 ? "bg-[#FFF0E5]" : "hover:bg-orange-50/50"
@@ -57,46 +60,38 @@ export function DashboardRecentCustomers({ recentCustomers, isMobile }: Dashboar
                                             </span>
                                         </>
                                     ) : (
-                                        <span className="truncate opacity-70">{customer.category || "General Customer"}</span>
+                                        <span className="truncate opacity-70">{customer.category || "Pelanggan"}</span>
                                     )}
                                 </div>
                             </div>
-                            {index !== 0 && (
-                                <div className="flex items-center gap-2 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className={cn(
+                                "flex items-center gap-2 pr-2 transition-opacity",
+                                index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                            )}>
+                                {!customer.isAdminOrder ? (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             window.location.href = `/admin/chat?userId=${customer.id}`;
                                         }}
+                                        title="Chat Pelanggan"
                                         className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
                                     >
                                         <MessageCircle className="w-4 h-4" />
                                     </button>
-                                    <button className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 text-slate-400 hover:border-[#E85C2F] hover:text-[#E85C2F] transition-all">
-                                        <Star className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
-                            {index === 0 && (
-                                <div className="flex items-center gap-2 pr-2">
+                                ) : (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            window.location.href = `/admin/chat?userId=${customer.id}`;
+                                            window.location.href = "/admin/monitoring-pesanan";
                                         }}
+                                        title="Lihat Pesanan"
                                         className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
                                     >
-                                        <MessageCircle className="w-4 h-4" />
+                                        <ShoppingBag className="w-4 h-4" />
                                     </button>
-                                    <button className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all">
-                                        <Star className="w-4 h-4" />
-                                    </button>
-                                    <div className="w-[1px] h-4 bg-[#E85C2F] opacity-30 mx-1"></div>
-                                    <button className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-800">
-                                        <MoreVertical className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     ))
                 ) : (
@@ -108,10 +103,10 @@ export function DashboardRecentCustomers({ recentCustomers, isMobile }: Dashboar
 
             <div className={cn("mt-4", !isMobile && "px-6")}>
                 <button 
-                    onClick={() => window.location.href = '/admin/users'}
+                    onClick={() => window.location.href = '/admin/monitoring-pesanan'}
                     className="text-[#E85C2F] text-sm font-medium flex items-center gap-1 hover:underline"
                 >
-                    All customers <ArrowUpRight className="w-4 h-4 rotate-45" />
+                    Lihat semua pesanan <ArrowUpRight className="w-4 h-4 rotate-45" />
                 </button>
             </div>
         </div>

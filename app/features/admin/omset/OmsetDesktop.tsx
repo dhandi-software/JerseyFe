@@ -1,4 +1,4 @@
-import { Calendar, FileText } from "lucide-react";
+import { Calendar, FileText, BarChart3 } from "lucide-react";
 import { FinancialReportModal } from "~/components/FinancialReportModal";
 import { cn } from "~/lib/utils";
 import { useOmset } from "~/hooks";
@@ -30,7 +30,8 @@ export function OmsetDesktop() {
         years,
         activeData,
         currentTotal,
-        filteredMonths
+        filteredMonths,
+        exportOmsetPDF
     } = useOmset();
 
     return (
@@ -89,14 +90,24 @@ export function OmsetDesktop() {
                     </div>
                 )}
 
-                <button
-                    type="button"
-                    onClick={() => setIsReportModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
-                >
-                    <FileText className="w-4 h-4 text-[#D25026]" />
-                    Cetak Laporan Lengkap
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={exportOmsetPDF}
+                        className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                        <BarChart3 className="w-4 h-4 text-slate-500" />
+                        Unduh Grafik PDF
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setIsReportModalOpen(true)}
+                        className="flex items-center gap-2 px-6 py-3 bg-[#D25026] hover:bg-[#b94420] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                        <FileText className="w-4 h-4 text-white" />
+                        Cetak Laporan Lengkap
+                    </button>
+                </div>
             </div>
 
             {/* Main Content: Chart & Table Breakdown */}

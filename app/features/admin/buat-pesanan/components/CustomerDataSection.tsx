@@ -55,8 +55,11 @@ export function CustomerDataSection({
                         <Label className="text-[10px] font-bold mb-1.5 block">Nomor Telepon</Label>
                         <Input 
                             id="field-customer-phone"
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={customerPhone}
-                            onChange={e => onCustomerPhoneChange(e.target.value)}
+                            onChange={e => onCustomerPhoneChange(e.target.value.replace(/\D/g, ""))}
                             placeholder="Contoh: 08123456789"
                             className={cn(
                                 "w-full bg-neutral-50 h-11 rounded-xl px-4 text-xs font-medium transition-all",
@@ -120,8 +123,11 @@ export function CustomerDataSection({
                     <Label className="text-xs font-bold mb-2 block">Nomor Telepon</Label>
                     <Input 
                         id="field-customer-phone"
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={customerPhone}
-                        onChange={e => onCustomerPhoneChange(e.target.value)}
+                        onChange={e => onCustomerPhoneChange(e.target.value.replace(/\D/g, ""))}
                         placeholder="Contoh: 08123456789"
                         className={cn(
                             "w-full bg-neutral-50 h-[3.25rem] rounded-xl px-5 text-sm font-medium transition-all",

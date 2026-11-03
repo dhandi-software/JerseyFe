@@ -49,12 +49,11 @@ export function DashboardDesktop() {
             </div>
 
             {/* TIER 3: Footer Cards */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
                 <DashboardRecentChats 
                     recentChats={statsData.recentChats} 
                     totalUnreadChat={statsData.totalUnreadChat} 
                 />
-                <DashboardTopCities />
                 <DashboardNewOrders newOrders={statsData.newOrders} />
             </div>
         </div>

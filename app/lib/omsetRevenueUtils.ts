@@ -2,6 +2,31 @@ import { START_YEAR } from "~/features/admin/omset/constants";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
+const INVALID_CUSTOMER_NAMES = new Set([
+    "",
+    "ADMIN",
+    "STAFF FCSV",
+    "MANAGER",
+    "DESAIN",
+    "GUDANG",
+    "GUEST USER",
+    "PELANGGAN",
+    "TANPA NAMA"
+]);
+
+export const isValidCustomerDisplayName = (rawName?: string | null): boolean => {
+    if (!rawName || typeof rawName !== "string") return false;
+    const normalized = rawName.trim().toUpperCase();
+    return normalized.length > 0 && !INVALID_CUSTOMER_NAMES.has(normalized);
+};
+
+export const toLocalDateKey = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
 export const getRecognizedOrderRevenue = (order: any): number => {
     if (!order || order.status === "DITOLAK") return 0;
     const total = Number(order.totalAmount) || 0;
@@ -45,7 +70,7 @@ export const computeDashboardStatsFromOrders = (
     for (let i = 29; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split("T")[0];
+        const dateStr = toLocalDateKey(d);
         const name = `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
         dailySales.push({ name, pv: 0, dateStr });
     }
@@ -81,7 +106,7 @@ export const computeDashboardStatsFromOrders = (
 
     accOrders.forEach((order) => {
         const date = new Date(order.createdAt);
-        const dateStr = date.toISOString().split("T")[0];
+        const dateStr = toLocalDateKey(date);
         const orderYear = date.getFullYear();
         const orderMonth = date.getMonth();
         const monthKey = `${orderYear}-${orderMonth}`;
@@ -133,13 +158,14 @@ export const computeDashboardStatsFromOrders = (
 
     const buyerStats: Record<string, { name: string; totalAmount: number; category: string }> = {};
     accOrders.forEach((order) => {
-        const name = (order.customerName || "Pelanggan").trim();
+        const name = (order.customerName || "").trim();
+        if (!isValidCustomerDisplayName(name)) return;
         const key = name.toUpperCase();
         if (!buyerStats[key]) {
             buyerStats[key] = {
                 name,
                 totalAmount: 0,
-                category: order.isAdminOrder ? "Customer Pesanan" : "General"
+                category: order.isAdminOrder ? "Pesanan Admin" : "Pesanan Customer"
             };
         }
         buyerStats[key].totalAmount += order.recognizedRevenue;
@@ -158,14 +184,52 @@ export const computeDashboardStatsFromOrders = (
         }
     });
 
-    const sortedByLatest = [...(rawOrders || [])]
-        .filter((o) => o && !(o.orderId || "").startsWith("SEED-"))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5);
+    const sortedValidOrders = [...validOrders].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 
-    const newOrders = sortedByLatest.map((o) => ({
-        name: (o.customerName || "Pelanggan").trim()
-    }));
+    const uniqueOrderCustomersMap = new Map<
+        string,
+        {
+            id: number;
+            customerId: number;
+            nama: string;
+            email: string;
+            lastMessageAt: string | null;
+            lastMessageContent?: string;
+            category: string;
+            isAdminOrder?: boolean;
+        }
+    >();
+
+    sortedValidOrders.forEach((o) => {
+        const name = (o.customerName || "").trim();
+        if (!isValidCustomerDisplayName(name)) return;
+        const key = name.toUpperCase();
+        if (!uniqueOrderCustomersMap.has(key)) {
+            const productTitle = o.details?.[0]?.productTitle;
+            const sourceLabel = o.isAdminOrder ? "Pesanan Admin" : "Pesanan Customer";
+            uniqueOrderCustomersMap.set(key, {
+                id: !o.isAdminOrder && o.customerId ? Number(o.customerId) : Number(o.id),
+                customerId: Number(o.customerId || o.id),
+                nama: name,
+                email: "",
+                lastMessageAt: null,
+                category: productTitle ? `${productTitle} • ${sourceLabel}` : sourceLabel,
+                isAdminOrder: Boolean(o.isAdminOrder)
+            });
+        }
+    });
+
+    const totalCustomer = uniqueOrderCustomersMap.size;
+    const recentCustomers = Array.from(uniqueOrderCustomersMap.values()).slice(0, 5);
+
+    const newOrders = sortedValidOrders
+        .filter((o) => isValidCustomerDisplayName(o.customerName))
+        .slice(0, 5)
+        .map((o) => ({
+            name: (o.customerName || "").trim()
+        }));
 
     let salesData: {
         daily: { name: string; pv: number }[];
@@ -201,9 +265,9 @@ export const computeDashboardStatsFromOrders = (
 
             salesData = {
                 daily: filteredDailySales,
-                monthly: [],
-                yearly: [],
-                lifetime: []
+                monthly: monthlySales,
+                yearly: yearlySales,
+                lifetime: lifetimeSales
             };
         } else {
             const filteredMonthlySales: { name: string; pv: number; monthKey: string }[] = [];
@@ -224,15 +288,17 @@ export const computeDashboardStatsFromOrders = (
             });
 
             salesData = {
-                daily: [],
+                daily: dailySales,
                 monthly: filteredMonthlySales,
-                yearly: [],
-                lifetime: []
+                yearly: yearlySales,
+                lifetime: lifetimeSales
             };
         }
     }
 
     return {
+        totalCustomer,
+        recentCustomers,
         totalRevenue,
         salesData,
         bestMonth,
@@ -246,8 +312,8 @@ export const computeOmsetReportFromOrders = (
     rawOrders: any[],
     options?: { startDate?: string; endDate?: string }
 ) => {
-    const startMs = options?.startDate ? new Date(options.startDate).getTime() : null;
-    const endMs = options?.endDate ? new Date(`${options.endDate}T23:59:59.999Z`).getTime() : null;
+    const startMs = options?.startDate ? new Date(`${options.startDate}T00:00:00`).getTime() : null;
+    const endMs = options?.endDate ? new Date(`${options.endDate}T23:59:59.999`).getTime() : null;
 
     let totalPemasukan = 0;
     const revenueBreakdownMap: Record<string, number> = {};

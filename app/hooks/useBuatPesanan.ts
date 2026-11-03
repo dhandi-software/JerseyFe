@@ -37,7 +37,10 @@ export function useBuatPesanan() {
     const [allBahan, setAllBahan] = useState<BahanOption[]>([]);
 
     const [customerName, setCustomerName] = useState("");
-    const [customerPhone, setCustomerPhone] = useState("");
+    const [customerPhone, setCustomerPhoneState] = useState("");
+    const setCustomerPhone = (val: string) => {
+        setCustomerPhoneState(val.replace(/\D/g, ""));
+    };
     const [customDetails, setCustomDetails] = useState<CustomDetailItem[]>([]);
 
     const [designNote, setDesignNote] = useState("");
@@ -119,6 +122,8 @@ export function useBuatPesanan() {
                     const order = await orderService.trackOrder(editOrderId);
                     if (order && order.status === "MENUNGGU") {
                         setExistingOrder(order);
+                        setCustomerName(order.customerName || "");
+                        setCustomerPhone(order.customerPhone || "");
                         setDesignNote(order.designNote || "");
                         setShippingMethod(order.shippingMethod || "PICKUP");
                         setShippingAddress(order.shippingAddress || "");

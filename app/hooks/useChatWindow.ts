@@ -49,6 +49,7 @@ export function useChatWindow({
     const [searchParams, setSearchParams] = useSearchParams();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isSendingRef = useRef(false);
 
     // Get Avatar details helper
     const avatarDetails = useMemo(() => {
@@ -83,7 +84,6 @@ export function useChatWindow({
             const isGroup = activeContact.isGroup || activeContact.id === 0;
             onMarkAsRead(activeContact.id, isGroup);
         }
-        setIsOrderDismissed(false);
     }, [messages.length, activeContact?.id, onMarkAsRead]);
 
     // Fetch internal team members when group info sheet opens
@@ -148,6 +148,7 @@ export function useChatWindow({
 
         onSendMessage(message, undefined, undefined, attachment);
         setIsOrderDismissed(true);
+        setActiveOrder(null);
 
         if (searchParams.get("orderId")) {
             const newParams = new URLSearchParams(searchParams);
@@ -157,15 +158,13 @@ export function useChatWindow({
     }, [activeOrder, onSendMessage, searchParams, setSearchParams]);
 
     const handleSend = useCallback(() => {
-        if (!inputValue.trim()) return;
+        const trimmed = inputValue.trim();
+        if (!trimmed || isSendingRef.current) return;
 
-        const queryOrderId = searchParams.get("orderId");
-        if (queryOrderId && activeOrder) {
-            handleSendOrderReference();
-            const newParams = new URLSearchParams(searchParams);
-            newParams.delete("orderId");
-            setSearchParams(newParams, { replace: true });
-        }
+        isSendingRef.current = true;
+        setTimeout(() => {
+            isSendingRef.current = false;
+        }, 200);
 
         if (editingMessageId && onEditMessage) {
             onEditMessage(editingMessageId, inputValue);
@@ -176,7 +175,7 @@ export function useChatWindow({
             setInputValue("");
             setReplyingTo(null);
         }
-    }, [inputValue, searchParams, activeOrder, handleSendOrderReference, setSearchParams, editingMessageId, onEditMessage, onSendMessage, replyingTo]);
+    }, [inputValue, editingMessageId, onEditMessage, onSendMessage, replyingTo]);
 
     const handleEditClick = useCallback((msg: Message) => {
         setInputValue(msg.content || "");

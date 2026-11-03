@@ -347,7 +347,7 @@ export const downloadOmsetPDF = (
         doc.text(
             `Laporan Omset FCSV Apparel | Halaman ${i} dari ${pageCount}`,
             105,
-            310,
+            285,
             { align: "center" }
         );
     }

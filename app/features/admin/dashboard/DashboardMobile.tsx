@@ -100,9 +100,6 @@ export function DashboardMobile() {
                 totalUnreadChat={statsData.totalUnreadChat} 
             />
 
-            {/* Top Cities */}
-            <DashboardTopCities />
-
             {/* New Orders */}
             <DashboardNewOrders newOrders={statsData.newOrders} />
         </div>

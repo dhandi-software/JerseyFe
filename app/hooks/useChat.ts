@@ -8,6 +8,29 @@ import { useAuth } from "~/hooks/useAuth";
 
 const SOCKET_URL = UPLOADS_URL;
 
+function upsertIncomingMessage(prev: Message[], incoming: Message & { tempId?: number }): Message[] {
+  if (prev.some((m) => m.id === incoming.id)) {
+    return prev;
+  }
+
+  const tempIdx = prev.findIndex((m) => {
+    if ((m as any).isOptimistic !== true) return false;
+    if (incoming.tempId && m.id === incoming.tempId) return true;
+    if (Number(m.senderId) !== Number(incoming.senderId)) return false;
+    if (incoming.content && m.content === incoming.content) return true;
+    if (incoming.attachmentUrl && m.attachmentUrl === incoming.attachmentUrl) return true;
+    return false;
+  });
+
+  if (tempIdx !== -1) {
+    const next = [...prev];
+    next[tempIdx] = incoming;
+    return next;
+  }
+
+  return [...prev, incoming];
+}
+
 export function useChat() {
   const { user } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -28,7 +51,7 @@ export function useChat() {
 
   // Initialize socket
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     // Prevent multiple connections if user didn't change (strict mode double mount safety handled by cleanup)
     const token = typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
@@ -40,17 +63,17 @@ export function useChat() {
 
     newSocket.emit("join", user.id);
 
-  newSocket.on("receive_message", (message: Message) => {
+    newSocket.on("receive_message", (message: Message & { tempId?: number }) => {
       // Use ref to get current active contact without re-triggering effect
       const currentActive = activeContactRef.current;
       const isGroupMessage = !!message.roomId;
       
       // Play sound and show notification if message is not from self
-      if (message.senderId !== user.id) {
+      if (Number(message.senderId) !== Number(user.id)) {
           const isChatOpen = 
-            (isGroupMessage && currentActive?.isGroup && currentActive.realId === message.roomId) || 
+            (isGroupMessage && currentActive?.isGroup && Number(currentActive.realId) === Number(message.roomId)) || 
             (message.isPublic && currentActive?.id === 0) ||
-            (!isGroupMessage && !message.isPublic && currentActive?.id === message.senderId);
+            (!isGroupMessage && !message.isPublic && Number(currentActive?.id) === Number(message.senderId));
 
           const isWindowFocused = document.hasFocus();
 
@@ -99,22 +122,22 @@ export function useChat() {
           // Check if message belongs to current active conversation
           // Case 1: Public Chat
           if (currentActive?.id === 0 && message.isPublic) {
-              return [...prev, message];
+              return upsertIncomingMessage(prev, message);
           }
           // Case 2: Private Chat
           if (
             currentActive?.id !== 0 && 
             !message.isPublic &&
             (
-                (message.senderId === currentActive?.id && message.receiverId === user.id) ||
-                (message.senderId === user.id && message.receiverId === currentActive?.id)
+                (Number(message.senderId) === Number(currentActive?.id) && Number(message.receiverId) === Number(user.id)) ||
+                (Number(message.senderId) === Number(user.id) && Number(message.receiverId) === Number(currentActive?.id))
             )
           ) {
-             return [...prev, message];
+             return upsertIncomingMessage(prev, message);
           }
           // Case 3: Group Chat
-          if (!message.isPublic && isGroupMessage && currentActive?.isGroup && message.roomId === currentActive.realId) {
-              return [...prev, message];
+          if (!message.isPublic && isGroupMessage && currentActive?.isGroup && Number(message.roomId) === Number(currentActive.realId)) {
+              return upsertIncomingMessage(prev, message);
           }
           return prev;
       });
@@ -129,15 +152,15 @@ export function useChat() {
 
               // Group Chat Update
               if (isGroupMessage) {
-                  return (contact.isGroup && contact.realId === message.roomId) 
+                  return (contact.isGroup && Number(contact.realId) === Number(message.roomId)) 
                     ? { ...contact, lastMessage: message } 
                     : contact;
               }
 
               // Private Chat Update
               if (!contact.isGroup && contact.id !== 0) {
-                  const isMatch = (message.senderId === contact.id && message.receiverId === user.id) ||
-                                  (message.senderId === user.id && message.receiverId === contact.id);
+                  const isMatch = (Number(message.senderId) === Number(contact.id) && Number(message.receiverId) === Number(user.id)) ||
+                                  (Number(message.senderId) === Number(user.id) && Number(message.receiverId) === Number(contact.id));
                   return isMatch ? { ...contact, lastMessage: message } : contact;
               }
 
@@ -147,7 +170,7 @@ export function useChat() {
     });
     
     // Also listen for my own messages sent from other tabs/devices or confirmed by server
-    newSocket.on("message_sent", (message: Message) => {
+    newSocket.on("message_sent", (message: Message & { tempId?: number }) => {
         const currentActive = activeContactRef.current;
         const isGroupMessage = !!message.roomId;
         
@@ -155,38 +178,11 @@ export function useChat() {
             const isTargetActive = message.isPublic 
                 ? currentActive.id === 0 
                 : isGroupMessage 
-                    ? message.roomId === currentActive.realId 
-                    : message.receiverId === currentActive.id;
+                    ? Number(message.roomId) === Number(currentActive.realId) 
+                    : Number(message.receiverId) === Number(currentActive.id);
 
             if (isTargetActive) {
-                setMessages((prev) => {
-                    if (prev.find(m => m.id === message.id)) return prev;
-
-                    // Cari pesan optimistik yang sesuai, ganti dengan yang asli
-                    // Improve matching logic for files
-                    const tempIdx = prev.findIndex(m => {
-                        const isOpt = (m as any).isOptimistic === true;
-                        const isSenderMatch = m.senderId === message.senderId;
-                        
-                        if (!isOpt || !isSenderMatch) return false;
-
-                        // Match by content if present
-                        if (message.content && m.content === message.content) return true;
-
-                        // Match by attachment if present
-                        if (message.attachmentUrl && m.attachmentUrl === message.attachmentUrl) return true;
-
-                        return false;
-                    });
-
-                    if (tempIdx !== -1) {
-                        const next = [...prev];
-                        next[tempIdx] = message;
-                        return next;
-                    }
-
-                    return [...prev, message];
-                });
+                setMessages((prev) => upsertIncomingMessage(prev, message));
             }
         }
 
@@ -198,9 +194,9 @@ export function useChat() {
                 // Public Chat
                 if (message.isPublic && contact.id === 0) return { ...contact, lastMessage: message };
                 // Group Chat
-                if (isGroupMessage && isGroupContact && message.roomId === contact.realId) return { ...contact, lastMessage: message };
+                if (isGroupMessage && isGroupContact && Number(message.roomId) === Number(contact.realId)) return { ...contact, lastMessage: message };
                 // Private Chat
-                if (!message.isPublic && !isGroupMessage && !isGroupContact && message.receiverId === contact.id) return { ...contact, lastMessage: message };
+                if (!message.isPublic && !isGroupMessage && !isGroupContact && Number(message.receiverId) === Number(contact.id)) return { ...contact, lastMessage: message };
                 
                 return contact;
             });
@@ -208,9 +204,10 @@ export function useChat() {
     });
 
     return () => {
+      newSocket.removeAllListeners();
       newSocket.disconnect();
     };
-  }, [user]); // Only depend on user, NOT activeContact
+  }, [user?.id]); // Only depend on user.id, NOT activeContact
 
   const resetUnreadCount = (contactId: number | string) => {
       setUnreadCounts(prev => {
@@ -313,7 +310,7 @@ export function useChat() {
 
   // Fetch history when active contact changes
   useEffect(() => {
-    if (!user || activeContact === null) return;
+    if (!user?.id || activeContact === null) return;
 
     setIsLoadingHistory(true);
     const targetId = activeContact.id === 0 ? 'public' : activeContact.id as number | string;
@@ -322,7 +319,7 @@ export function useChat() {
       .then(setMessages)
       .catch(console.error)
       .finally(() => setIsLoadingHistory(false));
-  }, [user, activeContact]);
+  }, [user?.id, activeContact?.id]);
 
   // Request Notification Permission
   useEffect(() => {
@@ -339,7 +336,7 @@ export function useChat() {
 
     socket.on("messages_read", ({ byUserId }) => {
         setMessages(prev => prev.map(msg => {
-            if (msg.senderId === user?.id && msg.receiverId === byUserId) {
+            if (Number(msg.senderId) === Number(user?.id) && Number(msg.receiverId) === Number(byUserId)) {
                 return { ...msg, isRead: true };
             }
             return msg;
@@ -391,7 +388,7 @@ export function useChat() {
         socket.off("group_member_removed");
         socket.off("group_deleted");
     };
-  }, [socket, user]);
+  }, [socket, user?.id]);
 
   const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number, attachment?: { url: string; name: string; type: "image" | "document" }) => {
     if (!user || !activeContact || !socket) return;
@@ -452,7 +449,7 @@ export function useChat() {
 
     setMessages(prev => [...prev, optimisticMessage]);
 
-    socket.emit("send_message", payload);
+    socket.emit("send_message", { ...payload, tempId });
   }, [user, activeContact, socket]);
 
   const markAsRead = useCallback((targetId: number | string, isGroup?: boolean) => {
@@ -476,7 +473,7 @@ export function useChat() {
       // Optimistic update for message status if private
       if (!isGroup && targetId !== 0) {
           setMessages(prev => prev.map(msg => {
-              if (msg.senderId === targetId && !msg.isRead) {
+              if (Number(msg.senderId) === Number(targetId) && !msg.isRead) {
                    return { ...msg, isRead: true };
               }
               return msg;
