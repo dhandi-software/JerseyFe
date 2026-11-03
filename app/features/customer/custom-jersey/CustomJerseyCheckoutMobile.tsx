@@ -628,15 +628,16 @@ export function CustomJerseyCheckoutMobile({ title }: { title: string }) {
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-neutral-400 text-xs">Rp</span>
                                         <input
-                                            type="number"
-                                            min={1}
-                                            max={totalCalculated}
-                                            value={dpAmountInput || ""}
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={dpAmountInput > 0 ? dpAmountInput.toLocaleString("id-ID") : ""}
                                             onChange={(e) => {
-                                                const val = parseInt(e.target.value) || 0;
+                                                const rawDigits = e.target.value.replace(/\D/g, "");
+                                                const parsed = rawDigits ? parseInt(rawDigits, 10) : 0;
+                                                const val = totalCalculated > 0 ? Math.min(totalCalculated, parsed) : parsed;
                                                 setDpAmountInput(val);
                                             }}
-                                            placeholder={`Contoh: ${Math.round(totalCalculated * 0.5)}`}
+                                            placeholder={`Contoh: ${Math.round(totalCalculated * 0.5).toLocaleString("id-ID")}`}
                                             className="w-full pl-9 pr-3 py-2 bg-white border border-amber-300/80 rounded-xl text-xs font-bold text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-[#D25026]/30"
                                         />
                                     </div>

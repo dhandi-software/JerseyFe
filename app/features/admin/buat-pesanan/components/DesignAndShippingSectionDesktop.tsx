@@ -290,15 +290,16 @@ export function DesignAndShippingSectionDesktop({
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-800">Rp</span>
                             <Input
-                                type="number"
-                                min={0}
-                                max={totalCalculated}
-                                value={dpAmountInput || ""}
+                                type="text"
+                                inputMode="numeric"
+                                value={dpAmountInput > 0 ? dpAmountInput.toLocaleString("id-ID") : ""}
                                 onChange={(e) => {
-                                    const val = parseInt(e.target.value, 10) || 0;
+                                    const rawDigits = e.target.value.replace(/\D/g, "");
+                                    const parsed = rawDigits ? parseInt(rawDigits, 10) : 0;
+                                    const val = totalCalculated > 0 ? Math.min(totalCalculated, parsed) : parsed;
                                     onDpAmountInputChange(val);
                                 }}
-                                placeholder={`Contoh: ${Math.round(totalCalculated * 0.5)}`}
+                                placeholder={`Contoh: ${Math.round(totalCalculated * 0.5).toLocaleString("id-ID")}`}
                                 className="w-full pl-12 pr-4 py-3 bg-white border border-amber-300/80 rounded-xl text-sm font-bold text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-[#D25026]/30"
                             />
                         </div>
