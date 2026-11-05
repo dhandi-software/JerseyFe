@@ -1,4 +1,4 @@
-import { useCreateArticle } from "./UseCreateArticle";
+import { useCreateArticle } from "~/hooks/useCreateArticle";
 import { Button } from "~/components/ui/button";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover";

@@ -1,7 +1,8 @@
 import { ArrowLeft, ChevronDown, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useManageAccount, type UserAccount } from "../UseManageAccount";
+import { useManageAccount } from "~/hooks/useManageAccount";
+import type { UserAccount } from "~/types";
 import { cn } from "~/lib/utils";
 import { Toast } from "~/components/ui/toast";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";

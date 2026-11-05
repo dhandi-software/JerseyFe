@@ -175,6 +175,9 @@ export const formatOrderData = (data: any[]): MonitoringOrder[] => {
                 statusBaju: Boolean(d.statusBaju),
                 statusCelana: Boolean(d.statusCelana)
             })),
+            payments: o.payments || [],
+            storageLocationId: o.storageLocationId ?? null,
+            storageLocation: o.storageLocation ?? null,
             dateTime: new Date(o.createdAt).toLocaleString('id-ID', { 
                 weekday: 'long', 
                 day: 'numeric', 

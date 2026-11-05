@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSidebar } from "~/components/ui/sidebar";
-import { useDraft } from "./UseDraft";
+import { useDraft } from "~/hooks/useDraft";
 import StatusCard from "~/components/ui/StatusCard";
 import { Toast } from "~/components/ui/toast";
 import { mediaApi } from "~/api/mediaApi";

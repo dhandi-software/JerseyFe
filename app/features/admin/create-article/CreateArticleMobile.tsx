@@ -1,4 +1,4 @@
-import { useCreateArticle } from "./UseCreateArticle";
+import { useCreateArticle } from "~/hooks/useCreateArticle";
 import { Button } from "~/components/ui/button";
 import { TextField } from "~/components/ui/TextField";
 import { Toast } from "~/components/ui/toast";

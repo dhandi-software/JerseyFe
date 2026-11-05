@@ -46,6 +46,15 @@ export function BuatPesananDesktop({ title }: { title: string }) {
         allBahan,
         totalRequiredKg,
         isOverLimit,
+        isCustomMaterial,
+        customMaterialName,
+        setCustomMaterialName,
+        materialPriceInput,
+        setMaterialPriceInput,
+        discountInput,
+        setDiscountInput,
+        selectedBahanId,
+        subtotalCalculated,
         totalCalculated,
         paymentType,
         setPaymentType,
@@ -201,8 +210,17 @@ export function BuatPesananDesktop({ title }: { title: string }) {
                                     customerPhone={customerPhone}
                                     onCustomerPhoneChange={setCustomerPhone}
                                     allBahan={allBahan}
-                                    selectedBahanId={activeProduct?.id?.toString() || ""}
+                                    selectedBahanId={selectedBahanId}
                                     onSelectBahan={handleSelectBahan}
+                                    isCustomMaterial={isCustomMaterial}
+                                    customMaterialName={customMaterialName}
+                                    onCustomMaterialNameChange={setCustomMaterialName}
+                                    materialPrice={materialPriceInput}
+                                    onMaterialPriceChange={setMaterialPriceInput}
+                                    discount={discountInput}
+                                    onDiscountChange={setDiscountInput}
+                                    subtotal={subtotalCalculated}
+                                    total={totalCalculated}
                                     showValidation={showValidation}
                                     variant="desktop"
                                 />
@@ -222,7 +240,7 @@ export function BuatPesananDesktop({ title }: { title: string }) {
                                                             className="w-4 h-4 rounded-full object-cover border border-[#FFD9CD]" 
                                                         />
                                                     )}
-                                                    Bahan: {activeProduct.title}
+                                                    Bahan: {isCustomMaterial ? (customMaterialName || "Bahan Kustom Baru") : activeProduct.title}
                                                 </span>
                                             )}
                                         </div>

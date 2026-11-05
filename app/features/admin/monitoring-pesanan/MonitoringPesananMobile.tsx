@@ -12,12 +12,14 @@ import {
     PaginationNext,
     PaginationEllipsis,
 } from "~/components/ui/pagination";
-import { useMonitoringPesanan } from "~/hooks";
+import { useMonitoringPesanan, useStorageLocations } from "~/hooks";
+import { StorageLocationFilterBar, StorageLocationBadge, StorageLocationSelect, StorageLocationManagerModal } from "~/components/storage";
 import { OrderDetailViewMobile } from "./components/OrderDetailViewMobile";
 import { getStatusStyle, parseSleeveAndSize, findOrderBahan, resolveUploadImageUrl } from "./utils";
 import type { MonitoringFilterTab, MonitoringSortOption } from "~/types";
 
 export function MonitoringPesananMobile() {
+    const storageModel = useStorageLocations();
     const {
         orders,
         loading,
@@ -29,6 +31,8 @@ export function MonitoringPesananMobile() {
         setToast,
         filterTab,
         setFilterTab,
+        locationFilter,
+        setLocationFilter,
         searchQuery,
         setSearchQuery,
         debouncedSearchQuery,
@@ -76,7 +80,8 @@ export function MonitoringPesananMobile() {
         handleAddMember,
         handleEditMember,
         handleDeleteMember,
-        handleUpdatePaymentDetails
+        handleUpdatePaymentDetails,
+        handleAssignStorageLocation
     } = useMonitoringPesanan();
 
     if (selectedOrder) {
@@ -88,6 +93,11 @@ export function MonitoringPesananMobile() {
                 onCloseToast={() => setToast(null)}
                 bahanList={bahanList}
                 designers={designers}
+                locations={storageModel.locations}
+                onAssignStorageLocation={async (locId) => {
+                    await handleAssignStorageLocation(selectedOrder.rawId, locId);
+                    storageModel.fetchLocations();
+                }}
                 isRecommendModalOpen={isRecommendModalOpen}
                 setIsRecommendModalOpen={setIsRecommendModalOpen}
                 tempRecommendedIds={tempRecommendedIds}
@@ -207,6 +217,21 @@ export function MonitoringPesananMobile() {
                     );
                 })}
             </div>
+
+            {/* Storage Location Filter (When on SELESAI tab) */}
+            {filterTab === "SELESAI" && (
+                <div className="px-4 mb-4">
+                    <StorageLocationFilterBar
+                        locations={storageModel.locations}
+                        selectedLocationId={locationFilter}
+                        onSelectLocation={setLocationFilter}
+                        onOpenManager={() => storageModel.setIsManagerOpen(true)}
+                        totalOrdersInTab={orders.filter(o => o.status === "SELESAI").length}
+                        unassignedCount={orders.filter(o => o.status === "SELESAI" && !o.storageLocationId).length}
+                        variant="mobile"
+                    />
+                </div>
+            )}
 
             {/* Search & Sort Controls Mobile */}
             <div className="px-4 space-y-3 mb-4">
@@ -363,6 +388,27 @@ export function MonitoringPesananMobile() {
                                 {matchedMembers.length > 0 && (
                                     <div className="text-[10px] font-bold text-[#D25026] bg-[#FFF0EB] px-2.5 py-1 rounded-lg border border-[#D25026]/20">
                                         Cocok Anggota: {matchedMembers[0].playerName} {matchedMembers[0].playerNumber ? `(${matchedMembers[0].playerNumber})` : ""}
+                                    </div>
+                                )}
+
+                                {/* Storage Location for completed orders on mobile */}
+                                {order.status === "SELESAI" && (
+                                    <div
+                                        className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <span className="text-[10px] font-black uppercase text-slate-400 italic">Lokasi Toko:</span>
+                                        <StorageLocationSelect
+                                            currentLocationId={order.storageLocationId}
+                                            currentLocation={order.storageLocation}
+                                            locations={storageModel.locations}
+                                            onAssign={async (locId) => {
+                                                await handleAssignStorageLocation(order.rawId, locId);
+                                                storageModel.fetchLocations();
+                                            }}
+                                            disabled={order.status === "BATAL"}
+                                            size="sm"
+                                        />
                                     </div>
                                 )}
 
@@ -607,6 +653,17 @@ export function MonitoringPesananMobile() {
                     </Pagination>
                 </div>
             )}
+
+            {/* Storage Location Manager Modal */}
+            <StorageLocationManagerModal
+                isOpen={storageModel.isManagerOpen}
+                onClose={() => storageModel.setIsManagerOpen(false)}
+                locations={storageModel.locations}
+                onCreate={storageModel.createLocation}
+                onUpdate={storageModel.updateLocation}
+                onDelete={storageModel.deleteLocation}
+                loading={storageModel.loading}
+            />
         </div>
     );
 }

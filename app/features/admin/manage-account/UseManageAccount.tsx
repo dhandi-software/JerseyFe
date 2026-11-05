@@ -1,2 +1,6 @@
-export { useManageAccount } from "~/hooks/useManageAccount";
-export type { UserAccount, UseManageAccountReturn } from "~/types";
+/**
+ * @deprecated RETIRED in Milestone M4.
+ * This shim file has been retired per Requirement R6.
+ * All consumers now import directly from ~/hooks/useManageAccount and ~/types.
+ */
+export {};

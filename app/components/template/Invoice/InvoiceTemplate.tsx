@@ -1,5 +1,5 @@
 import React from 'react';
-import { sortPlayersBySize } from '~/lib/sizeUtils';
+import { sortPlayersBySize, parsePlayerSizeAndSleeve } from '~/lib/sizeUtils';
 
 interface InvoiceTemplateProps {
     order: any;
@@ -10,9 +10,12 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
     if (!order) return null;
 
     const totalUnit = order.details?.length || 0;
-    const finalTotal = order.totalAmount || (totalUnit * 150000);
-    const basePrice = totalUnit > 0 ? Math.round(finalTotal / totalUnit) : 150000;
-    const subtotal = finalTotal;
+    const materialName = order.materialName || order.details?.[0]?.productTitle || "Bahan Standar";
+    const baseMaterialPrice = order.materialPrice || (totalUnit > 0 ? Math.round((order.subtotalAmount || order.totalAmount) / totalUnit) : 150000);
+
+    const subtotal = order.subtotalAmount || order.details?.reduce((sum: number, d: any) => sum + (d.unitPrice || baseMaterialPrice), 0) || (totalUnit * baseMaterialPrice);
+    const discount = Math.max(0, Number(order.discount) || 0);
+    const finalTotal = order.totalAmount !== undefined ? order.totalAmount : Math.max(0, subtotal - discount);
 
     const isDP = order.paymentType === "DP" || (order.paidAmount > 0 && order.paidAmount < finalTotal);
     const paidAmount = order.paidAmount !== undefined 
@@ -58,8 +61,8 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
                 </div>
             </div>
 
-            {/* Bill To */}
-            <div className="self-stretch flex justify-between items-start mb-10 border-t border-b border-slate-100 py-6">
+            {/* Bill To & Material Info */}
+            <div className="self-stretch flex justify-between items-start mb-8 border-t border-b border-slate-100 py-6">
                 <div>
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Tagihan Kepada:</div>
                     <div className="text-slate-900 text-lg font-bold">{order.customerName}</div>
@@ -68,21 +71,27 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Status Pembayaran:</div>
-                    {isDP ? (
-                        <div className="inline-flex px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold uppercase tracking-wider">
-                            {remainingAmount > 0 ? "DP Diterima (Belum Lunas)" : "Lunas (Pelunasan DP)"}
-                        </div>
-                    ) : (
-                        <div className="inline-flex px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider">
-                            {order.status !== "MENUNGGU" && order.status !== "DITOLAK" ? "Lunas (Full Cash)" : "Menunggu Pembayaran"}
-                        </div>
-                    )}
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Spesifikasi Bahan & Status:</div>
+                    <div className="text-slate-900 text-sm font-bold">{materialName}</div>
+                    <div className="text-slate-500 text-xs mt-0.5">
+                        Harga Satuan Dasar: Rp {baseMaterialPrice.toLocaleString('id-ID')} / pcs
+                    </div>
+                    <div className="mt-2">
+                        {isDP ? (
+                            <div className="inline-flex px-3 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold uppercase tracking-wider">
+                                {remainingAmount > 0 ? "DP Diterima (Belum Lunas)" : "Lunas (Pelunasan DP)"}
+                            </div>
+                        ) : (
+                            <div className="inline-flex px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider">
+                                {order.status !== "MENUNGGU" && order.status !== "DITOLAK" ? "Lunas (Full Cash)" : "Menunggu Pembayaran"}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Order Items & Players Table */}
-            <div className="self-stretch flex-col justify-start items-start flex mb-10">
+            <div className="self-stretch flex-col justify-start items-start flex mb-8">
                 <div className="text-slate-900 text-lg font-bold mb-4">Daftar Item & Pemain</div>
                 <table className="w-full text-left border-collapse">
                     <thead>
@@ -90,37 +99,55 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
                             <th className="py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Item/Pemain</th>
                             <th className="py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest italic text-center">No</th>
                             <th className="py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest italic text-center">Size</th>
+                            <th className="py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest italic text-right">Surcharge</th>
                             <th className="py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest italic text-right">Harga Satuan</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {sortPlayersBySize(order.details || []).map((item: any, idx: number) => (
-                            <tr key={idx}>
-                                <td className="py-4">
-                                    <div className="text-sm font-bold text-slate-900 uppercase">{item.playerName || "Custom Jersey"}</div>
-                                    <div className="text-xs text-slate-500">{item.productTitle || "Custom Jersey Design"}</div>
-                                </td>
-                                <td className="py-4 text-sm font-bold text-[#D25026] text-center">{item.playerNumber || "-"}</td>
-                                <td className="py-4 text-center">
-                                    <span className="bg-slate-100 px-2 py-1 rounded text-xs font-bold text-slate-700">{item.playerSize || "-"}</span>
-                                </td>
-                                <td className="py-4 text-sm font-bold text-slate-900 text-right">Rp {basePrice.toLocaleString('id-ID')}</td>
-                            </tr>
-                        ))}
+                        {sortPlayersBySize(order.details || []).map((item: any, idx: number) => {
+                            const unitPrice = item.unitPrice || baseMaterialPrice;
+                            const surcharge = Math.max(0, unitPrice - baseMaterialPrice);
+                            return (
+                                <tr key={idx}>
+                                    <td className="py-3.5">
+                                        <div className="text-sm font-bold text-slate-900 uppercase">{item.playerName || "Custom Jersey"}</div>
+                                        <div className="text-xs text-slate-500">{item.productTitle || materialName}</div>
+                                    </td>
+                                    <td className="py-3.5 text-sm font-bold text-[#D25026] text-center">{item.playerNumber || "-"}</td>
+                                    <td className="py-3.5 text-center">
+                                        <span className="bg-slate-100 px-2 py-1 rounded text-xs font-bold text-slate-700">{item.playerSize || "-"}</span>
+                                    </td>
+                                    <td className="py-3.5 text-xs text-slate-500 text-right">
+                                        {surcharge > 0 ? `+Rp ${surcharge.toLocaleString('id-ID')}` : "-"}
+                                    </td>
+                                    <td className="py-3.5 text-sm font-bold text-slate-900 text-right">
+                                        Rp {unitPrice.toLocaleString('id-ID')}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
 
-            {/* Total Calculation */}
+            {/* Total Calculation with Discount Row */}
             <div className="self-stretch flex justify-end items-start mb-auto">
-                <div className="w-[320px] flex-col justify-start items-start flex gap-3">
+                <div className="w-[340px] flex-col justify-start items-start flex gap-2.5">
                     <div className="self-stretch flex justify-between items-center text-sm">
-                        <div className="text-slate-500 font-medium">Subtotal ({totalUnit} item)</div>
+                        <div className="text-slate-500 font-medium">Subtotal Kotor ({totalUnit} item)</div>
                         <div className="text-slate-900 font-bold">Rp {subtotal.toLocaleString('id-ID')}</div>
                     </div>
+
+                    {discount > 0 && (
+                        <div className="self-stretch flex justify-between items-center text-sm text-emerald-600 bg-emerald-50/60 px-2.5 py-1.5 rounded-lg border border-emerald-100">
+                            <div className="font-bold">Potongan Diskon:</div>
+                            <div className="font-extrabold">- Rp {discount.toLocaleString('id-ID')}</div>
+                        </div>
+                    )}
+
                     <div className="self-stretch flex justify-between items-center pt-3 border-t-2 border-slate-900">
-                        <div className="text-slate-900 text-base font-black uppercase tracking-widest italic">Total Tagihan</div>
-                        <div className="text-[#D25026] text-lg font-black">Rp {finalTotal.toLocaleString('id-ID')}</div>
+                        <div className="text-slate-900 text-base font-black uppercase tracking-widest italic">Total Bersih</div>
+                        <div className="text-[#D25026] text-xl font-black">Rp {finalTotal.toLocaleString('id-ID')}</div>
                     </div>
 
                     {isDP && (
@@ -141,7 +168,7 @@ export function InvoiceTemplate({ order, invoiceRef }: InvoiceTemplateProps) {
             {/* Footer */}
             <div className="self-stretch pt-8 border-t border-slate-100 mt-10">
                 <div className="text-center text-slate-400 text-xs font-medium">
-                    Terima kasih atas pesanan Anda. Jika ada pertanyaan, hubungi tim support kami.
+                    Terima kasih atas pesanan Anda di JerseyCraft. Jika ada pertanyaan mengenai pesanan, hubungi tim support kami.
                 </div>
             </div>
         </div>

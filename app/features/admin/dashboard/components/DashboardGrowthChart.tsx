@@ -1,14 +1,28 @@
-import { ChevronDown, TrendingUp } from "lucide-react";
+import { ChevronDown, TrendingUp, Calendar } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "~/lib/utils";
-import type { TimeView, DashboardStatsData, ChartDataPoint } from "~/types";
+import { MONTHS, START_YEAR } from "~/features/admin/omset/constants";
+import type { TimeView, DashboardStatsData, ChartDataPoint, MonthOption } from "~/types";
 import React from "react";
 
 interface DashboardGrowthChartProps {
     timeView: TimeView;
     setTimeView: (view: TimeView) => void;
+    selectedYear?: number;
+    setSelectedYear?: (year: number | undefined) => void;
+    selectedMonth?: number;
+    setSelectedMonth?: (month: number | undefined) => void;
     showDropdown: boolean;
     setShowDropdown: (show: boolean) => void;
+    showYearDropdown?: boolean;
+    setShowYearDropdown?: (show: boolean) => void;
+    showMonthDropdown?: boolean;
+    setShowMonthDropdown?: (show: boolean) => void;
+    dropdownRef?: React.RefObject<HTMLDivElement | null>;
+    yearDropdownRef?: React.RefObject<HTMLDivElement | null>;
+    monthDropdownRef?: React.RefObject<HTMLDivElement | null>;
+    years?: number[];
+    filteredMonths?: MonthOption[];
     currentTotal: number;
     activeData: ChartDataPoint[];
     statsData: DashboardStatsData;
@@ -21,8 +35,21 @@ interface DashboardGrowthChartProps {
 export function DashboardGrowthChart({
     timeView,
     setTimeView,
+    selectedYear,
+    setSelectedYear,
+    selectedMonth,
+    setSelectedMonth,
     showDropdown,
     setShowDropdown,
+    showYearDropdown = false,
+    setShowYearDropdown,
+    showMonthDropdown = false,
+    setShowMonthDropdown,
+    dropdownRef,
+    yearDropdownRef,
+    monthDropdownRef,
+    years: yearsProp,
+    filteredMonths: filteredMonthsProp,
     currentTotal,
     activeData,
     statsData,
@@ -31,7 +58,27 @@ export function DashboardGrowthChart({
     chartScrollRef,
     isMobile = false
 }: DashboardGrowthChartProps) {
+    const currentYear = new Date().getFullYear();
+    const years = yearsProp ?? Array.from({ length: currentYear - START_YEAR + 1 }, (_, i) => currentYear - i);
+    const filteredMonths = filteredMonthsProp ?? MONTHS;
+
     const isChartEmpty = activeData.length === 0 || currentTotal === 0 || activeData.every(item => Number(item.pv || 0) === 0);
+
+    const selectedMonthLabel = selectedMonth
+        ? MONTHS.find(m => m.value === selectedMonth)?.label
+        : undefined;
+
+    const periodSubtitle = (() => {
+        if (timeView === 'daily') return 'Harian';
+        if (timeView === 'monthly') {
+            const yr = selectedYear || currentYear;
+            return selectedMonthLabel ? `Bulan ${selectedMonthLabel} ${yr}` : `Bulanan · ${yr}`;
+        }
+        if (timeView === 'yearly') {
+            return selectedYear ? `Tahun ${selectedYear}` : 'Tahunan · Semua Tahun';
+        }
+        return 'Lifetime';
+    })();
 
     return (
         <div className="flex flex-col gap-6 min-w-0 overflow-hidden">
@@ -39,45 +86,173 @@ export function DashboardGrowthChart({
                 "bg-white rounded-2xl shadow-sm border border-transparent flex-1 flex flex-col min-h-[20rem] min-w-0 overflow-hidden",
                 isMobile ? "p-5" : "p-6"
             )}>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <div className="text-slate-900 text-xl font-semibold">Omset Transaksi</div>
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
-                        >
-                            <span className="text-slate-700 text-sm font-medium capitalize">
-                                {timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'}
-                            </span>
-                            <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDropdown && "rotate-180")} />
-                        </button>
 
-                        {showDropdown && (
-                            <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
-                                {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
-                                    <button
-                                        key={view}
-                                        onClick={() => {
-                                            setTimeView(view);
-                                            setShowDropdown(false);
-                                        }}
-                                        className={cn(
-                                            "w-full text-left px-4 py-2 text-sm transition-colors",
-                                            timeView === view ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
-                                        )}
-                                    >
-                                        {view === 'daily' ? 'Harian' : view === 'monthly' ? 'Bulanan' : view === 'yearly' ? 'Tahunan' : 'Lifetime'}
-                                    </button>
-                                ))}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {/* Contextual Dropdown: Pilih Bulan (khusus saat mode Bulanan) */}
+                        {timeView === 'monthly' && setSelectedMonth && setShowMonthDropdown && (
+                            <div className="relative" ref={monthDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowMonthDropdown(!showMonthDropdown);
+                                        setShowYearDropdown?.(false);
+                                        setShowDropdown(false);
+                                    }}
+                                    className="flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
+                                >
+                                    <Calendar className="w-3.5 h-3.5 text-[#E85C2F]" />
+                                    <span className="text-slate-700 text-xs sm:text-sm font-medium">
+                                        {selectedMonthLabel || 'Semua Bulan'}
+                                    </span>
+                                    <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform", showMonthDropdown && "rotate-180")} />
+                                </button>
+
+                                {showMonthDropdown && (
+                                    <div className="absolute right-0 mt-2 w-40 max-h-56 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedMonth(undefined);
+                                                setShowMonthDropdown(false);
+                                            }}
+                                            className={cn(
+                                                "w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors",
+                                                !selectedMonth ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
+                                            )}
+                                        >
+                                            Semua Bulan
+                                        </button>
+                                        {filteredMonths.map((m) => (
+                                            <button
+                                                type="button"
+                                                key={m.value}
+                                                onClick={() => {
+                                                    setSelectedMonth(m.value);
+                                                    setShowMonthDropdown(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors",
+                                                    selectedMonth === m.value ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                {m.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
+
+                        {/* Contextual Dropdown: Pilih Tahun (muncul saat mode Bulanan atau Tahunan) */}
+                        {(timeView === 'monthly' || timeView === 'yearly') && setSelectedYear && setShowYearDropdown && (
+                            <div className="relative" ref={yearDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowYearDropdown(!showYearDropdown);
+                                        setShowMonthDropdown?.(false);
+                                        setShowDropdown(false);
+                                    }}
+                                    className="flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
+                                >
+                                    <span className="text-slate-700 text-xs sm:text-sm font-medium">
+                                        {timeView === 'yearly'
+                                            ? (selectedYear ? `Tahun ${selectedYear}` : 'Semua Tahun')
+                                            : `Tahun ${selectedYear || currentYear}`}
+                                    </span>
+                                    <ChevronDown className={cn("w-3.5 h-3.5 text-slate-400 transition-transform", showYearDropdown && "rotate-180")} />
+                                </button>
+
+                                {showYearDropdown && (
+                                    <div className="absolute right-0 mt-2 w-36 max-h-56 overflow-y-auto bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar">
+                                        {timeView === 'yearly' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedYear(undefined);
+                                                    setShowYearDropdown(false);
+                                                }}
+                                                className={cn(
+                                                    "w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors",
+                                                    !selectedYear ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                Semua Tahun
+                                            </button>
+                                        )}
+                                        {years.map((yr) => {
+                                            const isSelected = timeView === 'monthly'
+                                                ? (selectedYear || currentYear) === yr
+                                                : selectedYear === yr;
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={yr}
+                                                    onClick={() => {
+                                                        setSelectedYear(yr);
+                                                        setShowYearDropdown(false);
+                                                    }}
+                                                    className={cn(
+                                                        "w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors",
+                                                        isSelected ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    Tahun {yr}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Main Dropdown: Pilih Periode Utama */}
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowDropdown(!showDropdown);
+                                    setShowYearDropdown?.(false);
+                                    setShowMonthDropdown?.(false);
+                                }}
+                                className="flex items-center gap-1 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
+                            >
+                                <span className="text-slate-700 text-xs sm:text-sm font-medium capitalize">
+                                    {timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'}
+                                </span>
+                                <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", showDropdown && "rotate-180")} />
+                            </button>
+
+                            {showDropdown && (
+                                <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
+                                    {(['daily', 'monthly', 'yearly', 'lifetime'] as const).map((view) => (
+                                        <button
+                                            type="button"
+                                            key={view}
+                                            onClick={() => {
+                                                setTimeView(view);
+                                                setShowDropdown(false);
+                                            }}
+                                            className={cn(
+                                                "w-full text-left px-4 py-2 text-xs sm:text-sm transition-colors",
+                                                timeView === view ? "bg-orange-50 text-[#E85C2F] font-bold" : "text-slate-600 hover:bg-slate-50"
+                                            )}
+                                        >
+                                            {view === 'daily' ? 'Harian' : view === 'monthly' ? 'Bulanan' : view === 'yearly' ? 'Tahunan' : 'Lifetime'}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Simple Compact Revenue Label */}
                 <div className="mb-4">
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Total Pendapatan ({timeView === 'daily' ? 'Harian' : timeView === 'monthly' ? 'Bulanan' : timeView === 'yearly' ? 'Tahunan' : 'Lifetime'})
+                        Total Pendapatan ({periodSubtitle})
                     </span>
                     <span className="text-2xl font-extrabold text-slate-900 block mt-1">
                         Rp {currentTotal.toLocaleString('id-ID')}
@@ -103,9 +278,9 @@ export function DashboardGrowthChart({
                     <div ref={chartScrollRef} className="flex-1 w-full overflow-x-auto pb-2 custom-scrollbar min-w-0">
                         <div className={cn(
                             "h-[220px] relative -ml-4",
-                            timeView === 'daily' ? 'w-[900px] min-w-full' :
+                            timeView === 'daily' || (timeView === 'monthly' && selectedMonth) ? 'w-[900px] min-w-full' :
                             timeView === 'lifetime' ? 'w-[1200px] min-w-full' :
-                            timeView === 'monthly' ? 'w-[650px] min-w-full' : 'w-full'
+                            (timeView === 'monthly' || (timeView === 'yearly' && selectedYear)) ? 'w-[650px] min-w-full' : 'w-full'
                         )}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={activeData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>

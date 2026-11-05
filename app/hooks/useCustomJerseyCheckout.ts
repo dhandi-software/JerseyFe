@@ -1,899 +1,303 @@
-import { useState, useEffect, useRef } from "react";
+/**
+ * useCustomJerseyCheckout Coordinator Facade
+ * 100% backward-compatible coordinator orchestrating:
+ * - useJerseyRoster: Roster table, generation, and list parsing
+ * - useCheckoutPricing: Dynamic pricing, sizes, inventory limits, and DP logic
+ * - useCheckoutSubmission: Steps wizard, uploads, and order dispatch
+ * FCSV Apparel — Batch 2 Milestone M3 (R1 Hooks Decomposition)
+ */
+
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { User, FileUp, CreditCard } from "lucide-react";
 import { useCart } from "~/context/CartContext";
 import { useAuth } from "~/context/AuthContext";
 import { orderService } from "~/services/orderService";
-import { chatService } from "~/services/chatService";
 import { adminApi } from "~/api/admin";
 import { UPLOADS_URL } from "~/api/client";
-import { formatRupiah } from "~/lib/utils";
 import {
-    getSizeSurcharge,
-    getJerseyKgRequirement,
-    compressImage,
-    parseSizeAndSleeve,
-    parsePasteData as parsePastePlayerList,
+  getSizeSurcharge,
+  getJerseyKgRequirement,
+  compressImage,
+  parseSizeAndSleeve,
 } from "~/features/admin/buat-pesanan/utils";
-import type {
-    CustomJerseyDetailItem,
-    CustomJerseyCheckoutStep,
-    UseCustomJerseyCheckoutReturn,
-} from "~/types";
+import type { UseCustomJerseyCheckoutReturn } from "~/types";
+
+import { useJerseyRoster } from "./useJerseyRoster";
+import { useCheckoutPricing } from "./useCheckoutPricing";
+import { useCheckoutSubmission } from "./useCheckoutSubmission";
 
 export { getJerseyKgRequirement, compressImage };
 
 export function useCustomJerseyCheckout(): UseCustomJerseyCheckoutReturn {
-    const navigate = useNavigate();
-    const { user } = useAuth();
-    const { cart, clearCart } = useCart();
-    const [step, setStep] = useState(1);
-    const [searchParams] = useSearchParams();
-    const productIdParam = searchParams.get("productId");
-    const [directProduct, setDirectProduct] = useState<any>(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { cart, clearCart } = useCart();
+  const [searchParams] = useSearchParams();
+  const productIdParam = searchParams.get("productId");
+  const editOrderId = searchParams.get("editOrderId");
 
-    const [customDetails, setCustomDetails] = useState<CustomJerseyDetailItem[]>([]);
-    const [designNote, setDesignNote] = useState("");
-    const [designReferenceFile, setDesignReferenceFile] = useState<File | null>(null);
-    const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
-    const [paymentType, setPaymentType] = useState<"FULL" | "DP">("FULL");
-    const [dpAmountInput, setDpAmountInput] = useState<number>(0);
-    const [pdfFile, setPdfFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [shippingMethod, setShippingMethod] = useState("PICKUP");
-    const [shippingAddress, setShippingAddress] = useState("");
+  const [directProduct, setDirectProduct] = useState<any>(null);
+  const [existingOrder, setExistingOrder] = useState<any | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
-    const [pasteText, setPasteText] = useState("");
-    const [isPasteDialogOpen, setIsPasteDialogOpen] = useState(false);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    variant: "success" | "destructive" | "default";
+  }>({
+    show: false,
+    message: "",
+    variant: "success",
+  });
 
-    const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-    const [playerCountInput, setPlayerCountInput] = useState("");
-    const [showValidation, setShowValidation] = useState(false);
-    const [allBahan, setAllBahan] = useState<any[]>([]);
+  const sizeParam = searchParams.get("size") || "L";
+  const sleeveParam = searchParams.get("sleeve") || "Lengan Pendek";
+  const nameParam = searchParams.get("name") || "";
+  const numberParam = searchParams.get("number") || "";
 
-    const [toast, setToast] = useState<{
-        show: boolean;
-        message: string;
-        variant: "success" | "destructive" | "default";
-    }>({
-        show: false,
-        message: "",
-        variant: "success",
-    });
-
-    const editOrderId = searchParams.get("editOrderId");
-    const [existingOrder, setExistingOrder] = useState<any | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
-
-    const sizeParam = searchParams.get("size") || "L";
-    const sleeveParam = searchParams.get("sleeve") || "Lengan Pendek";
-    const nameParam = searchParams.get("name") || "";
-    const numberParam = searchParams.get("number") || "";
-
-    useEffect(() => {
-        adminApi.getBahanBaju().then((res) => {
-            if (res.status === "success") {
-                setAllBahan(res.data);
-            }
-        });
-    }, []);
-
-    useEffect(() => {
-        if (productIdParam) {
-            adminApi.getBahanBaju().then((res) => {
-                if (res.status === "success" && Array.isArray(res.data)) {
-                    const product = res.data.find(
-                        (b: any) =>
-                            String(b.id) === String(productIdParam) ||
-                            String(b.uuid) === String(productIdParam),
-                    );
-                    if (product) {
-                        setDirectProduct({
-                            id: product.id,
-                            title: product.nama,
-                            price: product.harga || 150000,
-                            status: product.status,
-                            kuantitasKg: product.kuantitasKg || 0,
-                            rasioKonversi: product.rasioKonversi || 2.5,
-                            image: product.imageUrl
-                                ? `${UPLOADS_URL}${product.imageUrl}`
-                                : "",
-                        });
-                    }
-                }
+  // Direct product resolution
+  useEffect(() => {
+    if (productIdParam) {
+      adminApi.getBahanBaju().then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          const product = res.data.find(
+            (b: any) =>
+              String(b.id) === String(productIdParam) ||
+              String(b.uuid) === String(productIdParam),
+          );
+          if (product) {
+            setDirectProduct({
+              id: product.id,
+              title: product.nama,
+              price: product.harga || 150000,
+              status: product.status,
+              kuantitasKg: product.kuantitasKg || 0,
+              rasioKonversi: product.rasioKonversi || 2.5,
+              image: product.imageUrl ? `${UPLOADS_URL}${product.imageUrl}` : "",
             });
+          }
         }
-    }, [productIdParam]);
+      });
+    }
+  }, [productIdParam]);
 
-    const cartActiveProduct =
-        cart.length > 0
-            ? {
-                  id: cart[0].product.id,
-                  title: cart[0].product.title,
-                  price: cart[0].product.price,
-                  status: cart[0].product.status,
-                  image: cart[0].product.image,
-                  rasioKonversi: 2.5,
-              }
-            : null;
-
-    const activeProduct = productIdParam
-        ? directProduct || cartActiveProduct
-        : cartActiveProduct || directProduct;
-
-    const activeBahan = allBahan.find((b) => b.id === activeProduct?.id);
-    const availableKg = activeBahan ? activeBahan.kuantitasKg || 0 : 0;
-
-    useEffect(() => {
-        if (isPasteDialogOpen) {
-            const isEmptyDefaultList =
-                customDetails.length === 1 &&
-                !customDetails[0].name &&
-                !customDetails[0].number;
-            if (!isEmptyDefaultList && customDetails.length > 0) {
-                const serializedLines = customDetails.map((detail, idx) => {
-                    const parts: string[] = [];
-                    if (detail.name) parts.push(detail.name);
-                    if (detail.number) parts.push(detail.number);
-                    if (detail.size) parts.push(detail.size);
-                    if (detail.sleeve) {
-                        const shortSleeve = detail.sleeve.replace("Lengan ", "");
-                        parts.push(shortSleeve);
-                    }
-                    return `${idx + 1}. ${parts.join(", ")}`;
-                });
-                serializedLines.push(`${customDetails.length + 1}. `);
-                setPasteText(serializedLines.join("\n"));
-            } else {
-                setPasteText("1. ");
-            }
-            setTimeout(() => {
-                if (textareaRef.current) {
-                    textareaRef.current.focus();
-                    const length = textareaRef.current.value.length;
-                    textareaRef.current.setSelectionRange(length, length);
-                }
-            }, 50);
+  const cartActiveProduct =
+    cart.length > 0
+      ? {
+          id: cart[0].product.id,
+          title: cart[0].product.title,
+          price: cart[0].product.price,
+          status: cart[0].product.status,
+          image: cart[0].product.image,
+          rasioKonversi: 2.5,
         }
-    }, [isPasteDialogOpen]);
+      : null;
 
-    useEffect(() => {
-        if (editOrderId) {
-            setIsEditing(true);
-            const loadOrderToEdit = async () => {
-                try {
-                    const order = await orderService.trackOrder(editOrderId);
-                    if (order && order.status === "MENUNGGU") {
-                        setExistingOrder(order);
-                        setDesignNote(order.designNote || "");
-                        setShippingMethod(order.shippingMethod || "PICKUP");
-                        setShippingAddress(order.shippingAddress || "");
+  const activeProduct = productIdParam
+    ? directProduct || cartActiveProduct
+    : cartActiveProduct || directProduct;
 
-                        adminApi.getBahanBaju().then((res) => {
-                            if (res.status === "success") {
-                                const products = res.data;
-                                const firstDetail = order.details?.[0];
-                                if (firstDetail) {
-                                    const product = products.find(
-                                        (b: any) =>
-                                            b.id === Number(firstDetail.productId),
-                                    );
-                                    if (product) {
-                                        setDirectProduct({
-                                            id: product.id,
-                                            title: product.nama,
-                                            price: product.harga || 150000,
-                                            status: product.status,
-                                            kuantitasKg: product.kuantitasKg || 0,
-                                            rasioKonversi: product.rasioKonversi || 2.5,
-                                            image: product.imageUrl
-                                                ? `${UPLOADS_URL}${product.imageUrl}`
-                                                : "",
-                                        });
-                                    }
-                                }
+  // 1. Jersey Roster sub-hook
+  const roster = useJerseyRoster({
+    activeProduct,
+    directProduct,
+    cart,
+    productIdParam,
+    nameParam,
+    numberParam,
+    sizeParam,
+    sleeveParam,
+    isEditing,
+    editOrderId,
+    setToast,
+  });
 
-                                if (order.details && order.details.length > 0) {
-                                    const detailsMapped = order.details.map(
-                                        (detail: any, idx: number) => {
-                                            const { size, sleeve } = parseSizeAndSleeve(
-                                                detail.playerSize,
-                                            );
-                                            const matchingBahan = products.find(
-                                                (b: any) =>
-                                                    b.id === Number(detail.productId),
-                                            );
-                                            return {
-                                                id: `edit-${detail.id}-${idx}`,
-                                                productId: detail.productId,
-                                                productTitle: detail.productTitle,
-                                                price: matchingBahan?.harga || 150000,
-                                                image: matchingBahan?.imageUrl
-                                                    ? `${UPLOADS_URL}${matchingBahan.imageUrl}`
-                                                    : "",
-                                                name: detail.playerName || "",
-                                                number: detail.playerNumber || "",
-                                                size: size,
-                                                sleeve: sleeve,
-                                            };
-                                        },
-                                    );
-                                    setCustomDetails(detailsMapped);
-                                }
-                            }
-                        });
-                    } else {
-                        setToast({
-                            show: true,
-                            message:
-                                "Pesanan ini tidak dapat diedit atau tidak ditemukan.",
-                            variant: "destructive",
-                        });
-                        navigate("/customer");
-                    }
-                } catch (err) {
-                    console.error("Failed to load order for edit:", err);
-                    setToast({
-                        show: true,
-                        message: "Gagal memuat detail pesanan.",
-                        variant: "destructive",
-                    });
-                }
-            };
-            loadOrderToEdit();
-        }
-    }, [editOrderId]);
+  // 2. Checkout Pricing sub-hook
+  const pricing = useCheckoutPricing({
+    customDetails: roster.customDetails,
+    activeProduct,
+  });
 
-    useEffect(() => {
-        if (isEditing || editOrderId) return;
-        if (customDetails.length === 0) {
-            if (productIdParam && directProduct) {
-                const initialDetails = Array.from({ length: 1 }).map(() => ({
-                    id: `${directProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
-                    productId: directProduct.id,
-                    productTitle: directProduct.title,
-                    price: directProduct.price,
-                    image: directProduct.image,
-                    name: nameParam,
-                    number: numberParam,
-                    size: sizeParam,
-                    sleeve: sleeveParam,
-                }));
-                setCustomDetails(initialDetails);
-            } else if (!productIdParam && cart.length > 0) {
-                const initialDetails = cart.flatMap((item) =>
-                    Array.from({ length: item.quantity }).map(() => ({
-                        id: `${item.product.id}-${Math.random().toString(36).substr(2, 9)}`,
-                        productId: item.product.id,
-                        productTitle: item.product.title,
-                        price: item.product.price,
-                        image: item.product.image,
-                        name: nameParam,
-                        number: numberParam,
-                        size: sizeParam,
-                        sleeve: sleeveParam,
-                    })),
-                );
-                setCustomDetails(initialDetails);
-            } else if (!productIdParam && activeProduct) {
-                const initialDetails = Array.from({ length: 1 }).map(() => ({
-                    id: `${activeProduct.id}-${Math.random().toString(36).substr(2, 9)}`,
-                    productId: activeProduct.id,
-                    productTitle: activeProduct.title,
-                    price: activeProduct.price,
-                    image: activeProduct.image,
-                    name: nameParam,
-                    number: numberParam,
-                    size: sizeParam,
-                    sleeve: sleeveParam,
-                }));
-                setCustomDetails(initialDetails);
-            }
-        }
-    }, [
-        cart,
-        activeProduct,
-        directProduct,
-        productIdParam,
-        customDetails.length,
-        nameParam,
-        numberParam,
-        sizeParam,
-        sleeveParam,
-    ]);
+  // 3. Checkout Submission sub-hook
+  const submission = useCheckoutSubmission({
+    user,
+    clearCart,
+    navigate,
+    activeProduct,
+    customDetails: roster.customDetails,
+    isOverLimit: pricing.isOverLimit,
+    availableKg: pricing.availableKg,
+    totalRequiredKg: pricing.totalRequiredKg,
+    totalCalculated: pricing.totalCalculated,
+    paymentType: pricing.paymentType,
+    effectivePaidAmount: pricing.effectivePaidAmount,
+    effectiveRemainingAmount: pricing.effectiveRemainingAmount,
+    existingOrder,
+    isEditing,
+    sizeParam,
+    sleeveParam,
+    setShowValidation: roster.setShowValidation,
+    setToast,
+  });
 
-    const generateTable = () => {
-        const count = parseInt(playerCountInput);
-        if (isNaN(count) || count <= 0) {
-            setToast({
-                show: true,
-                message: "Masukkan jumlah pemain yang valid",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        if (!activeProduct) {
-            setToast({
-                show: true,
-                message: "Pilih produk terlebih dahulu",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const productId = activeProduct.id;
-        const productTitle = activeProduct.title;
-        const price = activeProduct.price;
-        const image = activeProduct.image;
-
-        const newDetails: CustomJerseyDetailItem[] = Array.from({ length: count }).map(
-            (_, idx) => ({
-                id: `gen-${idx}-${Date.now()}`,
-                productId,
-                productTitle,
-                price,
-                image,
-                name: "",
-                number: "",
-                size: "L",
-                sleeve: "Lengan Pendek",
-            }),
-        );
-        setCustomDetails(newDetails);
-        setPlayerCountInput("");
-        setToast({
-            show: true,
-            message: `Berhasil membuat tabel untuk ${count} pemain`,
-            variant: "success",
-        });
-    };
-
-    const resetTable = () => {
-        setCustomDetails([]);
-        setIsResetDialogOpen(false);
-        setToast({ show: true, message: "Tabel berhasil direset", variant: "success" });
-    };
-
-    const parsePasteData = () => {
-        const parsed = parsePastePlayerList(pasteText, activeProduct);
-        if (parsed.length > 0) {
-            setCustomDetails(parsed);
-            setIsPasteDialogOpen(false);
-            setPasteText("");
-            setToast({
-                show: true,
-                message: `Successfully parsed ${parsed.length} players!`,
-                variant: "success",
-            });
-        } else {
-            setToast({
-                show: true,
-                message: "Tidak ada data pemain yang valid terdeteksi",
-                variant: "destructive",
-            });
-        }
-    };
-
-    const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        const textarea = e.currentTarget;
-        const val = textarea.value;
-        const selStart = textarea.selectionStart;
-        const selEnd = textarea.selectionEnd;
-
-        const beforeCursor = val.substring(0, selStart);
-        const afterCursor = val.substring(selEnd);
-        const linesBefore = beforeCursor.split("\n");
-        const currentLine = linesBefore[linesBefore.length - 1];
-        const trimmedLine = currentLine.trim();
-
-        if (e.key === "Enter") {
-            const leadingNumberMatch = currentLine.match(/^(\d+)([\.\)\-\s]+)/);
-            if (leadingNumberMatch) {
-                e.preventDefault();
-                const currentNum = parseInt(leadingNumberMatch[1], 10);
-                const delimiter = leadingNumberMatch[2];
-                const remainingContent = currentLine
-                    .substring(leadingNumberMatch[0].length)
-                    .trim();
-
-                if (remainingContent === "") {
-                    const newBefore =
-                        linesBefore.slice(0, -1).join("\n") +
-                        (linesBefore.length > 1 ? "\n" : "");
-                    textarea.value = newBefore + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd =
-                        newBefore.length;
-                    setPasteText(textarea.value);
-                } else {
-                    const nextNum = currentNum + 1;
-                    const nextLineText = `\n${nextNum}${delimiter}`;
-                    textarea.value = beforeCursor + nextLineText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd =
-                        selStart + nextLineText.length;
-                    setPasteText(textarea.value);
-                }
-                return;
-            }
-        }
-
-        if (beforeCursor.endsWith(" ")) {
-            if (/^\d+[\.\)\-\s]+[A-Za-z_\s]+$/i.test(trimmedLine)) {
-                if (/^\d$/.test(e.key)) {
-                    e.preventDefault();
-                    const insertText = `, ${e.key}`;
-                    textarea.value = beforeCursor + insertText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd =
-                        selStart + insertText.length;
-                    setPasteText(textarea.value);
-                    return;
-                }
-            }
-
-            if (/^\d+[\.\)\-\s]+.*,\s*\d+$/i.test(trimmedLine)) {
-                if (/^[a-zA-Z]$/.test(e.key)) {
-                    e.preventDefault();
-                    const insertText = `, ${e.key.toUpperCase()}`;
-                    textarea.value = beforeCursor + insertText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd =
-                        selStart + insertText.length;
-                    setPasteText(textarea.value);
-                    return;
-                }
-            }
-
-            if (
-                /^\d+[\.\)\-\s]+.*,\s*\d+\s*,\s*(XXS|XS|S|M|L|XL|XXL|2XL|3XL|4XL|5XL)$/i.test(
-                    trimmedLine,
-                )
-            ) {
-                if (/^[a-zA-Z]$/.test(e.key)) {
-                    e.preventDefault();
-                    const insertText = `, ${e.key.toUpperCase()}`;
-                    textarea.value = beforeCursor + insertText + afterCursor;
-                    textarea.selectionStart = textarea.selectionEnd =
-                        selStart + insertText.length;
-                    setPasteText(textarea.value);
-                    return;
-                }
-            }
-        }
-    };
-
-    const handleTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-        e.preventDefault();
-        const pastedText = e.clipboardData.getData("text");
-        const textarea = e.currentTarget;
-        const val = textarea.value;
-        const selStart = textarea.selectionStart;
-        const selEnd = textarea.selectionEnd;
-
-        const before = val.substring(0, selStart);
-        const after = val.substring(selEnd);
-
-        const lines = pastedText.split(/\r?\n/);
-        const lastLineBefore = before.split("\n").pop() || "";
-        const numMatch = lastLineBefore.match(/^(\d+)([\.\)\-\s]+)/);
-
-        let currentNum = 1;
-        let delimiter = ". ";
-
-        if (numMatch) {
-            currentNum = parseInt(numMatch[1], 10);
-            delimiter = numMatch[2];
-        } else {
-            const beforeLines = before.split("\n");
-            let lastNumFound = 0;
-            for (let i = beforeLines.length - 1; i >= 0; i--) {
-                const m = beforeLines[i].match(/^(\d+)([\.\)\-\s]+)/);
-                if (m) {
-                    lastNumFound = parseInt(m[1], 10);
-                    delimiter = m[2];
-                    break;
-                }
-            }
-            if (lastNumFound > 0) {
-                currentNum = lastNumFound + 1;
-            }
-        }
-
-        const finalPastedLines: string[] = [];
-        lines.forEach((line, index) => {
-            const trimmed = line.trim();
-            if (!trimmed) {
-                finalPastedLines.push("");
-            } else {
-                const lineNumMatch = trimmed.match(/^(\d+)([\.\)\-\s]+)(.*)/);
-                let lineText = trimmed;
-                if (lineNumMatch) {
-                    lineText = lineNumMatch[3].trim();
-                }
-                const isFirstLine = index === 0;
-                const hasPrefixAlready =
-                    isFirstLine &&
-                    numMatch &&
-                    lastLineBefore.trim() === numMatch[0].trim();
-                if (isFirstLine && hasPrefixAlready) {
-                    finalPastedLines.push(lineText);
-                    currentNum++;
-                } else {
-                    const numToUse = currentNum;
-                    currentNum++;
-                    finalPastedLines.push(`${numToUse}${delimiter}${lineText}`);
-                }
-            }
-        });
-
-        const insertText = finalPastedLines.join("\n");
-        const newVal = before + insertText + after;
-        setPasteText(newVal);
-
-        const newCursorPos = selStart + insertText.length;
-        setTimeout(() => {
-            textarea.selectionStart = textarea.selectionEnd = newCursorPos;
-        }, 0);
-    };
-
-    const removeUnit = (id: string) => {
-        setCustomDetails((prev) => prev.filter((d) => d.id !== id));
-    };
-
-    const totalRequiredKg = customDetails.reduce(
-        (sum, item) =>
-            sum +
-            getJerseyKgRequirement(
-                item.size,
-                item.sleeve,
-                activeProduct?.rasioKonversi || 2.5,
-            ),
-        0,
-    );
-    const isOverLimit =
-        activeProduct &&
-        activeProduct.status !== "Habis" &&
-        totalRequiredKg > availableKg;
-
-    const isStepValid = () => {
-        if (step === 1) {
-            if (pdfFile) return true;
-            if (customDetails.length === 0) return false;
-            if (isOverLimit) return false;
-            return customDetails.every(
-                (d) =>
-                    d.name.trim() !== "" &&
-                    d.number.trim() !== "" &&
-                    d.size !== "",
-            );
-        }
-        if (step === 2) {
-            const hasDesign = !!designReferenceFile || !!existingOrder?.designUrl;
-            const hasAddressIfCod =
-                shippingMethod !== "COD" || shippingAddress.trim() !== "";
-            return hasDesign && hasAddressIfCod;
-        }
-        if (step === 3) {
-            return !!paymentProofFile || !!existingOrder?.paymentUrl;
-        }
-        return true;
-    };
-
-    const handleNextStep = () => {
-        if (step === 1 && isOverLimit) {
-            const supported = Math.floor(
-                availableKg / (totalRequiredKg / customDetails.length),
-            );
-            const reduce = Math.max(1, customDetails.length - supported);
-            setToast({
-                show: true,
-                message: `Stok bahan tidak cukup! Silakan kurangi pesanan Anda sebanyak ${reduce} pcs atau ubah ukuran/lengan agar sesuai dengan ketersediaan.`,
-                variant: "destructive",
-            });
-            return;
-        }
-        if (!isStepValid()) {
-            setShowValidation(true);
-            let msg = "Lengkapi langkah ini terlebih dahulu";
-            if (step === 1) {
-                msg = "Mohon lengkapi detail pemain (Nama, Nomor, Size)";
-            } else if (step === 2) {
-                const hasDesign =
-                    !!designReferenceFile || !!existingOrder?.designUrl;
-                if (!hasDesign) {
-                    msg = "Mohon unggah referensi desain jersey Anda";
-                } else {
-                    msg = "Mohon isi alamat pengiriman untuk metode COD";
-                }
-            }
-            setToast({
-                show: true,
-                message: msg,
-                variant: "destructive",
-            });
-            return;
-        }
-        setShowValidation(false);
-        setStep((prev) => prev + 1);
-    };
-
-    const updateUnitQuantity = (productId: number, delta: number) => {
-        if (delta > 0) {
-            const product = cart.find((item) => item.product.id === productId)
-                ?.product || {
-                id: productId,
-                title: "Custom Jersey",
-                price: 150000,
-                image: "",
-            };
-
-            setCustomDetails((prev) => [
-                ...prev,
-                {
-                    id: `${productId}-${Math.random().toString(36).substr(2, 9)}`,
-                    productId: productId,
-                    productTitle: product.title,
-                    price: product.price,
-                    image: product.image,
-                    name: "",
-                    number: "",
-                    size: "L",
-                    sleeve: "Lengan Pendek",
-                },
-            ]);
-        } else {
-            const lastIdx = [...customDetails]
-                .reverse()
-                .findIndex((d) => d.productId === productId);
-            if (lastIdx !== -1) {
-                const actualIdx = customDetails.length - 1 - lastIdx;
-                setCustomDetails((prev) => prev.filter((_, i) => i !== actualIdx));
-            }
-        }
-    };
-
-    const totalCalculated = customDetails.reduce((acc, d) => {
-        const basePrice = activeProduct?.price || d.price || 150000;
-        return acc + basePrice + getSizeSurcharge(d.size);
-    }, 0);
-
-    const effectivePaidAmount =
-        paymentType === "DP"
-            ? dpAmountInput > 0
-                ? Math.min(dpAmountInput, totalCalculated)
-                : Math.round(totalCalculated * 0.5)
-            : totalCalculated;
-    const effectiveRemainingAmount = Math.max(
-        0,
-        totalCalculated - effectivePaidAmount,
-    );
-
-    const handleDetailChange = (id: string, field: string, value: string) => {
-        setCustomDetails((prev) =>
-            prev.map((detail) =>
-                detail.id === id ? { ...detail, [field]: value } : detail,
-            ),
-        );
-    };
-
-    const handlePdfImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setPdfFile(file);
-            setToast({
-                show: true,
-                message:
-                    "File PDF berhasil diunggah. Admin akan memproses data pemain dari PDF ini.",
-                variant: "success",
-            });
-        }
-    };
-
-    const handleSubmit = async () => {
-        if (!isStepValid()) {
-            setShowValidation(true);
-            setToast({
-                show: true,
-                message:
-                    "Mohon lengkapi seluruh data pemain dan bukti transfer.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        setIsUploading(true);
-        setUploadProgress(10);
+  // Handle edit order loading
+  useEffect(() => {
+    if (editOrderId) {
+      setIsEditing(true);
+      const loadOrderToEdit = async () => {
         try {
-            let designUrl = existingOrder?.designUrl || "";
-            let paymentUrl = existingOrder?.paymentUrl || "";
-            let finalDesignNote = designNote;
+          const order = await orderService.trackOrder(editOrderId);
+          if (order && order.status === "MENUNGGU") {
+            setExistingOrder(order);
+            submission.setDesignNote(order.designNote || "");
+            submission.setShippingMethod(order.shippingMethod || "PICKUP");
+            submission.setShippingAddress(order.shippingAddress || "");
 
-            if (pdfFile) {
-                const pdfRes = await chatService.uploadFile(pdfFile);
-                if (pdfRes?.url) {
-                    finalDesignNote = `${designNote ? `${designNote}\n` : ""}[Data Pemain PDF: ${pdfRes.url}]`;
-                }
-            }
-
-            if (designReferenceFile) {
-                setUploadProgress(20);
-                const compressed = await compressImage(designReferenceFile);
-                setUploadProgress(40);
-                const res = await chatService.uploadFile(compressed);
-                designUrl = res.url;
-            }
-
-            if (paymentProofFile) {
-                setUploadProgress(60);
-                const compressed = await compressImage(paymentProofFile);
-                setUploadProgress(80);
-                const res = await chatService.uploadFile(compressed);
-                paymentUrl = res.url;
-            }
-
-            setUploadProgress(90);
-
-            try {
-                const effectiveDetails =
-                    customDetails.length > 0
-                        ? customDetails.map((d) => ({
-                              productId: d.productId || activeProduct?.id || 1,
-                              productTitle:
-                                  d.productTitle ||
-                                  activeProduct?.title ||
-                                  "Custom Jersey",
-                              playerName:
-                                  d.name.trim() ||
-                                  (pdfFile ? "DATA PEMAIN PDF" : "PEMAIN"),
-                              playerNumber:
-                                  d.number.trim() || (pdfFile ? "PDF" : "00"),
-                              playerSize: `${d.size || "L"} (${d.sleeve || "Lengan Pendek"})`,
-                          }))
-                        : activeProduct
-                          ? [
-                                {
-                                    productId: activeProduct.id,
-                                    productTitle: activeProduct.title,
-                                    playerName: pdfFile
-                                        ? "DATA PEMAIN PDF"
-                                        : "PEMAIN",
-                                    playerNumber: pdfFile ? "PDF" : "00",
-                                    playerSize: `${sizeParam || "L"} (${sleeveParam || "Lengan Pendek"})`,
-                                },
-                            ]
-                          : [];
-
-                const payload = {
-                    customerId: user?.id || 0,
-                    customerName: user?.name || user?.username || "",
-                    bahanBajuId: activeProduct?.id,
-                    totalAmount: totalCalculated,
-                    paymentType: paymentType,
-                    paidAmount: effectivePaidAmount,
-                    remainingAmount: effectiveRemainingAmount,
-                    designNote: finalDesignNote,
-                    designUrl: designUrl,
-                    paymentUrl: paymentUrl,
-                    shippingMethod: shippingMethod,
-                    shippingAddress:
-                        shippingMethod === "COD" ? shippingAddress : "",
-                    details: effectiveDetails,
-                };
-
-                if (isEditing && existingOrder) {
-                    await orderService.updateOrder(existingOrder.id, payload);
-                    setUploadProgress(100);
-                    setToast({
-                        show: true,
-                        message: "Pesanan berhasil diperbarui!",
-                        variant: "success",
+            adminApi.getBahanBaju().then((res) => {
+              if (res.status === "success") {
+                const products = res.data;
+                const firstDetail = order.details?.[0];
+                if (firstDetail) {
+                  const product = products.find(
+                    (b: any) => b.id === Number(firstDetail.productId),
+                  );
+                  if (product) {
+                    setDirectProduct({
+                      id: product.id,
+                      title: product.nama,
+                      price: product.harga || 150000,
+                      status: product.status,
+                      kuantitasKg: product.kuantitasKg || 0,
+                      rasioKonversi: product.rasioKonversi || 2.5,
+                      image: product.imageUrl
+                        ? `${UPLOADS_URL}${product.imageUrl}`
+                        : "",
                     });
-                } else {
-                    await orderService.createOrder(payload);
-                    setUploadProgress(100);
-                    setToast({
-                        show: true,
-                        message:
-                            "Pesanan berhasil dibuat dan telah terkirim ke sistem admin!",
-                        variant: "success",
-                    });
+                  }
                 }
 
-                setTimeout(() => {
-                    clearCart();
-                    navigate("/customer");
-                }, 1500);
-            } catch (apiErr) {
-                console.error("API Order failed", apiErr);
-                setToast({
-                    show: true,
-                    message: isEditing
-                        ? "Gagal memperbarui pesanan. Silakan coba lagi."
-                        : "Gagal membuat pesanan. Silakan coba lagi.",
-                    variant: "destructive",
-                });
-            }
-        } catch (error) {
-            console.error("Upload failed:", error);
-            setToast({
-                show: true,
-                message: "Gagal mengunggah gambar. Silakan coba lagi.",
-                variant: "destructive",
+                if (order.details && order.details.length > 0) {
+                  const detailsMapped = order.details.map(
+                    (detail: any, idx: number) => {
+                      const { size, sleeve } = parseSizeAndSleeve(
+                        detail.playerSize,
+                      );
+                      const matchingBahan = products.find(
+                        (b: any) => b.id === Number(detail.productId),
+                      );
+                      return {
+                        id: `edit-${detail.id}-${idx}`,
+                        productId: detail.productId,
+                        productTitle: detail.productTitle,
+                        price: matchingBahan?.harga || 150000,
+                        image: matchingBahan?.imageUrl
+                          ? `${UPLOADS_URL}${matchingBahan.imageUrl}`
+                          : "",
+                        name: detail.playerName || "",
+                        number: detail.playerNumber || "",
+                        size: size,
+                        sleeve: sleeve,
+                      };
+                    },
+                  );
+                  roster.setCustomDetails(detailsMapped);
+                }
+              }
             });
-        } finally {
-            setIsUploading(false);
+          } else {
+            setToast({
+              show: true,
+              message: "Pesanan ini tidak dapat diedit atau tidak ditemukan.",
+              variant: "destructive",
+            });
+            navigate("/customer");
+          }
+        } catch (err) {
+          console.error("Failed to load order for edit:", err);
+          setToast({
+            show: true,
+            message: "Gagal memuat detail pesanan.",
+            variant: "destructive",
+          });
         }
-    };
+      };
+      loadOrderToEdit();
+    }
+  }, [editOrderId]);
 
-    const steps: CustomJerseyCheckoutStep[] = [
-        { id: 1, name: "Player Info", icon: User },
-        { id: 2, name: "Design Reference", icon: FileUp },
-        { id: 3, name: "Payment Proof", icon: CreditCard },
-    ];
-
-    return {
-        step,
-        setStep,
-        activeProduct,
-        activeBahan,
-        allBahan,
-        availableKg,
-        customDetails,
-        setCustomDetails,
-        designNote,
-        setDesignNote,
-        designReferenceFile,
-        setDesignReferenceFile,
-        paymentProofFile,
-        setPaymentProofFile,
-        paymentType,
-        setPaymentType,
-        dpAmountInput,
-        setDpAmountInput,
-        pdfFile,
-        setPdfFile,
-        isUploading,
-        uploadProgress,
-        shippingMethod,
-        setShippingMethod,
-        shippingAddress,
-        setShippingAddress,
-        pasteText,
-        setPasteText,
-        isPasteDialogOpen,
-        setIsPasteDialogOpen,
-        textareaRef,
-        isResetDialogOpen,
-        setIsResetDialogOpen,
-        playerCountInput,
-        setPlayerCountInput,
-        showValidation,
-        setShowValidation,
-        totalRequiredKg,
-        isOverLimit,
-        toast,
-        setToast,
-        user,
-        existingOrder,
-        setExistingOrder,
-        isEditing,
-        steps,
-        formatRupiah,
-        getSizeSurcharge,
-        generateTable,
-        resetTable,
-        parsePasteData,
-        handleTextareaKeyDown,
-        handleTextareaPaste,
-        removeUnit,
-        updateUnitQuantity,
-        handleDetailChange,
-        handlePdfImport,
-        isStepValid,
-        handleNextStep,
-        handleSubmit,
-        totalCalculated,
-        effectivePaidAmount,
-        effectiveRemainingAmount,
-    };
+  return {
+    step: submission.step,
+    setStep: submission.setStep,
+    activeProduct,
+    activeBahan: pricing.activeBahan,
+    allBahan: pricing.allBahan,
+    availableKg: pricing.availableKg,
+    customDetails: roster.customDetails,
+    setCustomDetails: roster.setCustomDetails,
+    designNote: submission.designNote,
+    setDesignNote: submission.setDesignNote,
+    designReferenceFile: submission.designReferenceFile,
+    setDesignReferenceFile: submission.setDesignReferenceFile,
+    paymentProofFile: submission.paymentProofFile,
+    setPaymentProofFile: submission.setPaymentProofFile,
+    paymentType: pricing.paymentType,
+    setPaymentType: pricing.setPaymentType,
+    dpAmountInput: pricing.dpAmountInput,
+    setDpAmountInput: pricing.setDpAmountInput,
+    pdfFile: submission.pdfFile,
+    setPdfFile: submission.setPdfFile,
+    isUploading: submission.isUploading,
+    uploadProgress: submission.uploadProgress,
+    shippingMethod: submission.shippingMethod,
+    setShippingMethod: submission.setShippingMethod,
+    shippingAddress: submission.shippingAddress,
+    setShippingAddress: submission.setShippingAddress,
+    pasteText: roster.pasteText,
+    setPasteText: roster.setPasteText,
+    isPasteDialogOpen: roster.isPasteDialogOpen,
+    setIsPasteDialogOpen: roster.setIsPasteDialogOpen,
+    textareaRef: roster.textareaRef,
+    isResetDialogOpen: roster.isResetDialogOpen,
+    setIsResetDialogOpen: roster.setIsResetDialogOpen,
+    playerCountInput: roster.playerCountInput,
+    setPlayerCountInput: roster.setPlayerCountInput,
+    showValidation: roster.showValidation,
+    setShowValidation: roster.setShowValidation,
+    totalRequiredKg: pricing.totalRequiredKg,
+    isOverLimit: pricing.isOverLimit,
+    toast,
+    setToast,
+    user,
+    existingOrder,
+    setExistingOrder,
+    isEditing,
+    steps: submission.steps,
+    formatRupiah: pricing.formatRupiah,
+    getSizeSurcharge: pricing.getSizeSurcharge,
+    generateTable: roster.generateTable,
+    resetTable: roster.resetTable,
+    parsePasteData: roster.parsePasteData,
+    handleTextareaKeyDown: roster.handleTextareaKeyDown,
+    handleTextareaPaste: roster.handleTextareaPaste,
+    removeUnit: roster.removeUnit,
+    updateUnitQuantity: roster.updateUnitQuantity,
+    handleDetailChange: roster.handleDetailChange,
+    handlePdfImport: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        submission.setPdfFile(file);
+        setToast({
+          show: true,
+          message: "File PDF berhasil diunggah. Admin akan memproses data pemain dari PDF ini.",
+          variant: "success",
+        });
+      }
+    },
+    isStepValid: submission.isStepValid,
+    handleNextStep: submission.handleNextStep,
+    handleSubmit: submission.handleSubmit,
+    totalCalculated: pricing.totalCalculated,
+    effectivePaidAmount: pricing.effectivePaidAmount,
+    effectiveRemainingAmount: pricing.effectiveRemainingAmount,
+  };
 }

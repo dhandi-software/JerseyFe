@@ -26,7 +26,6 @@ export default [
     layout("routes/customer/layout.tsx", [
         ...prefix("customer", [
             index("routes/customer/customer-dashboard.tsx"),
-            route("chat", "routes/customer/customer-chat.tsx"),
             route("profile", "routes/customer/customer-profile.tsx"),
             route("custom-jersey", "routes/customer/CustomJersey.tsx"),
             route("custom-jersey/detail/:id", "routes/customer/custom_jersey_detail.tsx"),
@@ -46,7 +45,6 @@ export default [
             route("bahan-baju/edit/:id", "routes/admin/bahan-baju-edit.$id.tsx"),
             route("bahan-baju/detail/:id", "routes/admin/bahan-baju-detail.$id.tsx"),
             route("bahan-baju", "routes/admin/bahan-baju.tsx"),
-            route("chat", "routes/admin/chat.tsx"),
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
             route("retur-barang", "routes/admin/retur-barang.tsx"),
@@ -59,7 +57,6 @@ export default [
     layout("routes/desain/layout.tsx", [
         ...prefix("desain", [
             index("routes/desain/dashboard.tsx"),
-            route("chat", "routes/desain/chat_new.tsx"),
             route("profile", "routes/desain/profile.tsx"),
         ]),
     ]),

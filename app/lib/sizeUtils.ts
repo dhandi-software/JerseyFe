@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { createAutoTableEmojiHooks } from "./emojiCanvasHelper";
 
 export const SIZE_ORDER = [
     'XXS',
@@ -128,12 +129,18 @@ export const downloadPlayersPDF = (order: any) => {
     doc.text(order.status || "-", 175, 65);
 
     // --- Table ---
-    const tableData = order.playerInfo.map((p: any, index: number) => [
+    const tableData = (order.playerInfo || []).map((p: any, index: number) => [
         (index + 1).toString(),
         (p.name || p.playerName || "-").toUpperCase(),
         p.number || p.playerNumber || "-",
         p.playerSize || p.size || "-"
     ]);
+
+    const emojiHooks = createAutoTableEmojiHooks(doc, {
+        fontSize: 9,
+        scale: 4,
+        textColor: '#1e293b'
+    });
 
     autoTable(doc, {
         startY: 75,
@@ -162,7 +169,9 @@ export const downloadPlayersPDF = (order: any) => {
         alternateRowStyles: {
             fillColor: [248, 250, 252]
         },
-        margin: { left: 15, right: 15 }
+        margin: { left: 15, right: 15 },
+        didParseCell: emojiHooks.didParseCell,
+        didDrawCell: emojiHooks.didDrawCell
     });
 
     // --- Summary Section ---

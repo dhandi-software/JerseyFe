@@ -55,7 +55,6 @@
     "react-router": "^7.7.1",
     "recharts": "^3.8.0",
     "remix-i18next": "^7.2.1",
-    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.4.0",
     "ua-parser-js": "^2.0.4",
     "vaul": "^1.1.2",

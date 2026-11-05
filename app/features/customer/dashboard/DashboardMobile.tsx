@@ -1,4 +1,4 @@
-import { LayoutDashboard, MessageCircle, User, ShoppingBag, Clock, CheckCircle, Package, Truck, Loader2, ChevronRight, Bell } from "lucide-react";
+import { LayoutDashboard, User, ShoppingBag, Clock, CheckCircle, Package, Truck, Loader2, ChevronRight, Bell } from "lucide-react";
 import { Link } from "react-router";
 import { useCustomerDashboard } from "~/hooks";
 import { cn } from "~/lib/utils";
@@ -39,12 +39,6 @@ export function DashboardMobile() {
                 <Truck size={16} />
             </div>
             <span className="text-[10px] font-black text-slate-900 uppercase italic leading-tight">Progress<br />Pesanan</span>
-        </Link>
-        <Link to="/customer/chat" className="shrink-0 w-32 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-3">
-            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                <MessageCircle size={16} />
-            </div>
-            <span className="text-[10px] font-black text-slate-900 uppercase italic leading-tight">Mulai<br />Konsultasi</span>
         </Link>
       </div>
 

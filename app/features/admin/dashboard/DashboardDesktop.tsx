@@ -4,7 +4,6 @@ import {
     DashboardMetricsCards,
     DashboardRecentCustomers,
     DashboardGrowthChart,
-    DashboardRecentChats,
     DashboardTopCities,
     DashboardNewOrders
 } from "./components";
@@ -16,8 +15,21 @@ export function DashboardDesktop() {
         showWelcomeToast,
         timeView,
         setTimeView,
+        selectedYear,
+        setSelectedYear,
+        selectedMonth,
+        setSelectedMonth,
         showDropdown,
         setShowDropdown,
+        showYearDropdown,
+        setShowYearDropdown,
+        showMonthDropdown,
+        setShowMonthDropdown,
+        dropdownRef,
+        yearDropdownRef,
+        monthDropdownRef,
+        years,
+        filteredMonths,
         statsData,
         activeData,
         currentTotal,
@@ -37,8 +49,21 @@ export function DashboardDesktop() {
                 <DashboardGrowthChart
                     timeView={timeView}
                     setTimeView={setTimeView}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
                     showDropdown={showDropdown}
                     setShowDropdown={setShowDropdown}
+                    showYearDropdown={showYearDropdown}
+                    setShowYearDropdown={setShowYearDropdown}
+                    showMonthDropdown={showMonthDropdown}
+                    setShowMonthDropdown={setShowMonthDropdown}
+                    dropdownRef={dropdownRef}
+                    yearDropdownRef={yearDropdownRef}
+                    monthDropdownRef={monthDropdownRef}
+                    years={years}
+                    filteredMonths={filteredMonths}
                     currentTotal={currentTotal}
                     activeData={activeData}
                     statsData={statsData}
@@ -49,11 +74,7 @@ export function DashboardDesktop() {
             </div>
 
             {/* TIER 3: Footer Cards */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-                <DashboardRecentChats 
-                    recentChats={statsData.recentChats} 
-                    totalUnreadChat={statsData.totalUnreadChat} 
-                />
+            <div className="w-full">
                 <DashboardNewOrders newOrders={statsData.newOrders} />
             </div>
         </div>

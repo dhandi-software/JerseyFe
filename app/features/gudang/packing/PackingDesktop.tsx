@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { Clock, Eye, CheckCircle, Package, ImageIcon, FileText, ChevronLeft } from "lucide-react";
+import { Clock, Eye, CheckCircle, CheckCircle2, Package, ImageIcon, FileText, ChevronLeft } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -8,9 +7,12 @@ import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 import { Toast } from "~/components/ui/toast";
 
 import { usePacking } from "~/hooks/usePacking";
+import { useStorageLocations } from "~/hooks/useStorageLocations";
+import { StorageLocationBadge, StorageLocationSelect } from "~/components/storage";
 import type { PackingFilterTab, PackingOrderItem } from "~/types";
 
 export function PackingDesktop() {
+    const storageModel = useStorageLocations();
     const {
         user,
         orders,
@@ -32,6 +34,8 @@ export function PackingDesktop() {
         handleUpdateStatus,
         requestConfirmation,
         getStatusStyle,
+        handleToggleDetailStatus,
+        handleAssignStorageLocation,
     } = usePacking();
 
     if (selectedOrder) {
@@ -164,7 +168,9 @@ export function PackingDesktop() {
                                                     <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Nama Pemain</th>
                                                     <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-32">Nomor</th>
                                                     <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-32">Ukuran</th>
-                                                    <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-40">Tipe Lengan</th>
+                                                    <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic w-36">Tipe Lengan</th>
+                                                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic text-center w-36">Status Baju</th>
+                                                    <th className="px-6 py-5 text-[11px] font-black text-slate-400 uppercase tracking-widest italic text-center w-36">Status Celana</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-50">
@@ -175,11 +181,45 @@ export function PackingDesktop() {
                                                         <td className="px-8 py-4 text-sm font-black text-slate-600">{player.number}</td>
                                                         <td className="px-8 py-4 text-sm font-black text-[#D25026]">{player.size}</td>
                                                         <td className="px-8 py-4 text-sm font-bold text-slate-500 capitalize">{player.sleeve}</td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <button
+                                                                type="button"
+                                                                disabled={!player.id}
+                                                                onClick={() => player.id && handleToggleDetailStatus(selectedOrder.rawId, player.id, "statusBaju")}
+                                                                className={cn(
+                                                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-2xs active:scale-95",
+                                                                    player.statusBaju
+                                                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                                                                        : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700"
+                                                                )}
+                                                                title="Klik untuk ubah status kesiapan baju"
+                                                            >
+                                                                {player.statusBaju ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-slate-400" />}
+                                                                <span>{player.statusBaju ? "READY" : "BELUM"}</span>
+                                                            </button>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <button
+                                                                type="button"
+                                                                disabled={!player.id}
+                                                                onClick={() => player.id && handleToggleDetailStatus(selectedOrder.rawId, player.id, "statusCelana")}
+                                                                className={cn(
+                                                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-2xs active:scale-95",
+                                                                    player.statusCelana
+                                                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100"
+                                                                        : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700"
+                                                                )}
+                                                                title="Klik untuk ubah status kesiapan celana"
+                                                            >
+                                                                {player.statusCelana ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-slate-400" />}
+                                                                <span>{player.statusCelana ? "READY" : "BELUM"}</span>
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                                 {selectedOrder.playerInfo.length === 0 && (
                                                     <tr>
-                                                        <td colSpan={5} className="px-8 py-12 text-center text-slate-400 text-sm font-bold italic">
+                                                        <td colSpan={7} className="px-8 py-12 text-center text-slate-400 text-sm font-bold italic">
                                                             Tidak ada data pemain spesifik
                                                         </td>
                                                     </tr>
@@ -194,8 +234,24 @@ export function PackingDesktop() {
                         
                         {/* Update Status Bar */}
                         <div className="p-8 border-t border-slate-100 bg-white rounded-b-[2.5rem] flex items-center justify-between">
-                            <div className="text-sm font-bold text-slate-500">
-                                Status Saat Ini: <span className={cn("ml-2 px-3 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase border", getStatusStyle(selectedOrder.status))}>{selectedOrder.status}</span>
+                            <div className="flex items-center gap-6">
+                                <div className="text-sm font-bold text-slate-500">
+                                    Status Saat Ini: <span className={cn("ml-2 px-3 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase border", getStatusStyle(selectedOrder.status))}>{selectedOrder.status}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 italic">Lokasi Toko:</span>
+                                    <StorageLocationSelect
+                                        currentLocationId={selectedOrder.storageLocationId}
+                                        currentLocation={selectedOrder.storageLocation}
+                                        locations={storageModel.locations}
+                                        onAssign={async (locId) => {
+                                            await handleAssignStorageLocation(selectedOrder.rawId, locId);
+                                            storageModel.fetchLocations();
+                                        }}
+                                        disabled={selectedOrder.status === "BATAL"}
+                                        size="sm"
+                                    />
+                                </div>
                             </div>
                             <div className="flex gap-4">
                                 {selectedOrder.status !== "FINISHING" && selectedOrder.status !== "SELESAI" && (
@@ -332,6 +388,12 @@ export function PackingDesktop() {
                                         <Package size={14} />
                                         <span>Total: <strong className="text-slate-800">{order.qty} Pcs</strong></span>
                                     </div>
+
+                                    {(order.status === "SELESAI" || order.storageLocation) && (
+                                        <div className="pt-1">
+                                            <StorageLocationBadge location={order.storageLocation} size="xs" />
+                                        </div>
+                                    )}
 
                                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                                         <button 

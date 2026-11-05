@@ -2,7 +2,8 @@ import { useState } from "react";
 import { ChevronLeft, Copy, Check, Printer, Loader2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { getStatusStyle } from "../../utils";
-import type { MonitoringOrder } from "~/types";
+import { StorageLocationBadge, StorageLocationSelect } from "~/components/storage";
+import type { MonitoringOrder, StorageLocation } from "~/types";
 
 interface DetailHeaderProps {
     order: MonitoringOrder;
@@ -12,6 +13,8 @@ interface DetailHeaderProps {
     onPrintInvoice?: () => Promise<void>;
     variant?: "desktop" | "mobile";
     isMobile?: boolean;
+    locations?: StorageLocation[];
+    onAssignStorageLocation?: (locationId: number | null) => Promise<void> | void;
 }
 
 export function DetailHeader({
@@ -21,7 +24,9 @@ export function DetailHeader({
     onPrint,
     onPrintInvoice,
     variant,
-    isMobile = false
+    isMobile = false,
+    locations,
+    onAssignStorageLocation
 }: DetailHeaderProps) {
     const mobileMode = variant === "mobile" || isMobile;
     const printHandler = onPrint || onPrintInvoice || (async () => {});
@@ -94,6 +99,24 @@ export function DetailHeader({
                                 )}
                             </button>
                         </div>
+                        {locations && onAssignStorageLocation ? (
+                            <div className="pt-1">
+                                <StorageLocationSelect
+                                    currentLocationId={order.storageLocationId}
+                                    currentLocation={order.storageLocation}
+                                    locations={locations}
+                                    onAssign={onAssignStorageLocation}
+                                    disabled={order.status === "BATAL"}
+                                    size="sm"
+                                />
+                            </div>
+                        ) : (
+                            (order.status === "SELESAI" || order.storageLocation) && (
+                                <div className="pt-1">
+                                    <StorageLocationBadge location={order.storageLocation} size="xs" />
+                                </div>
+                            )
+                        )}
                     </div>
                     <button
                         onClick={printHandler}
@@ -157,6 +180,20 @@ export function DetailHeader({
                     )}
                 </div>
                 <div className="flex items-center gap-3">
+                    {locations && onAssignStorageLocation ? (
+                        <StorageLocationSelect
+                            currentLocationId={order.storageLocationId}
+                            currentLocation={order.storageLocation}
+                            locations={locations}
+                            onAssign={onAssignStorageLocation}
+                            disabled={order.status === "BATAL"}
+                            size="sm"
+                        />
+                    ) : (
+                        (order.status === "SELESAI" || order.storageLocation) && (
+                            <StorageLocationBadge location={order.storageLocation} size="sm" />
+                        )
+                    )}
                     <button
                         onClick={printHandler}
                         disabled={isPrinting}

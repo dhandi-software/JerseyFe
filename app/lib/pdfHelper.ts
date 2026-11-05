@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { parsePlayerSizeAndSleeve } from './sizeUtils';
+import { createAutoTableEmojiHooks } from './emojiCanvasHelper';
 
 export const generateInvoicePDF = async (order: any) => {
     const doc = new jsPDF();
@@ -122,13 +123,14 @@ export const generateInvoicePDF = async (order: any) => {
             statusCelana: p.statusCelana
         }));
     const totalUnit = memberItems.length;
-    const totalAmount = order.totalAmount || (totalUnit * 150000);
-    const subtotal = totalAmount;
-    const basePrice = totalUnit > 0 ? Math.round(subtotal / totalUnit) : 150000;
-    const productName = order.details?.[0]?.productTitle || order.product || "Jersey Custom Full Printing";
+    const materialName = order.materialName || order.details?.[0]?.productTitle || order.product || "Jersey Custom Full Printing";
+    const basePrice = order.materialPrice || (totalUnit > 0 ? Math.round((order.subtotalAmount || order.totalAmount) / totalUnit) : 150000);
+    const subtotal = order.subtotalAmount || (totalUnit * basePrice);
+    const discount = Math.max(0, Number(order.discount) || 0);
+    const totalAmount = order.totalAmount !== undefined ? order.totalAmount : Math.max(0, subtotal - discount);
 
     const summaryBody = [
-        [productName, totalUnit.toString(), `Rp ${basePrice.toLocaleString('id-ID')}`, `Rp ${subtotal.toLocaleString('id-ID')}`]
+        [materialName, totalUnit.toString(), `Rp ${basePrice.toLocaleString('id-ID')}`, `Rp ${subtotal.toLocaleString('id-ID')}`]
     ];
 
     autoTable(doc, {
@@ -194,22 +196,32 @@ export const generateInvoicePDF = async (order: any) => {
     doc.setDrawColor(241, 245, 249);
     doc.line(110, finalY + 15, 195, finalY + 15);
 
+    let currentTotalsY = finalY + 22;
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text("Subtotal", 110, finalY + 22);
-    doc.text(`Rp ${subtotal.toLocaleString('id-ID')}`, 195, finalY + 22, { align: 'right' });
+    doc.text("Subtotal", 110, currentTotalsY);
+    doc.text(`Rp ${subtotal.toLocaleString('id-ID')}`, 195, currentTotalsY, { align: 'right' });
 
+    if (discount > 0) {
+        currentTotalsY += 6;
+        doc.setTextColor(5, 150, 105); // emerald-600
+        doc.text("Potongan Diskon", 110, currentTotalsY);
+        doc.text(`- Rp ${discount.toLocaleString('id-ID')}`, 195, currentTotalsY, { align: 'right' });
+    }
+
+    currentTotalsY += 5;
     doc.setDrawColor(15, 23, 42);
     doc.setLineWidth(0.5);
-    doc.line(110, finalY + 26, 195, finalY + 26);
+    doc.line(110, currentTotalsY, 195, currentTotalsY);
 
+    currentTotalsY += 7;
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
     doc.setFont("helvetica", "bold");
-    doc.text("Total Tagihan", 110, finalY + 33);
+    doc.text("Total Tagihan", 110, currentTotalsY);
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
-    doc.text(`Rp ${totalAmount.toLocaleString('id-ID')}`, 195, finalY + 33, { align: 'right' });
+    doc.text(`Rp ${totalAmount.toLocaleString('id-ID')}`, 195, currentTotalsY, { align: 'right' });
 
     if (isDP) {
         doc.setFontSize(9);
@@ -261,6 +273,12 @@ export const generateInvoicePDF = async (order: any) => {
         ];
     });
 
+    const playerEmojiHooks = createAutoTableEmojiHooks(doc, {
+        fontSize: 8,
+        scale: 4,
+        textColor: '#323232'
+    });
+
     autoTable(doc, {
         startY: finalY + 5,
         head: [['NO', 'NAMA PEMAIN', 'NOMOR', 'UKURAN (SIZE)', 'LENGAN']],
@@ -273,7 +291,9 @@ export const generateInvoicePDF = async (order: any) => {
             2: { halign: 'center', cellWidth: 20 },
             3: { halign: 'center', cellWidth: 30 },
             4: { halign: 'center', cellWidth: 30 }
-        }
+        },
+        didParseCell: playerEmojiHooks.didParseCell,
+        didDrawCell: playerEmojiHooks.didDrawCell
     });
 
     finalY = (doc as any).lastAutoTable.finalY + 15;

@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, CalendarDays, ChevronsUpDown, Loader2, X, Inbox } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { useLogActivity } from "./UseLogActivity";
+import { useLogActivity } from "~/hooks/useLogActivity";
 import { format } from "date-fns";
 import { Button } from "~/components/ui/button";
 import { Calendar } from "~/components/ui/calendar";

@@ -1,5 +1,27 @@
 import { cn } from "~/lib/utils";
-import type { CustomerOrderStepperProps } from "~/types";
+import type { CustomerOrderStepperProps, CustomerTrackedOrder, TrackingStage } from "~/types";
+
+function getMissingDeliverableBadge(
+    stageId: string,
+    order: CustomerTrackedOrder,
+    currentStageIndex: number,
+    stages: TrackingStage[]
+): string | null {
+    if (!order) return null;
+    const stageIdx = stages.findIndex((s) => s.id === stageId);
+    if (stageIdx === -1) return null;
+
+    // Only flag missing deliverables if the order has reached or progressed past this stage
+    if (currentStageIndex < stageIdx) return null;
+
+    if (stageId === "DESAIN" && (!order.mockupUrl || !order.mockupUrl.trim())) {
+        return "Belum di-upload";
+    }
+    if (stageId === "LAYOUT" && (!order.layoutUrl || !order.layoutUrl.trim())) {
+        return "Belum di-upload";
+    }
+    return null;
+}
 
 export function CustomerOrderStepper({
     order,
@@ -77,14 +99,24 @@ export function CustomerOrderStepper({
                                     )}
                                 </div>
                                 <div className="pt-1">
-                                    <p
-                                        className={cn(
-                                            "text-sm font-black uppercase tracking-wider italic",
-                                            isCompleted ? "text-slate-900" : "text-slate-400"
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p
+                                            className={cn(
+                                                "text-sm font-black uppercase tracking-wider italic",
+                                                isCompleted ? "text-slate-900" : "text-slate-400"
+                                            )}
+                                        >
+                                            {stage.label}
+                                        </p>
+                                        {getMissingDeliverableBadge(stage.id, order, currentStageIndex, stages) && (
+                                            <span 
+                                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200 shadow-2xs"
+                                                title={`Foto ${stage.label} Belum Di-upload`}
+                                            >
+                                                Belum di-upload
+                                            </span>
                                         )}
-                                    >
-                                        {stage.label}
-                                    </p>
+                                    </div>
                                     <p className="text-xs font-medium text-slate-500 mt-0.5 leading-snug italic">
                                         {stage.desc}
                                     </p>
@@ -168,6 +200,16 @@ export function CustomerOrderStepper({
                                     >
                                         {stage.label}
                                     </p>
+                                    {getMissingDeliverableBadge(stage.id, order, currentStageIndex, stages) && (
+                                        <div className="pt-0.5">
+                                            <span 
+                                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200 shadow-2xs"
+                                                title={`Foto ${stage.label} Belum Di-upload`}
+                                            >
+                                                Belum di-upload
+                                            </span>
+                                        </div>
+                                    )}
                                     <p className="text-xs font-medium text-slate-500 leading-snug">
                                         {stage.desc}
                                     </p>

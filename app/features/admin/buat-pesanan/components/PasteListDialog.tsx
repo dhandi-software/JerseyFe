@@ -43,7 +43,7 @@ export function PasteListDialog({
                     className={
                         variant === "desktop"
                             ? "rounded-xl h-10 px-4 border-neutral-200 text-[10px] font-black uppercase tracking-widest italic flex gap-2 hover:bg-black hover:text-white transition-all cursor-pointer"
-                            : "rounded-xl h-9 px-3 border-neutral-200 text-[9px] font-black uppercase tracking-widest italic flex gap-1.5 hover:bg-black hover:text-white transition-all cursor-pointer"
+                            : "rounded-xl h-11 px-3.5 border-neutral-200 text-xs font-bold flex gap-1.5 hover:bg-black hover:text-white transition-all cursor-pointer"
                     }
                 >
                     <ClipboardPaste className="w-3.5 h-3.5" />
@@ -52,13 +52,6 @@ export function PasteListDialog({
             </DialogTrigger>
             <DialogContent className="!w-[600px] !max-w-[95vw] rounded-[2.5rem] p-0 border-none shadow-2xl overflow-hidden bg-white flex flex-col max-h-[90vh]">
                 <div className="relative h-32 w-full bg-black flex flex-col justify-center px-10 shrink-0">
-                    <div 
-                        className="absolute inset-0 opacity-20 pointer-events-none" 
-                        style={{ 
-                            backgroundImage: "radial-gradient(circle at 0.0625rem 0.0625rem, white 0.0625rem, transparent 0)", 
-                            backgroundSize: "1.5rem 1.5rem" 
-                        }} 
-                    />
                     <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white relative z-10">
                         Paste Player List
                     </DialogTitle>

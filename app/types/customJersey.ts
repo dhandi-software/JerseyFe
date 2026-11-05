@@ -49,6 +49,7 @@ export interface CustomJerseyDetailItem {
     productId: number;
     productTitle: string;
     price: number;
+    unitPrice?: number;
     image: string;
     name: string;
     number: string;

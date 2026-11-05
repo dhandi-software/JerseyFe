@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Clock, Eye, Package, ChevronLeft, Image as ImageIcon, MessageCircle, FileText, User, UploadCloud } from "lucide-react";
+import { Clock, Eye, Package, ChevronLeft, Image as ImageIcon, FileText, User, UploadCloud } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -568,12 +568,6 @@ export function DashboardDesainMobile() {
                 </div>
 
                 <div className="p-6 bg-white border-t border-slate-100 flex flex-col gap-3 fixed bottom-0 left-0 right-0 z-50">
-                    <button 
-                        onClick={() => window.location.href = `/desain/chat?userId=${selectedOrder.customerId}`}
-                        className="w-full h-12 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest italic flex items-center justify-center gap-2 shadow-lg"
-                    >
-                        <MessageCircle size={14} /> Chat Customer
-                    </button>
                     {selectedOrder.status === "DESAIN" && selectedOrder.isWorking && selectedOrder.designStatus === "SENT" && (
                         <button 
                             onClick={handleCancelMockup}

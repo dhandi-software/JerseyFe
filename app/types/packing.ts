@@ -1,11 +1,16 @@
+import type { StorageLocation } from "./storageLocation";
+
 export type PackingFilterTab = "ALL" | "PRINT" | "FINISHING" | "SELESAI";
 
 export interface PackingPlayerInfo {
+    id?: number;
     name: string;
     number: string;
     size: string;
     sleeve: string;
     playerSize?: string;
+    statusBaju?: boolean;
+    statusCelana?: boolean;
 }
 
 export interface PackingOrderItem {
@@ -21,6 +26,8 @@ export interface PackingOrderItem {
     dateTime: string;
     playerInfo: PackingPlayerInfo[];
     designNote?: string;
+    storageLocationId?: number | null;
+    storageLocation?: StorageLocation | null;
 }
 
 export interface PackingConfirmModalState {
@@ -57,4 +64,13 @@ export interface UsePackingReturn {
         onConfirm: () => void,
     ) => void;
     getStatusStyle: (status: string) => string;
+    handleToggleDetailStatus: (
+        orderRawId: number,
+        detailId: number,
+        field: "statusBaju" | "statusCelana"
+    ) => Promise<void>;
+    handleAssignStorageLocation: (
+        orderRawId: number,
+        storageLocationId: number | null
+    ) => Promise<void>;
 }

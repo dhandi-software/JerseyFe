@@ -58,6 +58,8 @@ export interface OrderDetailViewDesktopProps {
     handleEditMember?: (orderId: number, detailId: number, data: { playerName?: string; playerNumber?: string; playerSize?: string; statusBaju?: boolean; statusCelana?: boolean }) => Promise<any>;
     handleDeleteMember?: (orderId: number, detailId: number) => Promise<any>;
     handleUpdatePaymentDetails?: (orderId: number, data: { paymentType?: string; paidAmount?: number; remainingAmount?: number }) => Promise<any>;
+    locations?: any[];
+    onAssignStorageLocation?: (locationId: number | null) => Promise<void> | void;
 }
 
 export function OrderDetailViewDesktop({
@@ -96,7 +98,9 @@ export function OrderDetailViewDesktop({
     handleAddMember,
     handleEditMember,
     handleDeleteMember,
-    handleUpdatePaymentDetails
+    handleUpdatePaymentDetails,
+    locations,
+    onAssignStorageLocation
 }: OrderDetailViewDesktopProps) {
     const currentBahan = findOrderBahan(selectedOrder, bahanList);
 
@@ -120,6 +124,8 @@ export function OrderDetailViewDesktop({
                         isPrinting={isPrinting}
                         onPrint={handlePrintInvoice}
                         variant="desktop"
+                        locations={locations}
+                        onAssignStorageLocation={onAssignStorageLocation}
                     />
 
                     <div className="p-10 bg-slate-50 space-y-10">

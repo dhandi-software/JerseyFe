@@ -46,9 +46,7 @@ export function PlayerTableDesktop({
 
     return (
         <div className="space-y-4">
-            <div className="bg-white rounded-[2.5rem] border border-neutral-100 shadow-2xl overflow-hidden relative ring-1 ring-black/5">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 blur-[6.25rem] pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#D25026]/5 blur-[6.25rem] pointer-events-none" />
+            <div className="bg-white rounded-3xl border border-neutral-200 shadow-sm overflow-hidden relative">
                 
                 <div className="overflow-x-auto relative z-10 custom-scrollbar pb-4">
                     <table className="w-full text-left border-collapse min-w-[62.5rem]">

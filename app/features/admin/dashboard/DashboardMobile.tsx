@@ -4,7 +4,6 @@ import { useDashboard } from "~/hooks";
 import {
     DashboardRecentCustomers,
     DashboardGrowthChart,
-    DashboardRecentChats,
     DashboardTopCities,
     DashboardNewOrders
 } from "./components";
@@ -16,8 +15,21 @@ export function DashboardMobile() {
         loading,
         timeView,
         setTimeView,
+        selectedYear,
+        setSelectedYear,
+        selectedMonth,
+        setSelectedMonth,
         showDropdown,
         setShowDropdown,
+        showYearDropdown,
+        setShowYearDropdown,
+        showMonthDropdown,
+        setShowMonthDropdown,
+        dropdownRef,
+        yearDropdownRef,
+        monthDropdownRef,
+        years,
+        filteredMonths,
         statsData,
         activeData,
         currentTotal,
@@ -77,8 +89,21 @@ export function DashboardMobile() {
             <DashboardGrowthChart
                 timeView={timeView}
                 setTimeView={setTimeView}
+                selectedYear={selectedYear}
+                setSelectedYear={setSelectedYear}
+                selectedMonth={selectedMonth}
+                setSelectedMonth={setSelectedMonth}
                 showDropdown={showDropdown}
                 setShowDropdown={setShowDropdown}
+                showYearDropdown={showYearDropdown}
+                setShowYearDropdown={setShowYearDropdown}
+                showMonthDropdown={showMonthDropdown}
+                setShowMonthDropdown={setShowMonthDropdown}
+                dropdownRef={dropdownRef}
+                yearDropdownRef={yearDropdownRef}
+                monthDropdownRef={monthDropdownRef}
+                years={years}
+                filteredMonths={filteredMonths}
                 currentTotal={currentTotal}
                 activeData={activeData}
                 statsData={statsData}
@@ -92,12 +117,6 @@ export function DashboardMobile() {
             <DashboardRecentCustomers 
                 recentCustomers={statsData.recentCustomers} 
                 isMobile={true} 
-            />
-
-            {/* Recent Chats Section */}
-            <DashboardRecentChats 
-                recentChats={statsData.recentChats} 
-                totalUnreadChat={statsData.totalUnreadChat} 
             />
 
             {/* New Orders */}

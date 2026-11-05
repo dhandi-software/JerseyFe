@@ -1,2 +1,2 @@
-export * from "./ChatDesktop";
-export * from "./ChatMobile";
+// DEPRECATED & RETIRED: admin chat feature removed in Milestone M1 (R4)
+export {};

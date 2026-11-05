@@ -1,4 +1,4 @@
-import { LayoutDashboard, MessageCircle, User, ShoppingBag, Clock, CheckCircle, Package, Truck, Loader2, Bell } from "lucide-react";
+import { LayoutDashboard, User, ShoppingBag, Clock, CheckCircle, Package, Truck, Loader2, Bell } from "lucide-react";
 import { Link } from "react-router";
 import { useCustomerDashboard } from "~/hooks";
 import { cn } from "~/lib/utils";
@@ -121,16 +121,6 @@ export function DashboardDesktop() {
             </h3>
             
             <div className="grid grid-cols-1 gap-4">
-                <Link to="/customer/chat" className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex items-start gap-4">
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <MessageCircle size={24} />
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-black uppercase italic tracking-tight text-slate-900">Konsultasi</h4>
-                        <p className="text-[10px] font-bold text-slate-400 mt-1 leading-relaxed italic">Hubungi tim desainer kami.</p>
-                    </div>
-                </Link>
-
                 <Link to="/customer/progress-pesanan" className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex items-start gap-4">
                     <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Truck size={24} />

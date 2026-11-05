@@ -1,5 +1,6 @@
 import { Link } from "react-router";
-import { Facebook, Instagram, Twitter, Linkedin } from "lucide-react";
+import { Facebook, Instagram, Twitter } from "lucide-react";
+import { SOCIAL_LINKS } from "~/config/socialLinks";
 
 export default function NewFooter() {
     return (
@@ -53,16 +54,34 @@ export default function NewFooter() {
                         <span className="text-sm font-medium text-zinc-900">
                             Follow us on
                         </span>
-                        <div className="flex gap-4">
-                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-orange-100 transition-colors cursor-pointer">
-                                <Facebook className="w-4 h-4 text-zinc-700" />
-                            </div>
-                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-orange-100 transition-colors cursor-pointer">
-                                <Instagram className="w-4 h-4 text-zinc-700" />
-                            </div>
-                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-orange-100 transition-colors cursor-pointer">
-                                <Linkedin className="w-4 h-4 text-zinc-700" />
-                            </div>
+                        <div className="flex gap-3">
+                            <a
+                                href={SOCIAL_LINKS.instagram.url || "https://instagram.com/fcsvapparel"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Instagram FCSV Apparel"
+                                className="w-11 h-11 md:w-9 md:h-9 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-orange-100 hover:text-orange-600 transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none text-zinc-700"
+                            >
+                                <Instagram className="w-5 h-5 md:w-4 md:h-4" />
+                            </a>
+                            <a
+                                href={SOCIAL_LINKS.facebook.url || "https://facebook.com/fcsvapparel"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Facebook FCSV Apparel"
+                                className="w-11 h-11 md:w-9 md:h-9 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-orange-100 hover:text-orange-600 transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none text-zinc-700"
+                            >
+                                <Facebook className="w-5 h-5 md:w-4 md:h-4" />
+                            </a>
+                            <a
+                                href={SOCIAL_LINKS.twitter.url || "https://x.com/fcsvapparel"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Twitter FCSV Apparel"
+                                className="w-11 h-11 md:w-9 md:h-9 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-orange-100 hover:text-orange-600 transition-colors focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:outline-none text-zinc-700"
+                            >
+                                <Twitter className="w-5 h-5 md:w-4 md:h-4" />
+                            </a>
                         </div>
                     </div>
                 </div>

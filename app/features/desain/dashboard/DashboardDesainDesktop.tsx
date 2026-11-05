@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { Clock, Eye, CheckCircle, Package, Truck, Image as ImageIcon, CreditCard, ChevronLeft, MessageCircle, FileText, User, UploadCloud } from "lucide-react";
+import { Clock, Eye, CheckCircle, Package, Truck, Image as ImageIcon, CreditCard, ChevronLeft, FileText, User, UploadCloud } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -566,13 +565,6 @@ export function DashboardDesainDesktop() {
                         </div>
 
                         <div className="p-10 border-t border-slate-100 bg-white flex justify-end gap-4">
-                            <button 
-                                onClick={() => window.location.href = `/desain/chat?userId=${selectedOrder.customerId}&orderId=${selectedOrder.id}`}
-                                className="px-8 py-5 bg-slate-900 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg flex items-center gap-3 italic"
-                            >
-                                <MessageCircle size={16} />
-                                Chat Customer
-                            </button>
                             {selectedOrder.status === "DESAIN" && (
                                 selectedOrder.isWorking ? (
                                     <button 

@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
-import type { LogActivity } from "../UseLogActivity";
+import type { LogActivity } from "~/hooks/useLogActivity";
 
 interface LogActivityDetailMobileProps {
   activity: LogActivity;

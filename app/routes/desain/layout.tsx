@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   LogOut,
   ShoppingBag,
-  MessageCircle,
   User,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
@@ -12,7 +11,6 @@ import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import React from "react";
-import { chatService } from "~/services/chatService";
 import { orderService } from "~/services/orderService";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
@@ -20,15 +18,12 @@ import { cn } from "~/lib/utils";
 
 type MenuKey =
   | "dashboard"
-  | "chat"
   | "profile"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname === "/desain" || pathname.startsWith("/desain/dashboard"))
     return "dashboard";
-  if (pathname.startsWith("/desain/chat"))
-    return "chat";
   if (pathname.startsWith("/desain/profile")) return "profile";
   return undefined;
 };
@@ -39,12 +34,6 @@ const menuItems = [
     title: "Management Pesanan",
     icon: ShoppingBag,
     url: "/desain",
-  },
-  {
-    key: "chat" as MenuKey,
-    title: "Chat Customer",
-    icon: MessageCircle,
-    url: "/desain/chat",
   },
   {
     key: "profile" as MenuKey,
@@ -61,19 +50,9 @@ export function AppSidebar() {
   const { setOpenMobile, isMobile } = useSidebar();
   const active = pathToKey(location.pathname) ?? "dashboard";
 
-  const [unreadCount, setUnreadCount] = React.useState(0);
   const [pendingCount, setPendingCount] = React.useState(0);
 
   React.useEffect(() => {
-    const fetchUnread = async () => {
-      if (!user) return;
-      try {
-        const data = await chatService.getUnreadCount(user.id);
-        setUnreadCount(data.count || 0);
-      } catch (error) {
-        console.error("Failed to fetch unread chat count:", error);
-      }
-    };
     const fetchPending = async () => {
       if (!user) return;
       try {
@@ -89,10 +68,8 @@ export function AppSidebar() {
         console.error("Failed to fetch pending count:", error);
       }
     };
-    fetchUnread();
     fetchPending();
     const interval = setInterval(() => {
-        fetchUnread();
         fetchPending();
     }, 30000);
     return () => clearInterval(interval);
@@ -165,11 +142,6 @@ export function AppSidebar() {
                         <div className="w-8 h-8 rounded-full border-2 border-amber-500 bg-white flex items-center justify-center shrink-0 ml-auto shadow-sm">
                             <span className="text-neutral-800 text-sm font-bold leading-none">{pendingCount}</span>
                         </div>
-                      )}
-                      {item.key === "chat" && unreadCount > 0 && (
-                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 ml-2">
-                          {unreadCount}
-                        </span>
                       )}
                     </div>
                   </div>

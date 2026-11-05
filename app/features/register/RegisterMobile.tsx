@@ -2,7 +2,7 @@ import { Button } from "~/components/ui/button";
 import { Link, useLocation } from "react-router";
 import { Eye, EyeOff, ShieldCheck, Mail, Lock, User } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { useRegister } from "./UseRegister";
+import { useRegister } from "~/hooks/useRegister";
 import { Toast } from "~/components/ui/toast";
 
 export function RegisterMobile() {

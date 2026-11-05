@@ -1,6 +1,7 @@
 import { Search, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useManageAccount, type UserAccount } from "./UseManageAccount";
+import { useManageAccount } from "~/hooks/useManageAccount";
+import type { UserAccount } from "~/types";
 import { cn } from "~/lib/utils";
 import { useNavigate, useLocation } from "react-router";
 import { Toast } from "~/components/ui/toast";

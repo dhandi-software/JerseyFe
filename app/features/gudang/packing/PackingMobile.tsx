@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { Clock, Eye, CheckCircle, Package, ImageIcon, FileText, ChevronLeft, Search } from "lucide-react";
+import { Clock, Eye, CheckCircle, CheckCircle2, Package, ImageIcon, FileText, ChevronLeft, Search } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { orderService } from "~/services/orderService";
 import { UPLOADS_URL } from "~/api/client";
@@ -8,9 +7,12 @@ import { sortPlayersBySize, downloadPlayersPDF } from "~/lib/sizeUtils";
 import { Toast } from "~/components/ui/toast";
 
 import { usePacking } from "~/hooks/usePacking";
+import { useStorageLocations } from "~/hooks/useStorageLocations";
+import { StorageLocationBadge, StorageLocationSelect } from "~/components/storage";
 import type { PackingFilterTab, PackingOrderItem } from "~/types";
 
 export function PackingMobile() {
+    const storageModel = useStorageLocations();
     const {
         user,
         orders,
@@ -32,6 +34,8 @@ export function PackingMobile() {
         handleUpdateStatus,
         requestConfirmation,
         getStatusStyle,
+        handleToggleDetailStatus,
+        handleAssignStorageLocation,
     } = usePacking();
 
     if (selectedOrder) {
@@ -155,14 +159,48 @@ export function PackingMobile() {
                         {selectedOrder.playerInfo.length > 0 ? (
                             <div className="space-y-3">
                                 {selectedOrder.playerInfo.map((player: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-800">{player.name}</span>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Nomor: {player.number}</span>
-                                            <span className="text-[10px] font-bold text-slate-500 capitalize mt-0.5">Lengan: {player.sleeve}</span>
+                                    <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-800">{player.name}</span>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Nomor: {player.number}</span>
+                                                <span className="text-[10px] font-bold text-slate-500 capitalize mt-0.5">Lengan: {player.sleeve}</span>
+                                            </div>
+                                            <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center shadow-sm">
+                                                <span className="text-sm font-black text-[#D25026]">{player.size}</span>
+                                            </div>
                                         </div>
-                                        <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center shadow-sm">
-                                            <span className="text-sm font-black text-[#D25026]">{player.size}</span>
+
+                                        {/* Jersey Checklist Toggles */}
+                                        <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
+                                            <button
+                                                type="button"
+                                                disabled={!player.id}
+                                                onClick={() => player.id && handleToggleDetailStatus(selectedOrder.rawId, player.id, "statusBaju")}
+                                                className={cn(
+                                                    "flex-1 py-1.5 px-2 rounded-lg font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 border transition-all cursor-pointer",
+                                                    player.statusBaju
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                                        : "bg-white text-slate-500 border-slate-200"
+                                                )}
+                                            >
+                                                {player.statusBaju ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-slate-400" />}
+                                                Baju: {player.statusBaju ? "READY" : "BELUM"}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={!player.id}
+                                                onClick={() => player.id && handleToggleDetailStatus(selectedOrder.rawId, player.id, "statusCelana")}
+                                                className={cn(
+                                                    "flex-1 py-1.5 px-2 rounded-lg font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 border transition-all cursor-pointer",
+                                                    player.statusCelana
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                                        : "bg-white text-slate-500 border-slate-200"
+                                                )}
+                                            >
+                                                {player.statusCelana ? <CheckCircle2 size={12} className="text-emerald-600" /> : <Clock size={12} className="text-slate-400" />}
+                                                Celana: {player.statusCelana ? "READY" : "BELUM"}
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -172,6 +210,25 @@ export function PackingMobile() {
                                 <p className="text-[10px] font-bold text-slate-400 italic uppercase tracking-widest">Tidak ada data pemain</p>
                             </div>
                         )}
+                    </div>
+
+                    {/* Lokasi Toko Penyimpanan Card */}
+                    <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider italic">Lokasi Toko Penyimpanan</p>
+                            <p className="text-xs font-bold text-slate-700 mt-0.5">Tetapkan toko setelah packing selesai</p>
+                        </div>
+                        <StorageLocationSelect
+                            currentLocationId={selectedOrder.storageLocationId}
+                            currentLocation={selectedOrder.storageLocation}
+                            locations={storageModel.locations}
+                            onAssign={async (locId) => {
+                                await handleAssignStorageLocation(selectedOrder.rawId, locId);
+                                storageModel.fetchLocations();
+                            }}
+                            disabled={selectedOrder.status === "BATAL"}
+                            size="sm"
+                        />
                     </div>
                 </div>
 
@@ -277,7 +334,13 @@ export function PackingMobile() {
                             </div>
                             
                             <h3 className="text-lg font-black italic uppercase tracking-tight text-slate-900 mb-1 line-clamp-1">{order.customer}</h3>
-                            <p className="text-xs font-bold text-slate-500 mb-4 line-clamp-1">{order.product}</p>
+                            <p className="text-xs font-bold text-slate-500 mb-2 line-clamp-1">{order.product}</p>
+                            
+                            {(order.status === "SELESAI" || order.storageLocation) && (
+                                <div className="mb-3">
+                                    <StorageLocationBadge location={order.storageLocation} size="xs" />
+                                </div>
+                            )}
                             
                             <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">

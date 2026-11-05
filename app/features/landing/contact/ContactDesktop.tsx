@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Mail, MapPin, MessageSquare, Clock } from "lucide-react";
+import { Mail, MapPin, MessageSquare, Clock, Instagram, Facebook, Twitter, Share2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { SOCIAL_LINKS } from "~/config/socialLinks";
 
 export function ContactDesktop() {
     const [name, setName] = useState("");
@@ -87,6 +88,57 @@ export function ContactDesktop() {
                                     <h3 className="text-sm font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">Jam Operasional</h3>
                                     <span className="text-lg font-bold text-neutral-900 italic block mt-1">Setiap Hari</span>
                                     <p className="text-xs text-neutral-500 font-medium mt-1">Pukul 08:00 WIB - 21:00 WIB</p>
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-white rounded-3xl border border-neutral-100 shadow-sm flex items-start gap-4 transition-all hover:translate-y-[-4px] hover:shadow-md">
+                                <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl shrink-0">
+                                    <Share2 className="w-6 h-6" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">Kanal Social Media</h3>
+                                    <p className="text-xs text-neutral-500 font-medium mt-1">Ikuti update katalog dan promo terbaru kami di akun social media resmi.</p>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <a 
+                                            href={SOCIAL_LINKS.instagram.url}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            aria-label="Instagram FCSV Apparel"
+                                            className="social-media-link inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-700 hover:text-[#D25026] text-xs font-bold transition-colors"
+                                        >
+                                            <Instagram className="w-3.5 h-3.5" />
+                                            <span>Instagram</span>
+                                        </a>
+                                        <a 
+                                            href={SOCIAL_LINKS.tiktok.url}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            aria-label="TikTok FCSV Apparel"
+                                            className="social-media-link inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-700 hover:text-[#D25026] text-xs font-bold transition-colors"
+                                        >
+                                            <span>TikTok</span>
+                                        </a>
+                                        <a 
+                                            href={SOCIAL_LINKS.facebook.url}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            aria-label="Facebook FCSV Apparel"
+                                            className="social-media-link inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-700 hover:text-[#D25026] text-xs font-bold transition-colors"
+                                        >
+                                            <Facebook className="w-3.5 h-3.5" />
+                                            <span>Facebook</span>
+                                        </a>
+                                        <a 
+                                            href={SOCIAL_LINKS.twitter.url}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            aria-label="Twitter FCSV Apparel"
+                                            className="social-media-link inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-50 hover:bg-orange-50 text-neutral-700 hover:text-[#D25026] text-xs font-bold transition-colors"
+                                        >
+                                            <Twitter className="w-3.5 h-3.5" />
+                                            <span>Twitter / X</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

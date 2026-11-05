@@ -1,4 +1,4 @@
-import { useCreateAccount } from "./UseCreateAccount";
+import { useCreateAccount } from "~/hooks/useCreateAccount";
 import { useAuth } from "~/hooks/useAuth";
 import { cn } from "~/lib/utils";
 import { useState } from "react";

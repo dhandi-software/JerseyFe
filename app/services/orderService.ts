@@ -30,7 +30,17 @@ export const orderService = {
         return mapOrder(response.data);
     },
 
-    async getOrders(params?: { search?: string; status?: string }) {
+    async addPaymentInstallment(id: number, data: { amount: number; stage?: string; paymentMethod?: string; proofUrl?: string; notes?: string }) {
+        const response = await client.post(`/orders/${id}/payments`, data);
+        return response.data;
+    },
+
+    async getPaymentInstallments(id: number) {
+        const response = await client.get(`/orders/${id}/payments`);
+        return response.data;
+    },
+
+    async getOrders(params?: { search?: string; status?: string; storageLocationId?: number | string | null }) {
         const response = await client.get("/orders", { params });
         return (response.data || []).map(mapOrder);
     },
@@ -201,5 +211,21 @@ export const orderService = {
     async updateOrderNotesAndVideo(id: number, data: { videoUrl?: string; adminNote?: string; designNote?: string }) {
         const response = await client.patch(`/orders/${id}/notes-video`, data);
         return mapOrder(response.data);
+    },
+
+    async assignStorageLocation(id: number | string, storageLocationId: number | null) {
+        const response = await client.patch(`/orders/${id}/storage-location`, { storageLocationId });
+        return mapOrder(response.data);
+    },
+
+    async suggestCustomers(query: string) {
+        const response = await client.get("/orders/customers/suggest", { params: { q: query } });
+        return response.data;
+    },
+
+    async getCustomerHistory(params: { phone?: string; name?: string; customerId?: number }) {
+        const response = await client.get("/orders/customers/history", { params });
+        return response.data;
     }
 };
+

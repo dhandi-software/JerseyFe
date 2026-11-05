@@ -1,4 +1,4 @@
-import { useArticle } from "./UseArticle";
+import { useArticle } from "~/hooks/useArticle";
 import { ArticleBodySectionDesktop } from "~/features/landing/article/components/desktop/ArticleBodySectionDesktop";
 import { ArticleHeaderSectionDesktop } from "~/features/landing/article/components/desktop/ArticleHeaderSectionDesktop";
 import { ArticleRelatedNewsSectionDesktop } from "~/features/landing/article/components/desktop/ArticleRelatedNewsSectionDesktop";

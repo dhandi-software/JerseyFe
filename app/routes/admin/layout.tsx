@@ -16,12 +16,10 @@ import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
-import { chatService } from "~/services/chatService";
 import { adminApi } from "~/api/admin";
 import { orderService } from "~/services/orderService";
 import type { ContextType } from "~/root";
 import React from "react";
-import { MessageSquare } from "lucide-react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -31,7 +29,6 @@ type MenuKey =
   | "users"
   | "monitoring-pesanan"
   | "bahan-baju"
-  | "chat"
   | "omset"
   | "retur-barang"
   | "buat-pesanan"
@@ -42,7 +39,6 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
   if (pathname.startsWith("/admin/monitoring-pesanan")) return "monitoring-pesanan";
   if (pathname.startsWith("/admin/bahan-baju")) return "bahan-baju";
-  if (pathname.startsWith("/admin/chat")) return "chat";
   if (pathname.startsWith("/admin/omset")) return "omset";
   if (pathname.startsWith("/admin/retur-barang")) return "retur-barang";
   if (pathname.startsWith("/admin/buat-pesanan")) return "buat-pesanan";
@@ -96,12 +92,6 @@ const menuItems = [
     url: "/admin/retur-barang",
   },
   {
-    key: "chat" as MenuKey,
-    title: "Chat",
-    icon: MessageSquare,
-    url: "/admin/chat",
-  },
-  {
     key: "profile" as MenuKey,
     title: "Profil Saya",
     icon: User,
@@ -117,7 +107,6 @@ export function AppSidebar() {
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   const active = pathToKey(location.pathname) ?? "dashboard";
 
-  const [unreadCount, setUnreadCount] = React.useState(0);
   const [pendingCount, setPendingCount] = React.useState(0);
   const memoizedMenuItems = React.useMemo(() => menuItems, []);
 
@@ -135,15 +124,6 @@ export function AppSidebar() {
   }, [isMobile, navigate, logout, setOpenMobile, memoizedMenuItems]);
 
   React.useEffect(() => {
-    const fetchUnread = async () => {
-      if (!user) return;
-      try {
-        const data = await chatService.getUnreadCount(user.id);
-        setUnreadCount(data.count || 0);
-      } catch (error) {
-        console.error("Failed to fetch unread chat count:", error);
-      }
-    };
     const fetchPending = async () => {
       try {
         const data = await orderService.getOrders();
@@ -158,14 +138,12 @@ export function AppSidebar() {
         console.error("Failed to fetch pending count:", error);
       }
     };
-    fetchUnread();
     fetchPending();
     const interval = setInterval(() => {
-        fetchUnread();
         fetchPending();
     }, 30000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, []);
 
   return (
     <Sidebar className="border-r-0 bg-slate-950 overflow-y-hidden">
@@ -223,11 +201,6 @@ export function AppSidebar() {
                             <span className="text-white text-[10px] font-black leading-none">{pendingCount}</span>
                           </div>
                         </div>
-                      )}
-                      {item.key === "chat" && unreadCount > 0 && (
-                        <span className="bg-[#D25026] text-white text-[0.7rem] font-bold min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 ml-2">
-                          {unreadCount}
-                        </span>
                       )}
                     </div>
                   </div>

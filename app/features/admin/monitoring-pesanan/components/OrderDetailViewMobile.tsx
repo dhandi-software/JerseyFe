@@ -58,6 +58,8 @@ export interface OrderDetailViewMobileProps {
     handleEditMember?: (orderId: number, detailId: number, data: { playerName?: string; playerNumber?: string; playerSize?: string; statusBaju?: boolean; statusCelana?: boolean }) => Promise<any>;
     handleDeleteMember?: (orderId: number, detailId: number) => Promise<any>;
     handleUpdatePaymentDetails?: (orderId: number, data: { paymentType?: string; paidAmount?: number; remainingAmount?: number }) => Promise<any>;
+    locations?: any[];
+    onAssignStorageLocation?: (locationId: number | null) => Promise<void> | void;
 }
 
 export function OrderDetailViewMobile({
@@ -96,7 +98,9 @@ export function OrderDetailViewMobile({
     handleAddMember,
     handleEditMember,
     handleDeleteMember,
-    handleUpdatePaymentDetails
+    handleUpdatePaymentDetails,
+    locations,
+    onAssignStorageLocation
 }: OrderDetailViewMobileProps) {
     const currentBahan = findOrderBahan(selectedOrder, bahanList);
 
@@ -119,6 +123,8 @@ export function OrderDetailViewMobile({
                         isPrinting={isPrinting}
                         onPrint={handlePrintInvoice}
                         variant="mobile"
+                        locations={locations}
+                        onAssignStorageLocation={onAssignStorageLocation}
                     />
                 </div>
 

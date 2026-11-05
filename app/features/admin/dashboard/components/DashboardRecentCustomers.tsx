@@ -1,4 +1,4 @@
-import { MessageCircle, ArrowUpRight, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, ShoppingBag } from "lucide-react";
 import { cn } from "~/lib/utils";
 import type { DashboardRecentCustomer } from "~/types";
 
@@ -24,11 +24,7 @@ export function DashboardRecentCustomers({ recentCustomers, isMobile }: Dashboar
                         <div
                             key={`${customer.nama}-${customer.id}-${index}`}
                             onClick={() => {
-                                if (customer.isAdminOrder) {
-                                    window.location.href = "/admin/monitoring-pesanan";
-                                } else {
-                                    window.location.href = `/admin/chat?userId=${customer.id}`;
-                                }
+                                window.location.href = "/admin/monitoring-pesanan";
                             }}
                             className={cn(
                                 "p-4 rounded-2xl flex items-center gap-3 transition-all group cursor-pointer",
@@ -41,56 +37,25 @@ export function DashboardRecentCustomers({ recentCustomers, isMobile }: Dashboar
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-baseline">
                                     <div className="text-slate-900 text-sm font-semibold truncate">{customer.nama}</div>
-                                    {customer.lastMessageAt && (
-                                        <div className="text-[10px] text-slate-400 font-medium whitespace-nowrap ml-2">
-                                            {new Date(customer.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                    )}
                                 </div>
                                 <div className="text-slate-500 text-[11px] truncate flex items-center gap-1 mt-0.5">
-                                    {customer.lastMessageContent ? (
-                                        <>
-                                            <span className="shrink-0 text-orange-500">💬</span>
-                                            <span className="truncate italic font-medium">
-                                                {(() => {
-                                                    const text = customer.lastMessageContent;
-                                                    const limit = isMobile ? 25 : 40;
-                                                    return text.length > limit ? text.substring(0, limit) + "..." : text;
-                                                })()}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <span className="truncate opacity-70">{customer.category || "Pelanggan"}</span>
-                                    )}
+                                    <span className="truncate opacity-70">{customer.category || "Pelanggan"}</span>
                                 </div>
                             </div>
                             <div className={cn(
                                 "flex items-center gap-2 pr-2 transition-opacity",
                                 index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                             )}>
-                                {!customer.isAdminOrder ? (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            window.location.href = `/admin/chat?userId=${customer.id}`;
-                                        }}
-                                        title="Chat Pelanggan"
-                                        className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
-                                    >
-                                        <MessageCircle className="w-4 h-4" />
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            window.location.href = "/admin/monitoring-pesanan";
-                                        }}
-                                        title="Lihat Pesanan"
-                                        className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
-                                    >
-                                        <ShoppingBag className="w-4 h-4" />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.location.href = "/admin/monitoring-pesanan";
+                                    }}
+                                    title="Lihat Pesanan"
+                                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#E85C2F] text-[#E85C2F] hover:bg-[#E85C2F] hover:text-white transition-all shadow-sm"
+                                >
+                                    <ShoppingBag className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     ))

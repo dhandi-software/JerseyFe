@@ -1,4 +1,4 @@
-import { useArticle } from "./UseArticle";
+import { useArticle } from "~/hooks/useArticle";
 import { AdvertisementMobile } from "~/components/ui/AdvertisementMobile";
 import { ArticleHeaderSectionMobile } from "~/features/landing/article/components/mobile/ArticleHeaderSectionMobile";
 import { ArticleHeroSectionMobile } from "~/features/landing/article/components/mobile/ArticleHeroSectionMobile";

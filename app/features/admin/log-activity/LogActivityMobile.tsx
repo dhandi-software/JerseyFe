@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, ChevronsUpDown, Inbox, Menu } from "lucide-react";
 import { format } from "date-fns";
-import { useLogActivity, type LogActivity } from "./UseLogActivity";
+import { useLogActivity, type LogActivity } from "~/hooks/useLogActivity";
 import { cn } from "~/lib/utils";
 import { useNavigate } from "react-router";
 import { useSidebar } from "~/components/ui/sidebar";

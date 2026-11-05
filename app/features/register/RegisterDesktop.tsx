@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router";
 import { Eye, EyeOff, ShieldCheck, Mail, Lock, User } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "~/lib/utils";
-import { useRegister } from "./UseRegister";
+import { useRegister } from "~/hooks/useRegister";
 import { Toast } from "~/components/ui/toast";
 
 export function RegisterDesktop() {
@@ -20,7 +20,7 @@ export function RegisterDesktop() {
     } = useRegister();
 
     return (
-        <main className="relative min-h-screen w-full flex items-center justify-center overflow-x-hidden font-geist py-8 lg:py-12 
+        <main className="relative text-sub min-h-screen w-full flex items-center justify-center overflow-x-hidden font-geist py-8 lg:py-12 
             bg-[#0F172A] 
             before:content-[''] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_30%,_rgba(79,70,229,0.3)_0%,_transparent_50%),radial-gradient(circle_at_80%_70%,_rgba(6,182,212,0.2)_0%,_transparent_50%),radial-gradient(circle_at_50%_50%,_rgba(124,58,237,0.1)_0%,_transparent_70%)]
             selection:bg-indigo-500 selection:text-white"

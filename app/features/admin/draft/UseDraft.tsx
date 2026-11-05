@@ -1,6 +1,6 @@
-export {
-    useDraft,
-    type DraftArticle,
-    type UseDraftOptions,
-    type UseDraftReturn,
-} from "~/hooks/useDraft";
+/**
+ * @deprecated RETIRED in Milestone M4.
+ * This shim file has been retired per Requirement R6.
+ * All consumers now import directly from ~/hooks/useDraft.
+ */
+export {};

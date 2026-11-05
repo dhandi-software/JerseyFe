@@ -1,7 +1,6 @@
-export { useCreateArticle } from "~/hooks/useCreateArticle";
-export type {
-    UseCreateArticleOptions,
-    UseCreateArticleReturn,
-    ArticleErrors,
-    ArticlePreviewData,
-} from "~/types";
+/**
+ * @deprecated RETIRED in Milestone M4.
+ * This shim file has been retired per Requirement R6.
+ * All consumers now import directly from ~/hooks/useCreateArticle.
+ */
+export {};

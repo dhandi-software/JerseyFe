@@ -1,9 +1,7 @@
-// Customer Layout
 import { Outlet, useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import {
   LayoutDashboard,
   LogOut,
-  MessageCircle,
   Trophy,
   User,
   ShoppingBag,
@@ -13,10 +11,8 @@ import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
-import { chatService } from "~/services/chatService";
 import { profileApi } from "~/api/profileApi";
 import React from "react";
-import { io } from "socket.io-client";
 import { UPLOADS_URL } from "~/api/client";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
@@ -24,14 +20,12 @@ import { cn } from "~/lib/utils";
 
 type MenuKey =
   | "dashboard"
-  | "chat"
   | "profile"
   | "custom-jersey"
   | "progress-pesanan"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
-  if (pathname.startsWith("/customer/chat")) return "chat";
   if (pathname.startsWith("/customer/profile")) return "profile";
   if (pathname.startsWith("/customer/custom-jersey")) return "custom-jersey";
   if (pathname.startsWith("/customer/progress-pesanan")) return "progress-pesanan";
@@ -46,12 +40,6 @@ const menuItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     url: "/customer",
-  },
-  {
-    key: "chat" as MenuKey,
-    title: "Konsultasi Desain",
-    icon: MessageCircle,
-    url: "/customer/chat",
   },
   {
     key: "custom-jersey" as MenuKey,
@@ -81,23 +69,6 @@ export function AppSidebar() {
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   const _isMobile = rootData?.isMobile ?? isMobile;
   const active = pathToKey(location.pathname) ?? "dashboard";
-  const [unreadCount, setUnreadCount] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!user) return;
-    const fetchData = async () => {
-      // Fetch Chat Unread Count
-      chatService.getUnreadCount(user.id)
-        .then(data => setUnreadCount(data.count || 0))
-        .catch(err => console.error("Sidebar Chat Error:", err));
-    };
-    fetchData();
-    const intervalId = setInterval(fetchData, 30000);
-    return () => clearInterval(intervalId);
-  }, [user]);
-
-  // Socket logic removed as academic timeline (acara) is disabled.
-  // We can re-add for chat notifications if needed, but keeping it simple for now.
 
   const handleNavigate = (key: MenuKey) => {
     const item = menuItems.find((item) => item.key === key);
@@ -162,11 +133,6 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
-                      {item.key === "chat" && unreadCount > 0 && (
-                        <div className="bg-[#00a884] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
-                          {unreadCount}
-                        </div>
-                      )}
                     </div>
                   </div>
                 );

@@ -1,7 +1,7 @@
 import { ArrowLeft, Eye, EyeOff, Save, ShieldCheck, User as UserIcon } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
-import { useEditAccount } from "./UseEditAccount";
+import { useEditAccount } from "~/hooks/useEditAccount";
 import { useAuth } from "~/hooks/useAuth";
 
 export function EditAccountDesktop() {

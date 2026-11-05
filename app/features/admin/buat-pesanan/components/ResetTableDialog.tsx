@@ -30,7 +30,7 @@ export function ResetTableDialog({
                     className={
                         variant === "desktop"
                             ? "rounded-xl h-10 px-4 border-neutral-200 text-[10px] font-black uppercase tracking-widest italic flex gap-2 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all cursor-pointer"
-                            : "rounded-xl h-9 px-3 border-neutral-200 text-[9px] font-black uppercase tracking-widest italic flex gap-1.5 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all cursor-pointer"
+                            : "rounded-xl h-11 px-3.5 border-neutral-200 text-xs font-bold flex gap-1.5 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all cursor-pointer"
                     }
                 >
                     <Trash2 className="w-3.5 h-3.5" />

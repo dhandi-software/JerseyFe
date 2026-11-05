@@ -13,13 +13,15 @@ import {
     PaginationNext,
     PaginationEllipsis,
 } from "~/components/ui/pagination";
-import { useMonitoringPesanan } from "~/hooks";
+import { useMonitoringPesanan, useStorageLocations } from "~/hooks";
+import { StorageLocationFilterBar, StorageLocationSelect, StorageLocationManagerModal } from "~/components/storage";
 import { OrderMembersSubTable } from "./components/OrderMembersSubTable";
 import { OrderDetailViewDesktop } from "./components/OrderDetailViewDesktop";
 import { getStatusStyle, findOrderBahan, resolveUploadImageUrl } from "./utils";
 import type { MonitoringFilterTab, MonitoringSortOption } from "~/types";
 
 export function MonitoringPesananDesktop() {
+    const storageModel = useStorageLocations();
     const {
         orders,
         loading,
@@ -31,6 +33,8 @@ export function MonitoringPesananDesktop() {
         setToast,
         filterTab,
         setFilterTab,
+        locationFilter,
+        setLocationFilter,
         searchQuery,
         setSearchQuery,
         debouncedSearchQuery,
@@ -79,7 +83,8 @@ export function MonitoringPesananDesktop() {
         handleApproveLayout,
         handleRevisiLayout,
         handleSendRecommendations,
-        handleUpdatePaymentDetails
+        handleUpdatePaymentDetails,
+        handleAssignStorageLocation
     } = useMonitoringPesanan();
 
     if (selectedOrder) {
@@ -91,6 +96,11 @@ export function MonitoringPesananDesktop() {
                 onCloseToast={() => setToast(null)}
                 bahanList={bahanList}
                 designers={designers}
+                locations={storageModel.locations}
+                onAssignStorageLocation={async (locId) => {
+                    await handleAssignStorageLocation(selectedOrder.rawId, locId);
+                    storageModel.fetchLocations();
+                }}
                 isRecommendModalOpen={isRecommendModalOpen}
                 setIsRecommendModalOpen={setIsRecommendModalOpen}
                 tempRecommendedIds={tempRecommendedIds}
@@ -274,6 +284,19 @@ export function MonitoringPesananDesktop() {
                     </div>
                 </div>
 
+                {/* Storage Location Filter (When on SELESAI tab) */}
+                {filterTab === "SELESAI" && (
+                    <StorageLocationFilterBar
+                        locations={storageModel.locations}
+                        selectedLocationId={locationFilter}
+                        onSelectLocation={setLocationFilter}
+                        onOpenManager={() => storageModel.setIsManagerOpen(true)}
+                        totalOrdersInTab={orders.filter(o => o.status === "SELESAI").length}
+                        unassignedCount={orders.filter(o => o.status === "SELESAI" && !o.storageLocationId).length}
+                        variant="desktop"
+                    />
+                )}
+
                 {/* Data Table */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
@@ -286,13 +309,16 @@ export function MonitoringPesananDesktop() {
                                     <th className="px-6 py-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic">QTY</th>
                                     <th className="px-6 py-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic">Total Harga</th>
                                     <th className="px-6 py-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic">Status</th>
+                                    {filterTab === "SELESAI" && (
+                                        <th className="px-6 py-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic">Lokasi Toko</th>
+                                    )}
                                     <th className="px-6 py-6 text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 text-sm">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-20 text-center text-slate-400 font-medium">
+                                        <td colSpan={filterTab === "SELESAI" ? 8 : 7} className="px-6 py-20 text-center text-slate-400 font-medium">
                                             <div className="flex flex-col items-center gap-4">
                                                 <Loader2 className="w-8 h-8 animate-spin text-[#D25026]" />
                                                 <p className="text-xs font-black uppercase tracking-widest italic">Memuat data pesanan...</p>
@@ -301,7 +327,7 @@ export function MonitoringPesananDesktop() {
                                     </tr>
                                 ) : paginatedOrders.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-20 text-center text-slate-400 font-medium">
+                                        <td colSpan={filterTab === "SELESAI" ? 8 : 7} className="px-6 py-20 text-center text-slate-400 font-medium">
                                             <p className="text-xs font-black uppercase tracking-widest italic">Pesanan tidak ditemukan</p>
                                         </td>
                                     </tr>
@@ -370,6 +396,21 @@ export function MonitoringPesananDesktop() {
                                                         {order.status}
                                                     </span>
                                                 </td>
+                                                {filterTab === "SELESAI" && (
+                                                    <td className="px-6 py-5">
+                                                        <StorageLocationSelect
+                                                            currentLocationId={order.storageLocationId}
+                                                            currentLocation={order.storageLocation}
+                                                            locations={storageModel.locations}
+                                                            onAssign={async (locId) => {
+                                                                await handleAssignStorageLocation(order.rawId, locId);
+                                                                storageModel.fetchLocations();
+                                                            }}
+                                                            disabled={order.status === "BATAL"}
+                                                            size="sm"
+                                                        />
+                                                    </td>
+                                                )}
                                                 <td className="px-6 py-5 text-center">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <Button 
@@ -472,6 +513,17 @@ export function MonitoringPesananDesktop() {
                     </div>
                 )}
             </div>
+
+            {/* Storage Location Manager Modal */}
+            <StorageLocationManagerModal
+                isOpen={storageModel.isManagerOpen}
+                onClose={() => storageModel.setIsManagerOpen(false)}
+                locations={storageModel.locations}
+                onCreate={storageModel.createLocation}
+                onUpdate={storageModel.updateLocation}
+                onDelete={storageModel.deleteLocation}
+                loading={storageModel.loading}
+            />
         </div>
     );
 }

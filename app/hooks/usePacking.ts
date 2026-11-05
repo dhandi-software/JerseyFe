@@ -53,6 +53,8 @@ export function usePacking(): UsePackingReturn {
                         hour: "2-digit",
                         minute: "2-digit",
                     }),
+                    storageLocationId: o.storageLocationId ?? null,
+                    storageLocation: o.storageLocation ?? null,
                     playerInfo: sortPlayersBySize(
                         (o.details || []).map((d: any) => {
                             let baseSize = d.playerSize || "-";
@@ -63,11 +65,14 @@ export function usePacking(): UsePackingReturn {
                                 sleeve = parts[1].replace(")", "").trim();
                             }
                             return {
+                                id: d.id,
                                 name: d.playerName || "-",
                                 number: d.playerNumber || "-",
                                 size: baseSize,
                                 sleeve: sleeve,
                                 playerSize: d.playerSize,
+                                statusBaju: Boolean(d.statusBaju),
+                                statusCelana: Boolean(d.statusCelana),
                             };
                         }),
                     ),
@@ -180,6 +185,85 @@ export function usePacking(): UsePackingReturn {
         }
     };
 
+    const handleToggleDetailStatus = async (
+        orderRawId: number,
+        detailId: number,
+        field: "statusBaju" | "statusCelana"
+    ) => {
+        const order = orders.find((o) => o.rawId === orderRawId);
+        if (!order) return;
+        const player = order.playerInfo.find((p) => p.id === detailId);
+        if (!player) return;
+        const currentValue = Boolean(player[field]);
+        const nextValue = !currentValue;
+
+        // Optimistic UI update
+        const updatePlayers = (players: PackingPlayerInfo[]) =>
+            players.map((p) => (p.id === detailId ? { ...p, [field]: nextValue } : p));
+
+        setOrders((prev) =>
+            prev.map((o) => (o.rawId === orderRawId ? { ...o, playerInfo: updatePlayers(o.playerInfo) } : o))
+        );
+        if (selectedOrder?.rawId === orderRawId) {
+            setSelectedOrder((prev) => (prev ? { ...prev, playerInfo: updatePlayers(prev.playerInfo) } : null));
+        }
+
+        try {
+            await orderService.updateMemberItemStatus(detailId, { [field]: nextValue });
+            setToast({
+                title: `Status ${field === "statusBaju" ? "Baju" : "Celana"} ${player.name} diubah ke ${nextValue ? "READY" : "BELUM"}`,
+                variant: "success",
+            });
+        } catch (error) {
+            console.error("Gagal memperbarui status checklist pemain:", error);
+            // Rollback on failure
+            const rollbackPlayers = (players: PackingPlayerInfo[]) =>
+                players.map((p) => (p.id === detailId ? { ...p, [field]: currentValue } : p));
+
+            setOrders((prev) =>
+                prev.map((o) => (o.rawId === orderRawId ? { ...o, playerInfo: rollbackPlayers(o.playerInfo) } : o))
+            );
+            if (selectedOrder?.rawId === orderRawId) {
+                setSelectedOrder((prev) => (prev ? { ...prev, playerInfo: rollbackPlayers(prev.playerInfo) } : null));
+            }
+            setToast({
+                title: "Gagal memperbarui status checklist pemain",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleAssignStorageLocation = async (
+        orderRawId: number,
+        storageLocationId: number | null
+    ) => {
+        try {
+            await orderService.assignStorageLocation(orderRawId, storageLocationId);
+            setOrders((prev) =>
+                prev.map((o) =>
+                    o.rawId === orderRawId ? { ...o, storageLocationId } : o
+                )
+            );
+            if (selectedOrder?.rawId === orderRawId) {
+                setSelectedOrder((prev) =>
+                    prev ? { ...prev, storageLocationId } : null
+                );
+            }
+            setToast({
+                title: storageLocationId
+                    ? "Lokasi toko pesanan berhasil ditetapkan"
+                    : "Lokasi toko pesanan berhasil dilepas",
+                variant: "success",
+            });
+        } catch (error) {
+            console.error("Gagal menetapkan lokasi toko:", error);
+            setToast({
+                title: "Gagal menetapkan lokasi penyimpanan",
+                variant: "destructive",
+            });
+        }
+    };
+
     return {
         user,
         orders,
@@ -201,5 +285,7 @@ export function usePacking(): UsePackingReturn {
         handleUpdateStatus,
         requestConfirmation,
         getStatusStyle,
+        handleToggleDetailStatus,
+        handleAssignStorageLocation,
     };
 }

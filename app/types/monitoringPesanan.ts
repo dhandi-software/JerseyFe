@@ -1,10 +1,14 @@
+import type { OrderPayment } from "./payment";
+import type { StorageLocation } from "./storageLocation";
+
 export interface OrderMember {
     id?: number;
-    productId?: number;
+    productId?: number | null;
     productTitle?: string;
     playerName?: string;
     playerNumber?: string | number;
     playerSize?: string;
+    unitPrice?: number;
     statusBaju?: boolean;
     statusCelana?: boolean;
 }
@@ -39,6 +43,11 @@ export interface MonitoringOrder {
     remainingAmount?: number;
     isAdminOrder: boolean;
     totalAmount: number;
+    subtotalAmount?: number;
+    discount?: number;
+    materialId?: number | null;
+    materialName?: string | null;
+    materialPrice?: number | null;
     shippingMethod?: string;
     shippingAddress?: string;
     mockupUrl?: string;
@@ -50,6 +59,9 @@ export interface MonitoringOrder {
     printUrl?: string;
     finishingUrl?: string;
     details: OrderMember[];
+    payments?: OrderPayment[];
+    storageLocationId?: number | null;
+    storageLocation?: StorageLocation | null;
     dateTime: string;
 }
 

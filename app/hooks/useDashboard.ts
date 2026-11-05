@@ -2,15 +2,27 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { adminApi } from "~/api/admin";
 import { orderService } from "~/services/orderService";
 import { computeDashboardStatsFromOrders } from "~/lib/omsetRevenueUtils";
-import type { TimeView, DashboardStatsData } from "~/types";
+import { MONTHS, START_YEAR } from "~/features/admin/omset/constants";
+import type { TimeView, DashboardStatsData, MonthOption } from "~/types";
 
 export function useDashboard() {
     const [isMounted, setIsMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showWelcomeToast, setShowWelcomeToast] = useState(false);
-    const [timeView, setTimeView] = useState<TimeView>('daily');
+    const [timeView, setTimeViewState] = useState<TimeView>('daily');
+    const [selectedYear, setSelectedYear] = useState<number | undefined>(undefined);
+    const [selectedMonth, setSelectedMonth] = useState<number | undefined>(undefined);
+
     const [showDropdown, setShowDropdown] = useState(false);
+    const [showYearDropdown, setShowYearDropdown] = useState(false);
+    const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const yearDropdownRef = useRef<HTMLDivElement>(null);
+    const monthDropdownRef = useRef<HTMLDivElement>(null);
     const chartScrollRef = useRef<HTMLDivElement>(null);
+
+    const [rawOrdersCache, setRawOrdersCache] = useState<any[] | null>(null);
 
     const [statsData, setStatsData] = useState<DashboardStatsData>({
         totalCustomer: 0,
@@ -31,6 +43,70 @@ export function useDashboard() {
         topBuyer: { name: "-", category: "-", initial: "-" },
         newOrders: []
     });
+
+    const currentYear = new Date().getFullYear();
+    const currentMonthVal = new Date().getMonth() + 1;
+    const currentDayVal = new Date().getDate();
+
+    const years = useMemo(() => {
+        const list: number[] = [];
+        for (let y = currentYear; y >= START_YEAR; y--) {
+            list.push(y);
+        }
+        return list;
+    }, [currentYear]);
+
+    const filteredMonths: MonthOption[] = useMemo(() => {
+        const activeYear = selectedYear || currentYear;
+        return activeYear === currentYear
+            ? MONTHS.filter(m => m.value <= currentMonthVal)
+            : MONTHS;
+    }, [selectedYear, currentYear, currentMonthVal]);
+
+    const setTimeView = useCallback((view: TimeView) => {
+        setTimeViewState(view);
+        setShowDropdown(false);
+        setShowYearDropdown(false);
+        setShowMonthDropdown(false);
+
+        if (view === 'monthly') {
+            setSelectedYear(prev => prev || new Date().getFullYear());
+        } else if (view === 'yearly') {
+            setSelectedMonth(undefined);
+            setSelectedYear(undefined);
+        } else {
+            setSelectedYear(undefined);
+            setSelectedMonth(undefined);
+        }
+    }, []);
+
+    // Keep month selection valid if user switches year back to currentYear
+    useEffect(() => {
+        if (selectedYear === currentYear && selectedMonth && selectedMonth > currentMonthVal) {
+            setSelectedMonth(undefined);
+        }
+    }, [selectedYear, selectedMonth, currentYear, currentMonthVal]);
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+                setShowDropdown(false);
+            }
+            if (yearDropdownRef.current && !yearDropdownRef.current.contains(target)) {
+                setShowYearDropdown(false);
+            }
+            if (monthDropdownRef.current && !monthDropdownRef.current.contains(target)) {
+                setShowMonthDropdown(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         setIsMounted(true);
@@ -57,6 +133,9 @@ export function useDashboard() {
             const statsPayload = statsRes.status === "fulfilled" ? statsRes.value?.data : null;
             const adminCount = adminRes.status === "fulfilled" ? adminRes.value?.data?.count : 0;
             const rawOrders = ordersRes.status === "fulfilled" && Array.isArray(ordersRes.value) ? ordersRes.value : null;
+            if (rawOrders !== null) {
+                setRawOrdersCache(rawOrders);
+            }
             const computed = rawOrders !== null ? computeDashboardStatsFromOrders(rawOrders) : null;
 
             const mergedRecentCustomers = computed
@@ -105,8 +184,47 @@ export function useDashboard() {
     }, [fetchDashboardData]);
 
     const activeData = useMemo(() => {
+        if (rawOrdersCache !== null) {
+            if (timeView === 'monthly') {
+                const targetYear = selectedYear || currentYear;
+                if (selectedMonth) {
+                    const computed = computeDashboardStatsFromOrders(rawOrdersCache, {
+                        year: targetYear,
+                        month: selectedMonth
+                    });
+                    if (targetYear === currentYear && selectedMonth === currentMonthVal) {
+                        return computed.salesData.daily.filter(d => {
+                            const dayNum = parseInt(d.name.split(' ')[0], 10);
+                            return isNaN(dayNum) || dayNum <= currentDayVal;
+                        });
+                    }
+                    return computed.salesData.daily;
+                }
+                const computed = computeDashboardStatsFromOrders(rawOrdersCache, {
+                    year: targetYear
+                });
+                return computed.salesData.monthly;
+            }
+
+            if (timeView === 'yearly' && selectedYear) {
+                const computed = computeDashboardStatsFromOrders(rawOrdersCache, {
+                    year: selectedYear
+                });
+                return computed.salesData.monthly;
+            }
+        }
+
         return statsData.salesData[timeView] || [];
-    }, [statsData.salesData, timeView]);
+    }, [
+        rawOrdersCache,
+        statsData.salesData,
+        timeView,
+        selectedYear,
+        selectedMonth,
+        currentYear,
+        currentMonthVal,
+        currentDayVal
+    ]);
 
     const currentTotal = useMemo(() => {
         return activeData.reduce((sum, item) => sum + (Number(item.pv) || 0), 0);
@@ -118,7 +236,7 @@ export function useDashboard() {
         if (chartScrollRef.current && !isEmpty) {
             chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
         }
-    }, [timeView, statsData, currentTotal, activeData]);
+    }, [timeView, selectedYear, selectedMonth, statsData, currentTotal, activeData]);
 
     const trend = useMemo(() => {
         let isDecrease = false;
@@ -147,8 +265,21 @@ export function useDashboard() {
         setShowWelcomeToast,
         timeView,
         setTimeView,
+        selectedYear,
+        setSelectedYear,
+        selectedMonth,
+        setSelectedMonth,
         showDropdown,
         setShowDropdown,
+        showYearDropdown,
+        setShowYearDropdown,
+        showMonthDropdown,
+        setShowMonthDropdown,
+        dropdownRef,
+        yearDropdownRef,
+        monthDropdownRef,
+        years,
+        filteredMonths,
         statsData,
         activeData,
         currentTotal,
