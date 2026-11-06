@@ -96,11 +96,10 @@ export function HomeCompanyProfileBanner({
 
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
                         <Link
-                            to="/about"
-                            className="min-h-[44px] inline-flex items-center gap-1 text-xs sm:text-[13px] font-semibold text-[#5B1D99] hover:text-[#3B1258] underline-offset-4 hover:underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B1D99] rounded-xs"
+                            to="/about#lokasi-workshop"
+                            className="min-h-[44px] inline-flex items-center text-xs sm:text-[13px] font-semibold text-[#5B1D99] hover:text-[#3B1258] underline-offset-4 hover:underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B1D99] rounded-xs"
                         >
-                            <span>Lihat lokasi</span>
-                            <span aria-hidden="true">↗</span>
+                            Profil & Lokasi Workshop
                         </Link>
                         <Link
                             to="/visi-misi"

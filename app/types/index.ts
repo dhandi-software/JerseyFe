@@ -32,3 +32,4 @@ export * from "./player";
 export * from "./storageLocation";
 export * from "./customerTracking";
 export * from "./orderMembers";
+export * from "./about";

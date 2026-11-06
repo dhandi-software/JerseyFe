@@ -50,3 +50,4 @@ export * from "./useOrderMembers";
 export * from "./useStorageLocations";
 export * from "./useCustomerTracking";
 export * from "./useCustomMaterialModal";
+export * from "./useAbout";
