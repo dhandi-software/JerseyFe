@@ -186,6 +186,21 @@ export function useBuatPesanan() {
         }]);
     };
 
+    const handleMaterialCreated = (createdBahan: any) => {
+        materialPricing.registerCreatedBahan(createdBahan);
+        const price = Number(createdBahan.harga) || 150000;
+        const img = createdBahan.imageUrl ? `${UPLOADS_URL}${createdBahan.imageUrl}` : "";
+        playerManager.setCustomDetails(prev =>
+            prev.map(row => ({
+                ...row,
+                productId: createdBahan.id,
+                productTitle: createdBahan.nama,
+                price,
+                image: img
+            }))
+        );
+    };
+
     // 5. Merge and return backward-compatible surface
     return {
         // Step & Nav
@@ -226,6 +241,7 @@ export function useBuatPesanan() {
         discountAmount: materialPricing.discountAmount,
         totalCalculated: materialPricing.totalCalculated,
         handleSelectBahan: materialPricing.handleSelectBahan,
+        handleMaterialCreated,
 
         // Payment & Shipping
         paymentType: orderSubmission.paymentType,

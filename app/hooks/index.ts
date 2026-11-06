@@ -49,3 +49,4 @@ export * from "./useMonitoringActions";
 export * from "./useOrderMembers";
 export * from "./useStorageLocations";
 export * from "./useCustomerTracking";
+export * from "./useCustomMaterialModal";

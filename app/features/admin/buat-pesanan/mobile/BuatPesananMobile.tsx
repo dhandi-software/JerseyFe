@@ -32,6 +32,7 @@ export function BuatPesananMobile({ title }: { title: string }) {
         setCustomerPhone,
         customDetails,
         handleSelectBahan,
+        handleMaterialCreated,
         handleDetailChange,
         handleAddMember,
         handleRemoveMember,
@@ -172,6 +173,8 @@ export function BuatPesananMobile({ title }: { title: string }) {
                             allBahan={allBahan}
                             selectedBahanId={selectedBahanId}
                             onSelectBahan={handleSelectBahan}
+                            onMaterialCreated={handleMaterialCreated}
+                            onToast={(msg, variant) => setToast({ show: true, message: msg, variant })}
                             isCustomMaterial={isCustomMaterial}
                             customMaterialName={customMaterialName}
                             onCustomMaterialNameChange={setCustomMaterialName}

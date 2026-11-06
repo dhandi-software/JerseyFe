@@ -55,6 +55,7 @@ export interface MaterialPricingState {
     totalRequiredKg: number;
     isOverLimit: boolean;
     handleSelectBahan: (val: string) => void;
+    registerCreatedBahan: (newBahan: BahanBajuItem) => void;
     setDirectProduct: React.Dispatch<React.SetStateAction<MaterialProduct | null>>;
     setMaterialPriceInputState: React.Dispatch<React.SetStateAction<number>>;
     setCustomMaterialNameState: React.Dispatch<React.SetStateAction<string>>;

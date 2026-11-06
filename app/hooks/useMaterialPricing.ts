@@ -135,6 +135,28 @@ export function useMaterialPricing({
         setMaterialPriceInputState(val);
     };
 
+    const registerCreatedBahan = (newBahan: MaterialOption) => {
+        setAllBahan(prev => {
+            const exists = prev.some(b => Number(b.id) === Number(newBahan.id));
+            return exists
+                ? prev.map(b => (Number(b.id) === Number(newBahan.id) ? newBahan : b))
+                : [newBahan, ...prev];
+        });
+        setIsCustomMaterial(false);
+        setCustomMaterialNameState("");
+        const price = Number(newBahan.harga) || 150000;
+        setMaterialPriceInputState(price);
+        setDirectProduct({
+            id: newBahan.id,
+            title: newBahan.nama,
+            price,
+            status: newBahan.status || "Tersedia",
+            kuantitasKg: Number(newBahan.kuantitasKg) || 0,
+            rasioKonversi: Number(newBahan.rasioKonversi) || 2.5,
+            image: newBahan.imageUrl ? `${UPLOADS_URL}${newBahan.imageUrl}` : ""
+        });
+    };
+
     return {
         allBahan,
         activeProduct,
@@ -157,6 +179,7 @@ export function useMaterialPricing({
         totalRequiredKg,
         isOverLimit,
         handleSelectBahan,
+        registerCreatedBahan,
         setDirectProduct,
         setMaterialPriceInputState,
         setCustomMaterialNameState

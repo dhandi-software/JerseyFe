@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { Label } from "~/components/ui/label";
 import { Input } from "~/components/ui/input";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { cn } from "~/lib/utils";
 import type { BahanOption } from "~/types/buatPesanan";
+import type { BahanBajuItem } from "~/types/material";
 import { useCustomerTracking } from "~/hooks/useCustomerTracking";
 import {
     CustomerAutoSuggestInput,
     CustomerRepeatBadge,
     CustomerHistoryModal
 } from "~/components/customer";
+import { CustomMaterialModal } from "./CustomMaterialModal";
 import type { CustomerSuggestion } from "~/types/customerTracking";
 
 interface CustomerDataSectionProps {
@@ -19,6 +22,8 @@ interface CustomerDataSectionProps {
     allBahan: BahanOption[];
     selectedBahanId: string;
     onSelectBahan: (bahanId: string) => void;
+    onMaterialCreated?: (createdBahan: BahanBajuItem) => void;
+    onToast?: (msg: string, variant: "success" | "destructive" | "default") => void;
     isCustomMaterial?: boolean;
     customMaterialName?: string;
     onCustomMaterialNameChange?: (val: string) => void;
@@ -36,12 +41,15 @@ export function CustomerDataSection({
     customerName, onCustomerNameChange,
     customerPhone, onCustomerPhoneChange,
     allBahan, selectedBahanId, onSelectBahan,
+    onMaterialCreated, onToast,
     isCustomMaterial = false, customMaterialName = "", onCustomMaterialNameChange,
     materialPrice = 150000, onMaterialPriceChange,
     discount = 0, onDiscountChange,
     subtotal = 0, total = 0,
     showValidation = false, variant = "desktop"
 }: CustomerDataSectionProps) {
+    const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+
     const {
         suggestions, isLoadingSuggestions, selectedCustomer, selectCustomer,
         clearSelectedCustomer, searchCustomers, historyData, isLoadingHistory,
@@ -53,6 +61,22 @@ export function CustomerDataSection({
         onCustomerNameChange(cust.customerName);
         if (cust.customerPhone) {
             onCustomerPhoneChange(cust.customerPhone);
+        }
+    };
+
+    const handleSelectBahanChange = (val: string) => {
+        if (val === "CUSTOM") {
+            setIsCustomModalOpen(true);
+            return;
+        }
+        onSelectBahan(val);
+    };
+
+    const handleMaterialCreatedSuccess = (createdBahan: BahanBajuItem) => {
+        if (onMaterialCreated) {
+            onMaterialCreated(createdBahan);
+        } else {
+            onSelectBahan(String(createdBahan.id));
         }
     };
 
@@ -115,7 +139,7 @@ export function CustomerDataSection({
                             )}
                         </div>
                         <CustomSelect 
-                            options={materialOptions} value={selectedBahanId} onChange={onSelectBahan}
+                            options={materialOptions} value={selectedBahanId} onChange={handleSelectBahanChange}
                             placeholder="Pilih Bahan"
                             className={cn(
                                 "w-full h-11 bg-neutral-50 border-none text-xs transition-all",
@@ -198,6 +222,14 @@ export function CustomerDataSection({
                     isOpen={isHistoryModalOpen} onClose={closeHistoryModal}
                     data={historyData} loading={isLoadingHistory} error={historyError}
                 />
+
+                <CustomMaterialModal
+                    isOpen={isCustomModalOpen}
+                    onClose={() => setIsCustomModalOpen(false)}
+                    onSuccess={handleMaterialCreatedSuccess}
+                    onToast={onToast}
+                    variant="mobile"
+                />
             </div>
         );
     }
@@ -245,7 +277,7 @@ export function CustomerDataSection({
                 <div id="field-bahan-baku">
                     <Label className="text-xs font-bold mb-2 block">Pilih Bahan Baku</Label>
                     <CustomSelect 
-                        options={materialOptions} value={selectedBahanId} onChange={onSelectBahan}
+                        options={materialOptions} value={selectedBahanId} onChange={handleSelectBahanChange}
                         placeholder="Pilih Bahan"
                         className={cn(
                             "w-full h-[3.25rem] bg-neutral-50 border-none transition-all",
@@ -360,6 +392,14 @@ export function CustomerDataSection({
             <CustomerHistoryModal
                 isOpen={isHistoryModalOpen} onClose={closeHistoryModal}
                 data={historyData} loading={isLoadingHistory} error={historyError}
+            />
+
+            <CustomMaterialModal
+                isOpen={isCustomModalOpen}
+                onClose={() => setIsCustomModalOpen(false)}
+                onSuccess={handleMaterialCreatedSuccess}
+                onToast={onToast}
+                variant="desktop"
             />
         </div>
     );
